@@ -37,7 +37,11 @@ export function formatIndividualSelections(
   return chunkMessage(lines.join("\n"));
 }
 
-/** Mensaje 2: selecciones que se repiten en 2 o 3 de los perfiles analizados. */
+/**
+ * Mensaje 2: selecciones que se repiten en 2 o 3 de los perfiles
+ * analizados, combinadas en una sola entrada por pick (cuota/EV/% éxito
+ * de cada informe que coincidió + explicación combinada de todos).
+ */
 export function formatRepeatedSelections(groups: SelectionGroup[]): string[] {
   if (groups.length === 0) {
     return ["🔁 *Recomendaciones*\n\nNinguna selección se repitió en 2 o más informes."];
@@ -46,27 +50,35 @@ export function formatRepeatedSelections(groups: SelectionGroup[]): string[] {
   const lines: string[] = ["🔁 *Recomendaciones*\n"];
 
   groups.forEach((group, idx) => {
+    const sorted = [...group.selections].sort((a, b) => a.sourceIndex - b.sourceIndex);
+
     lines.push(`\n*${idx + 1}. ${group.matchup} — ${group.market}*`);
-    lines.push(`Coincide en ${group.count} de 3 informes`);
-    group.selections
-      .sort((a, b) => a.sourceIndex - b.sourceIndex)
-      .forEach((s) => {
-        const details = [
-          s.odds ? `@${s.odds}` : null,
-          s.ev ? `EV: ${s.ev}` : null,
-          s.successRate ? `% Éxito: ${s.successRate}` : null,
-        ]
-          .filter(Boolean)
-          .join(" · ");
-        lines.push(
-          `• _${s.sourceLabel}${details ? ` (${details})` : ""}:_ ${
-            s.explanation || "Sin explicación detallada."
-          }`
-        );
-      });
+    lines.push(`Coincide en ${group.count} de 3 informes (${sorted.map((s) => s.sourceLabel).join(", ")})`);
+
+    const details = [
+      uniqueJoin(sorted.map((s) => s.odds), "Cuota"),
+      uniqueJoin(sorted.map((s) => s.ev), "EV"),
+      uniqueJoin(sorted.map((s) => s.successRate), "% Éxito"),
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    if (details) lines.push(details);
+
+    const combinedExplanation = sorted
+      .filter((s) => s.explanation)
+      .map((s) => `*${s.sourceLabel}:* ${s.explanation}`)
+      .join(" ");
+    lines.push(`_${combinedExplanation || "Sin explicación detallada."}_`);
   });
 
   return chunkMessage(lines.join("\n"));
+}
+
+/** Junta valores únicos (no vacíos) con " / ", con una etiqueta delante (p.ej. "Cuota: 1.85 / 1.90"). */
+function uniqueJoin(values: string[], label: string): string {
+  const unique = [...new Set(values.map((v) => v.trim()).filter(Boolean))];
+  if (unique.length === 0) return "";
+  return `${label}: ${unique.join(" / ")}`;
 }
 
 /** Parte un texto largo en trozos que caben en un mensaje de Telegram. */
