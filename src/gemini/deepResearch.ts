@@ -50,7 +50,10 @@ export async function runDeepResearch(
   });
   const context: BrowserContext = await browser.newContext({
     storageState: options.storageStatePath,
-    viewport: options.headless === false ? null : undefined,
+    // Viewport de escritorio explícito: en headless (Cloud Run) el
+    // viewport por defecto de Playwright es más estrecho y puede activar
+    // un layout responsive distinto al que se probó a mano.
+    viewport: options.headless === false ? null : { width: 1366, height: 768 },
   });
   await context.addInitScript(() => {
     Object.defineProperty(navigator, "webdriver", { get: () => undefined });
@@ -59,6 +62,7 @@ export async function runDeepResearch(
   try {
     const page = await context.newPage();
     await page.goto(GEMINI_URL, { waitUntil: "domcontentloaded" });
+    await waitForChatReady(page);
 
     await switchToFlashModel(page);
     await selectDeepResearchMode(page);
@@ -78,6 +82,25 @@ export async function runDeepResearch(
   } finally {
     await context.close();
     await browser.close();
+  }
+}
+
+/**
+ * Espera a que la caja de texto principal esté realmente visible antes
+ * de interactuar. gemini.google.com es una SPA pesada: "domcontentloaded"
+ * dispara mucho antes de que la interfaz de chat termine de montarse, y
+ * en headless (sin nadie mirando la pantalla) no hay margen extra como
+ * el que hay al probarlo a mano.
+ */
+async function waitForChatReady(page: import("playwright").Page): Promise<void> {
+  try {
+    await page.locator(SELECTORS.promptInput).first().waitFor({ state: "visible", timeout: 30_000 });
+  } catch {
+    throw new DeepResearchError(
+      "La interfaz de Gemini no terminó de cargar (la caja de texto principal nunca apareció). " +
+        "Puede ser un problema temporal de carga o que la sesión haya caducado.",
+      ""
+    );
   }
 }
 
