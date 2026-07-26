@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "gemini:login": "tsx src/gemini/captureLogin.ts",
+    "gemini:debug": "tsx src/gemini/debugOpen.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
