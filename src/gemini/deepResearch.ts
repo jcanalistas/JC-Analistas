@@ -82,23 +82,6 @@ export async function runDeepResearch(
 }
 
 /**
- * Ejecuta los 3 Deep Research de forma secuencial (no en paralelo) para no
- * saturar la misma sesión/cuenta de Google con varias pestañas a la vez,
- * lo que suele disparar bloqueos o comportamientos inestables en la UI.
- */
-export async function runDeepResearchBatch(
-  prompts: string[],
-  options: RunOptions
-): Promise<DeepResearchResult[]> {
-  const results: DeepResearchResult[] = [];
-  for (const prompt of prompts) {
-    const result = await runDeepResearch(prompt, options);
-    results.push(result);
-  }
-  return results;
-}
-
-/**
  * Gemini abre por defecto en el modelo "Flash-Lite", que no tiene Deep
  * Research disponible. Hay que cambiar antes al modelo "Flash".
  */

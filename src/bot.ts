@@ -1,7 +1,7 @@
 import { Markup, Telegraf } from "telegraf";
 import { env } from "./config/env";
 import { buildAllPrompts, SPORT_LABELS, type Sport } from "./config/prompts";
-import { runDeepResearchBatch, DeepResearchError } from "./gemini/deepResearch";
+import { runDeepResearch, DeepResearchError, type DeepResearchResult } from "./gemini/deepResearch";
 import { parseSelections, findRepeatedSelections, type Selection } from "./matching/matchSelections";
 import { formatIndividualSelections, formatRepeatedSelections } from "./format/telegramFormat";
 
@@ -53,14 +53,19 @@ bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
   researchInProgress = true;
   try {
     await ctx.reply(
-      `🔎 Lanzando los 3 Deep Research de ${SPORT_LABELS[sport]} en Gemini. Esto puede tardar varios minutos, te aviso cuando termine…`
+      `🔎 Lanzando los 3 Deep Research de ${SPORT_LABELS[sport]} en Gemini, uno detrás de otro. Cada uno puede tardar bastantes minutos — te aviso según vaya terminando cada uno.`
     );
 
     const prompts = buildAllPrompts(sport);
-    const results = await runDeepResearchBatch(prompts, {
-      storageStatePath: env.geminiStorageStatePath,
-      timeoutMinutes: env.deepResearchTimeoutMinutes,
-    });
+    const results: DeepResearchResult[] = [];
+    for (let i = 0; i < prompts.length; i++) {
+      const result = await runDeepResearch(prompts[i], {
+        storageStatePath: env.geminiStorageStatePath,
+        timeoutMinutes: env.deepResearchTimeoutMinutes,
+      });
+      results.push(result);
+      await ctx.reply(`✅ Deep Research ${i + 1}/${prompts.length} completado.`);
+    }
 
     const selectionsBySource: Selection[][] = results.map((r, idx) =>
       parseSelections(r.reportText, idx)
