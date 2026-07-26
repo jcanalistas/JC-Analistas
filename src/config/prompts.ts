@@ -14,8 +14,8 @@
 export type Sport = "futbol" | "tenis";
 
 export const SPORT_LABELS: Record<Sport, string> = {
-  futbol: "⚽ Fútbol",
-  tenis: "🎾 Tenis",
+  futbol: "Fútbol ⚽️",
+  tenis: "Tenis 🎾",
 };
 
 // TODO: sustituir por los prompts reales del usuario.
