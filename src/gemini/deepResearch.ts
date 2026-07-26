@@ -1,7 +1,7 @@
-import path from "node:path";
 import fs from "node:fs";
 import { chromium, type Browser, type BrowserContext } from "playwright";
 import { GEMINI_URL, SELECTORS } from "./selectors";
+import { ensureVirtualDisplay } from "./virtualDisplay";
 
 export interface DeepResearchResult {
   prompt: string;
@@ -43,20 +43,31 @@ export async function runDeepResearch(
     );
   }
 
-  // Mismo canal "chrome" real y flags anti-detección que en captureLogin.ts:
-  // aunque aquí ya reutilizamos una sesión logueada, Google puede volver a
-  // pedir verificación si detecta un navegador controlado por automatización.
+  // Google detecta y bloquea el uso de Gemini en Chrome headless real
+  // (muestra la página pública de "Sign in" en vez de la sesión logueada),
+  // incluso con cookies de sesión válidas. Por eso corremos SIEMPRE en
+  // modo "visible" (headless: false) contra un display virtual (Xvfb) en
+  // vez de usar el modo headless nativo de Chrome.
+  const headless = options.headless ?? false;
+  if (!headless) {
+    await ensureVirtualDisplay();
+  }
+
+  // Mismo canal "chrome" real y flags anti-detección que en captureLogin.ts.
   const browser: Browser = await chromium.launch({
-    headless: options.headless ?? true,
+    headless,
     channel: "chrome",
-    args: ["--disable-blink-features=AutomationControlled"],
+    args: [
+      "--disable-blink-features=AutomationControlled",
+      "--window-size=1366,768",
+      "--window-position=0,0",
+    ],
   });
   const context: BrowserContext = await browser.newContext({
     storageState: options.storageStatePath,
-    // Viewport de escritorio explícito: en headless (Cloud Run) el
-    // viewport por defecto de Playwright es más estrecho y puede activar
-    // un layout responsive distinto al que se probó a mano.
-    viewport: options.headless === false ? null : { width: 1366, height: 768 },
+    // viewport: null usa el tamaño real de la ventana (fijado arriba con
+    // --window-size) en vez de forzar un viewport interno distinto.
+    viewport: headless ? { width: 1366, height: 768 } : null,
   });
   await context.addInitScript(() => {
     Object.defineProperty(navigator, "webdriver", { get: () => undefined });
