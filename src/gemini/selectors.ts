@@ -22,14 +22,16 @@
  */
 export const GEMINI_URL = "https://gemini.google.com/app";
 
-// Ancla estable: el propio campo de texto por su rol de accesibilidad
-// (en vez de anclar por el texto del placeholder, que puede estar
-// pintado por CSS y no ser texto real del DOM).
-const TEXTBOX_SELECTOR = '[role="textbox"]';
+// Ancla estable: el campo de texto principal del chat. Un simple
+// `[role="textbox"]` también coincide con el buscador de conversaciones
+// del lateral, así que anclamos por el aria-label ("Pregunta a Gemini"):
+// al ser un div contenteditable (sin placeholder HTML nativo posible),
+// Google tiene que exponer ese texto vía aria-label para accesibilidad.
+const TEXTBOX_SELECTOR = '[aria-label="Pregunta a Gemini"]';
 
 export const SELECTORS = {
   // Caja de texto principal donde se escribe el prompt
-  promptInput: `${TEXTBOX_SELECTOR}, div[contenteditable="true"].ql-editor`,
+  promptInput: `${TEXTBOX_SELECTOR}, [role="textbox"], div[contenteditable="true"].ql-editor`,
 
   // Botón que muestra el modelo actual (p.ej. "Flash-Lite"), a la derecha
   // de la caja de texto. Usamos la posición relativa (Playwright

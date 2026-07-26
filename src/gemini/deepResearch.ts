@@ -9,6 +9,9 @@ export interface DeepResearchResult {
 }
 
 export class DeepResearchError extends Error {
+  /** Captura de pantalla del navegador en el momento del fallo, si se pudo tomar. */
+  public screenshot?: Buffer;
+
   constructor(message: string, public readonly promptPreview: string) {
     super(message);
     this.name = "DeepResearchError";
@@ -59,8 +62,9 @@ export async function runDeepResearch(
     Object.defineProperty(navigator, "webdriver", { get: () => undefined });
   });
 
+  let page: import("playwright").Page | undefined;
   try {
-    const page = await context.newPage();
+    page = await context.newPage();
     await page.goto(GEMINI_URL, { waitUntil: "domcontentloaded" });
     await waitForChatReady(page);
 
@@ -79,6 +83,20 @@ export async function runDeepResearch(
     }
 
     return { prompt, reportText };
+  } catch (err) {
+    // Adjunta una captura del momento exacto del fallo, para poder
+    // diagnosticar selectores rotos sin depender de reproducirlo a mano.
+    const screenshot = await page?.screenshot({ type: "png" }).catch(() => undefined);
+    if (err instanceof DeepResearchError) {
+      err.screenshot = screenshot;
+      throw err;
+    }
+    const wrapped = new DeepResearchError(
+      `Error inesperado automatizando Gemini: ${err instanceof Error ? err.message : String(err)}`,
+      prompt
+    );
+    wrapped.screenshot = screenshot;
+    throw wrapped;
   } finally {
     await context.close();
     await browser.close();
