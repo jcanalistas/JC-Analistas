@@ -99,31 +99,67 @@ exponer tu máquina (p. ej. con `ngrok http 8080`) y usar esa URL como
 
 ## 7. Desplegar en Cloud Run
 
-### 7.1 Subir la sesión de Gemini como secreto
+Estos comandos ya están rellenados con tu token de bot, tu ID de Telegram
+y un secreto de webhook generado aleatoriamente (están en tu `.env`
+local, que nunca se sube al repo). Ejecútalos tú desde tu terminal con
+`gcloud` autenticado (`gcloud auth login` y `gcloud config set project
+<TU_PROJECT_ID>` si no lo has hecho aún) — yo no tengo acceso a tu cuenta
+de Google Cloud para correrlos por ti.
+
+### 7.1 Subir los dos secretos (token del bot y sesión de Gemini)
+
+El token del bot y la sesión de Gemini se guardan en Secret Manager en
+vez de como variables de entorno planas, para que no queden visibles en
+la consola de Cloud Run:
 
 ```bash
+echo -n "8808749603:AAGWeLFuQfC52xHB6j3LBZgJx5m7jp7S5PM" | gcloud secrets create telegram-bot-token --data-file=-
+
 gcloud secrets create gemini-session --data-file=storage/gemini-session.json
 ```
 
-Cada vez que renueves la sesión (`npm run gemini:login`), sube una nueva
-versión:
+Cada vez que renueves la sesión de Gemini (`npm run gemini:login`), sube
+una nueva versión:
 
 ```bash
 gcloud secrets versions add gemini-session --data-file=storage/gemini-session.json
 ```
 
-### 7.2 Construir y desplegar
+Si alguna vez regeneras el token del bot en BotFather (`/revoke`), haz lo
+mismo con:
+
+```bash
+echo -n "TU_NUEVO_TOKEN" | gcloud secrets versions add telegram-bot-token --data-file=-
+```
+
+### 7.2 Construir y desplegar (primera vez)
 
 ```bash
 gcloud run deploy jc-analistas-bot \
   --source . \
   --region europe-southwest1 \
   --allow-unauthenticated \
-  --set-env-vars TELEGRAM_BOT_TOKEN=xxxx,TELEGRAM_ALLOWED_USER_ID=xxxx,WEBHOOK_SECRET_PATH=xxxx,DEEP_RESEARCH_TIMEOUT_MINUTES=20 \
-  --set-secrets /app/storage/gemini-session.json=gemini-session:latest \
+  --set-env-vars TELEGRAM_ALLOWED_USER_ID=8333423129,WEBHOOK_SECRET_PATH=20e723417527d2b37709339395e82ab78dd0c7a34aed14c4,DEEP_RESEARCH_TIMEOUT_MINUTES=20 \
+  --set-secrets /app/storage/gemini-session.json=gemini-session:latest,TELEGRAM_BOT_TOKEN=telegram-bot-token:latest \
   --timeout=3600 \
   --memory=2Gi \
   --cpu=2
+```
+
+Al terminar, `gcloud` imprime la URL pública del servicio (algo como
+`https://jc-analistas-bot-xxxxx-uc.a.run.app`). Cópiala para el siguiente
+paso.
+
+### 7.3 Segundo despliegue: añadir PUBLIC_URL
+
+El servicio necesita conocer su propia URL pública para registrar el
+webhook de Telegram al arrancar. Vuelve a desplegar añadiendo
+`PUBLIC_URL` con la URL que te dio el paso anterior:
+
+```bash
+gcloud run services update jc-analistas-bot \
+  --region europe-southwest1 \
+  --update-env-vars PUBLIC_URL=https://TU-URL-DE-CLOUD-RUN.a.run.app
 ```
 
 Notas:
@@ -131,12 +167,11 @@ Notas:
   bastante más que el timeout HTTP por defecto de Cloud Run.
 - `--memory=2Gi --cpu=2` porque Playwright + Chromium consumen bastante
   más que un contenedor Node.js típico.
-- Tras el primer despliegue, Cloud Run te da la URL pública del servicio.
-  Vuelve a desplegar (o usa `gcloud run services update`) añadiendo
-  `PUBLIC_URL=<esa URL>` a las variables de entorno para que el propio
-  servicio registre el webhook de Telegram correctamente al arrancar.
+- Necesitas haber hecho el paso 4 (`npm run gemini:login`) ANTES del
+  primer despliegue, porque `storage/gemini-session.json` se sube en el
+  paso 7.1.
 
-### 7.3 Verificar el webhook
+### 7.4 Verificar el webhook
 
 ```bash
 curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getWebhookInfo"
