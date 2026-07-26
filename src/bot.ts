@@ -1,4 +1,4 @@
-import { Markup, Telegraf } from "telegraf";
+import { Markup, Telegraf, type Context } from "telegraf";
 import { env } from "./config/env";
 import { buildAllPrompts, SPORT_LABELS, type Sport } from "./config/prompts";
 import { runDeepResearch, DeepResearchError, type DeepResearchResult } from "./gemini/deepResearch";
@@ -8,6 +8,10 @@ import { formatIndividualSelections, formatRepeatedSelections } from "./format/t
 export const bot = new Telegraf(env.telegramBotToken);
 
 let researchInProgress = false;
+
+// Botón fijo debajo del teclado, siempre visible, alternativa a escribir /research.
+const RESEARCH_BUTTON_TEXT = "🔎 Research";
+const mainKeyboard = Markup.keyboard([[RESEARCH_BUTTON_TEXT]]).resize();
 
 bot.use(async (ctx, next) => {
   const userId = ctx.from?.id?.toString();
@@ -20,11 +24,12 @@ bot.use(async (ctx, next) => {
 
 bot.start((ctx) =>
   ctx.reply(
-    "Bot de JC Analistas listo.\n\nComandos disponibles:\n/research — lanza los 3 Deep Research en Gemini y compara las selecciones."
+    "Bot de JC Analistas listo.\n\nToca el botón de abajo (o escribe /research) para lanzar los 3 Deep Research en Gemini y comparar las selecciones.",
+    mainKeyboard
   )
 );
 
-bot.command("research", async (ctx) => {
+async function startResearchFlow(ctx: Context) {
   if (researchInProgress) {
     await ctx.reply("Ya hay un Deep Research en curso, espera a que termine antes de lanzar otro.");
     return;
@@ -37,7 +42,10 @@ bot.command("research", async (ctx) => {
       Markup.button.callback(SPORT_LABELS.tenis, "research:tenis"),
     ])
   );
-});
+}
+
+bot.command("research", startResearchFlow);
+bot.hears(RESEARCH_BUTTON_TEXT, startResearchFlow);
 
 bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
   const sport = ctx.match[1] as Sport;
