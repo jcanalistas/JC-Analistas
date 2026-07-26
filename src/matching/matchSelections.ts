@@ -2,10 +2,12 @@ import { normalizeMarket, normalizeMatchup, similarity } from "./normalize";
 
 export interface Selection {
   sourceIndex: number; // qué deep research (0, 1, 2) la produjo
+  sourceLabel: string; // p.ej. "Tipster", "Analista cuantitativo", "Machine Learning"
   raw: string; // línea original tal cual la escribió Gemini
   matchup: string;
   market: string;
   odds: string;
+  ev: string;
   explanation: string;
 }
 
@@ -17,16 +19,20 @@ export interface SelectionGroup {
 }
 
 const SECTION_TITLE_RE = /selecciones finales/i;
-// N. Equipo local vs Equipo visitante | Mercado: X | Cuota: Y | Explicación: Z
+// N. Equipo local vs Equipo visitante | Mercado: X | Cuota: Y | EV: Z | Explicación: W
 const LINE_RE =
-  /^\s*\d+[.)]\s*(.+?)\s*\|\s*mercado:\s*(.+?)\s*\|\s*cuota:\s*(.+?)\s*\|\s*explicaci[oó]n:\s*(.+?)\s*$/i;
+  /^\s*\d+[.)]\s*(.+?)\s*\|\s*mercado:\s*(.+?)\s*\|\s*cuota:\s*(.+?)\s*\|\s*ev:\s*(.+?)\s*\|\s*explicaci[oó]n:\s*(.+?)\s*$/i;
 
 /**
  * Extrae las selecciones de la sección "SELECCIONES FINALES" de un informe.
  * Si el formato no viene exactamente como se pidió en el prompt, intenta
  * un parseo más permisivo línea por línea antes de rendirse.
  */
-export function parseSelections(reportText: string, sourceIndex: number): Selection[] {
+export function parseSelections(
+  reportText: string,
+  sourceIndex: number,
+  sourceLabel: string
+): Selection[] {
   const section = extractSection(reportText);
   if (!section) return [];
 
@@ -37,13 +43,13 @@ export function parseSelections(reportText: string, sourceIndex: number): Select
 
     const strict = LINE_RE.exec(trimmed);
     if (strict) {
-      const [, matchup, market, odds, explanation] = strict;
-      selections.push({ sourceIndex, raw: trimmed, matchup, market, odds, explanation });
+      const [, matchup, market, odds, ev, explanation] = strict;
+      selections.push({ sourceIndex, sourceLabel, raw: trimmed, matchup, market, odds, ev, explanation });
       continue;
     }
 
     const loose = parseLoose(trimmed);
-    if (loose) selections.push({ sourceIndex, raw: trimmed, ...loose });
+    if (loose) selections.push({ sourceIndex, sourceLabel, raw: trimmed, ...loose });
   }
   return selections;
 }
@@ -57,7 +63,7 @@ function extractSection(reportText: string): string | null {
 
 function parseLoose(
   line: string
-): { matchup: string; market: string; odds: string; explanation: string } | null {
+): { matchup: string; market: string; odds: string; ev: string; explanation: string } | null {
   const withoutNumber = line.replace(/^\s*\d+[.)]\s*/, "");
   const parts = withoutNumber.split("|").map((p) => p.trim());
   if (parts.length < 2) return null;
@@ -65,12 +71,13 @@ function parseLoose(
   const matchup = parts[0] ?? "";
   const market = (parts.find((p) => /mercado/i.test(p)) ?? parts[1] ?? "").replace(/mercado:?/i, "").trim();
   const odds = (parts.find((p) => /cuota/i.test(p)) ?? "").replace(/cuota:?/i, "").trim();
+  const ev = (parts.find((p) => /^ev\b/i.test(p)) ?? "").replace(/^ev:?/i, "").trim();
   const explanation = (parts.find((p) => /explicaci/i.test(p)) ?? "")
     .replace(/explicaci[oó]n:?/i, "")
     .trim();
 
   if (!matchup || !market) return null;
-  return { matchup, market, odds, explanation };
+  return { matchup, market, odds, ev, explanation };
 }
 
 const MATCHUP_SIMILARITY_THRESHOLD = 0.82;

@@ -56,22 +56,25 @@ bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
       `🔎 Lanzando los 3 Deep Research de ${SPORT_LABELS[sport]} en Gemini, uno detrás de otro. Cada uno puede tardar bastantes minutos — te aviso según vaya terminando cada uno.`
     );
 
-    const prompts = buildAllPrompts(sport);
+    const promptDefs = buildAllPrompts(sport);
     const results: DeepResearchResult[] = [];
-    for (let i = 0; i < prompts.length; i++) {
-      const result = await runDeepResearch(prompts[i], {
+    const labels: string[] = [];
+    for (let i = 0; i < promptDefs.length; i++) {
+      const { label, prompt } = promptDefs[i];
+      const result = await runDeepResearch(prompt, {
         storageStatePath: env.geminiStorageStatePath,
         timeoutMinutes: env.deepResearchTimeoutMinutes,
       });
       results.push(result);
-      await ctx.reply(`✅ Deep Research ${i + 1}/${prompts.length} completado.`);
+      labels.push(label);
+      await ctx.reply(`✅ ${label} (${i + 1}/${promptDefs.length}) completado.`);
     }
 
     const selectionsBySource: Selection[][] = results.map((r, idx) =>
-      parseSelections(r.reportText, idx)
+      parseSelections(r.reportText, idx, labels[idx])
     );
 
-    for (const chunk of formatIndividualSelections(results, selectionsBySource)) {
+    for (const chunk of formatIndividualSelections(labels, selectionsBySource)) {
       await ctx.reply(chunk, { parse_mode: "Markdown" });
     }
 
