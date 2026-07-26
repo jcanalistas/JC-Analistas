@@ -40,9 +40,20 @@ export async function runDeepResearch(
     );
   }
 
-  const browser: Browser = await chromium.launch({ headless: options.headless ?? true });
+  // Mismo canal "chrome" real y flags anti-detección que en captureLogin.ts:
+  // aunque aquí ya reutilizamos una sesión logueada, Google puede volver a
+  // pedir verificación si detecta un navegador controlado por automatización.
+  const browser: Browser = await chromium.launch({
+    headless: options.headless ?? true,
+    channel: "chrome",
+    args: ["--disable-blink-features=AutomationControlled"],
+  });
   const context: BrowserContext = await browser.newContext({
     storageState: options.storageStatePath,
+    viewport: options.headless === false ? null : undefined,
+  });
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, "webdriver", { get: () => undefined });
   });
 
   try {

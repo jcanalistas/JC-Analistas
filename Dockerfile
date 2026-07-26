@@ -11,6 +11,11 @@ COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build
 
+# El código usa channel: "chrome" (Google Chrome real) en vez del Chromium
+# por defecto, porque Google bloquea el login/uso de Gemini cuando detecta
+# un navegador controlado por automatización.
+RUN npx playwright install --with-deps chrome
+
 # El archivo de sesión de Gemini (storage/gemini-session.json) NO se copia
 # a la imagen: se monta en tiempo de ejecución desde Secret Manager
 # (ver README, sección de despliegue en Cloud Run).

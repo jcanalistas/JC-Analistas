@@ -19,14 +19,25 @@ const STORAGE_FILE = path.join(STORAGE_DIR, "gemini-session.json");
 async function main() {
   fs.mkdirSync(STORAGE_DIR, { recursive: true });
 
-  const browser = await chromium.launch({ headless: false });
-  const context = await browser.newContext();
+  // Usamos el canal "chrome" (Google Chrome real) en vez del Chromium que
+  // trae Playwright por defecto, y ocultamos las señales típicas de
+  // automatización (navigator.webdriver, flag de Blink). Sin esto, Google
+  // bloquea el login con "This browser or app may not be secure".
+  const browser = await chromium.launch({
+    headless: false,
+    channel: "chrome",
+    args: ["--disable-blink-features=AutomationControlled"],
+  });
+  const context = await browser.newContext({ viewport: null });
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+  });
   const page = await context.newPage();
 
   await page.goto("https://gemini.google.com/app");
 
   console.log("\n============================================================");
-  console.log("Se abrió una ventana de Chromium.");
+  console.log("Se abrió una ventana de Chrome.");
   console.log("1. Inicia sesión con la cuenta de Google que quieres usar para Gemini.");
   console.log("2. Completa cualquier verificación en dos pasos si te la pide.");
   console.log("3. Espera a ver el chat de Gemini cargado normalmente.");
