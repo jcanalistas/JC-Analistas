@@ -14,9 +14,16 @@ app.get("/", (_req, res) => {
 app.use(bot.webhookCallback(webhookPath));
 
 async function main() {
-  const webhookUrl = `${env.publicUrl.replace(/\/$/, "")}${webhookPath}`;
-  await bot.telegram.setWebhook(webhookUrl);
-  console.log(`Webhook registrado en: ${webhookUrl}`);
+  if (env.publicUrl) {
+    const webhookUrl = `${env.publicUrl.replace(/\/$/, "")}${webhookPath}`;
+    await bot.telegram.setWebhook(webhookUrl);
+    console.log(`Webhook registrado en: ${webhookUrl}`);
+  } else {
+    console.warn(
+      "PUBLIC_URL no está definida todavía: arrancando sin registrar el webhook de Telegram. " +
+        "Añade PUBLIC_URL y vuelve a desplegar en cuanto tengas la URL de este servicio."
+    );
+  }
 
   app.listen(env.port, () => {
     console.log(`Servidor escuchando en el puerto ${env.port}`);
