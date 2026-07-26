@@ -80,6 +80,51 @@ pulsa ENTER en la terminal. Esto genera
 > de login, vuelve a correr `npm run gemini:login` y actualiza el secreto
 > en Cloud Run (paso 5).
 
+### 4.1 Alternativa sin PC: todo desde el móvil con Google Cloud Shell (gratis)
+
+Si no tienes un ordenador a mano, puedes hacer este paso (y el despliegue
+del paso 7) enteramente desde el navegador del móvil, gratis, usando
+[Google Cloud Shell](https://console.cloud.google.com) — 50 horas/semana
+gratuitas, de sobra para esto. Requiere tener un proyecto de GCP con
+facturación vinculada (no se cobra nada si te mantienes en la capa
+gratuita, pero Google pide una tarjeta para verificar identidad).
+
+1. Desde el móvil, entra en [console.cloud.google.com](https://console.cloud.google.com)
+   con la misma cuenta de Google que quieres usar para Gemini, y abre el
+   icono de terminal ("Activar Cloud Shell") arriba a la derecha.
+2. Clona el repo y entra en la rama:
+   ```bash
+   git clone <URL_DE_TU_REPO> JC-Analistas
+   cd JC-Analistas
+   git checkout claude/telegram-tipster-bot-b2reun
+   npm install
+   npx playwright install --with-deps chromium
+   ```
+3. Monta el escritorio virtual con el script incluido:
+   ```bash
+   bash scripts/cloud-shell-gui-login.sh
+   ```
+   Sigue las instrucciones que imprime: abrir la "Vista previa en la Web"
+   en el puerto 8080 te da un escritorio virtual en una pestaña nueva.
+4. En la terminal (no en la pestaña del escritorio), ejecuta:
+   ```bash
+   export DISPLAY=:99
+   npm run gemini:login
+   ```
+5. Cambia a la pestaña del escritorio virtual: ahí verás Chromium
+   abierto. Inicia sesión con tu Google normalmente, tocando los campos
+   con el dedo (el teclado de tu móvil funciona igual que en cualquier
+   web). Cuando cargue el chat de Gemini, vuelve a la terminal y pulsa
+   ENTER — esto guarda `storage/gemini-session.json`.
+6. Sigue en la misma sesión de Cloud Shell con el paso 7 (desplegar en
+   Cloud Run) — `gcloud` ya viene autenticado por defecto en Cloud Shell,
+   así que puedes copiar y pegar esos comandos tal cual.
+
+> Cloud Shell borra el disco de la VM entre sesiones largas de
+> inactividad, pero conserva tu `$HOME` (5 GB persistentes), así que el
+> repo clonado y `node_modules` siguen ahí si vuelves más tarde. Si algo
+> falla, vuelve a correr el script del paso 3.
+
 ## 5. Ajustar tus 3 prompts
 
 Edita `src/config/prompts.ts` y sustituye el contenido de
