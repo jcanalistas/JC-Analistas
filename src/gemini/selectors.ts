@@ -9,22 +9,46 @@
  * tener que tocar la lógica en deepResearch.ts.
  *
  * Cómo depurar un selector roto:
- *   1. Cambia `headless: false` en deepResearch.ts temporalmente.
- *   2. Corre el flujo y observa en qué paso se queda colgado.
- *   3. Inspecciona el elemento en DevTools y actualiza el selector aquí.
+ *   1. Corre `npm run gemini:debug` (abre Gemini visible, reutilizando
+ *      la sesión ya guardada) y reproduce el paso a mano en el
+ *      escritorio virtual de Cloud Shell.
+ *   2. Manda capturas del paso que falla.
+ *   3. Actualiza el selector correspondiente aquí.
+ *
+ * Flujo real descubierto a mano (26/07): Gemini abre por defecto en el
+ * modelo "Flash-Lite", que NO tiene Deep Research disponible. Hay que
+ * cambiar primero al modelo "Flash", y luego entrar en el menú "+" →
+ * "Más herramientas" → "Deep Research".
  */
 export const GEMINI_URL = "https://gemini.google.com/app";
 
+// Ancla estable: el propio campo de texto por su rol de accesibilidad
+// (en vez de anclar por el texto del placeholder, que puede estar
+// pintado por CSS y no ser texto real del DOM).
+const TEXTBOX_SELECTOR = '[role="textbox"]';
+
 export const SELECTORS = {
   // Caja de texto principal donde se escribe el prompt
-  promptInput: 'div[contenteditable="true"].ql-editor, div[aria-label*="Prompt" i][contenteditable="true"]',
+  promptInput: `${TEXTBOX_SELECTOR}, div[contenteditable="true"].ql-editor`,
 
-  // Botón "+" / "Herramientas" que despliega el menú de modos (Deep Research, Canvas, etc.)
-  toolsMenuButton: 'button[aria-label*="Herramientas" i], button[aria-label*="Tools" i]',
+  // Botón que muestra el modelo actual (p.ej. "Flash-Lite"), a la derecha
+  // de la caja de texto. Usamos la posición relativa (Playwright
+  // :right-of) porque no tenemos un aria-label fiable.
+  modelSelectorButton: `button:right-of(${TEXTBOX_SELECTOR})`,
 
-  // Opción "Investigación exhaustiva" / "Deep Research" dentro del menú de herramientas
-  deepResearchOption:
-    'text=/Investigaci[oó]n exhaustiva|Investigaci[oó]n a fondo|Deep Research/i',
+  // Opción "X.Y Flash" (sin "-Lite") dentro del desplegable de modelos.
+  // El número de versión cambia con el tiempo, por eso es una regexp.
+  modelOptionFlash: 'text=/^\\d+(\\.\\d+)?\\s+Flash$/',
+
+  // Botón "+" a la izquierda de la caja de texto: abre el menú de
+  // adjuntos/herramientas (Subir archivos, Crear imagen, Más herramientas…)
+  toolsPlusButton: `button:left-of(${TEXTBOX_SELECTOR})`,
+
+  // Opción "Más herramientas" dentro de ese menú (abre un submenú flotante)
+  moreToolsMenuItem: 'text="Más herramientas"',
+
+  // Opción "Deep Research" dentro del submenú de "Más herramientas"
+  deepResearchOption: 'text="Deep Research"',
 
   // Botón de enviar el prompt (avión de papel)
   sendButton: 'button[aria-label*="Enviar" i], button[aria-label*="Send" i]',

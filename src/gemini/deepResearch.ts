@@ -60,6 +60,7 @@ export async function runDeepResearch(
     const page = await context.newPage();
     await page.goto(GEMINI_URL, { waitUntil: "domcontentloaded" });
 
+    await switchToFlashModel(page);
     await selectDeepResearchMode(page);
     await submitPrompt(page, prompt);
     await confirmResearchPlanIfShown(page);
@@ -97,14 +98,36 @@ export async function runDeepResearchBatch(
   return results;
 }
 
+/**
+ * Gemini abre por defecto en el modelo "Flash-Lite", que no tiene Deep
+ * Research disponible. Hay que cambiar antes al modelo "Flash".
+ */
+async function switchToFlashModel(page: import("playwright").Page): Promise<void> {
+  try {
+    const modelButton = page.locator(SELECTORS.modelSelectorButton).first();
+    await modelButton.click({ timeout: 10_000 });
+
+    const flashOption = page.locator(SELECTORS.modelOptionFlash).first();
+    await flashOption.click({ timeout: 10_000 });
+  } catch (err) {
+    throw new DeepResearchError(
+      "No se pudo cambiar al modelo Flash en Gemini (necesario para Deep Research). " +
+        "Es probable que Google haya cambiado el selector de modelo: revisa src/gemini/selectors.ts.",
+      ""
+    );
+  }
+}
+
 async function selectDeepResearchMode(page: import("playwright").Page): Promise<void> {
   try {
-    const toolsButton = page.locator(SELECTORS.toolsMenuButton).first();
-    if (await toolsButton.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await toolsButton.click();
-    }
+    const plusButton = page.locator(SELECTORS.toolsPlusButton).first();
+    await plusButton.click({ timeout: 10_000 });
+
+    const moreTools = page.locator(SELECTORS.moreToolsMenuItem).first();
+    await moreTools.click({ timeout: 10_000 });
+
     const deepResearchOption = page.locator(SELECTORS.deepResearchOption).first();
-    await deepResearchOption.click({ timeout: 10000 });
+    await deepResearchOption.click({ timeout: 10_000 });
   } catch (err) {
     throw new DeepResearchError(
       "No se pudo activar el modo Deep Research en la interfaz de Gemini. " +
