@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+*.log
+
+# Sesión de Google/Gemini capturada con `npm run gemini:login`.
+# Contiene cookies de sesión: nunca debe subirse al repositorio.
+storage/gemini-session.json
+storage/*.json
+
+# Descargas de navegador de Playwright (se instalan aparte, no van al repo)
+.playwright/

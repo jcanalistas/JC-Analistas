@@ -1,0 +1,116 @@
+import { normalizeMarket, normalizeMatchup, similarity } from "./normalize";
+
+export interface Selection {
+  sourceIndex: number; // qué deep research (0, 1, 2) la produjo
+  raw: string; // línea original tal cual la escribió Gemini
+  matchup: string;
+  market: string;
+  odds: string;
+  explanation: string;
+}
+
+export interface SelectionGroup {
+  matchup: string;
+  market: string;
+  count: number; // en cuántos de los 3 informes aparece
+  selections: Selection[]; // una por cada informe en el que aparece
+}
+
+const SECTION_TITLE_RE = /selecciones finales/i;
+// N. Equipo local vs Equipo visitante | Mercado: X | Cuota: Y | Explicación: Z
+const LINE_RE =
+  /^\s*\d+[.)]\s*(.+?)\s*\|\s*mercado:\s*(.+?)\s*\|\s*cuota:\s*(.+?)\s*\|\s*explicaci[oó]n:\s*(.+?)\s*$/i;
+
+/**
+ * Extrae las selecciones de la sección "SELECCIONES FINALES" de un informe.
+ * Si el formato no viene exactamente como se pidió en el prompt, intenta
+ * un parseo más permisivo línea por línea antes de rendirse.
+ */
+export function parseSelections(reportText: string, sourceIndex: number): Selection[] {
+  const section = extractSection(reportText);
+  if (!section) return [];
+
+  const selections: Selection[] = [];
+  for (const line of section.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    const strict = LINE_RE.exec(trimmed);
+    if (strict) {
+      const [, matchup, market, odds, explanation] = strict;
+      selections.push({ sourceIndex, raw: trimmed, matchup, market, odds, explanation });
+      continue;
+    }
+
+    const loose = parseLoose(trimmed);
+    if (loose) selections.push({ sourceIndex, raw: trimmed, ...loose });
+  }
+  return selections;
+}
+
+function extractSection(reportText: string): string | null {
+  const lines = reportText.split("\n");
+  const startIdx = lines.findIndex((l) => SECTION_TITLE_RE.test(l));
+  if (startIdx === -1) return null;
+  return lines.slice(startIdx + 1).join("\n");
+}
+
+function parseLoose(
+  line: string
+): { matchup: string; market: string; odds: string; explanation: string } | null {
+  const withoutNumber = line.replace(/^\s*\d+[.)]\s*/, "");
+  const parts = withoutNumber.split("|").map((p) => p.trim());
+  if (parts.length < 2) return null;
+
+  const matchup = parts[0] ?? "";
+  const market = (parts.find((p) => /mercado/i.test(p)) ?? parts[1] ?? "").replace(/mercado:?/i, "").trim();
+  const odds = (parts.find((p) => /cuota/i.test(p)) ?? "").replace(/cuota:?/i, "").trim();
+  const explanation = (parts.find((p) => /explicaci/i.test(p)) ?? "")
+    .replace(/explicaci[oó]n:?/i, "")
+    .trim();
+
+  if (!matchup || !market) return null;
+  return { matchup, market, odds, explanation };
+}
+
+const MATCHUP_SIMILARITY_THRESHOLD = 0.82;
+
+/**
+ * Agrupa selecciones equivalentes entre los distintos informes (mismo
+ * partido + mismo mercado, con tolerancia a redacción distinta) y
+ * devuelve solo los grupos que se repiten en 2 o 3 informes.
+ */
+export function findRepeatedSelections(allSelections: Selection[]): SelectionGroup[] {
+  const groups: SelectionGroup[] = [];
+
+  for (const selection of allSelections) {
+    const normMatchup = normalizeMatchup(selection.matchup);
+    const normMarket = normalizeMarket(selection.market);
+
+    const existingGroup = groups.find(
+      (g) =>
+        normalizeMarket(g.market) === normMarket &&
+        similarity(normalizeMatchup(g.matchup), normMatchup) >= MATCHUP_SIMILARITY_THRESHOLD
+    );
+
+    if (existingGroup) {
+      // Evita contar dos veces si el mismo informe repitiera la misma selección
+      const alreadyFromThisSource = existingGroup.selections.some(
+        (s) => s.sourceIndex === selection.sourceIndex
+      );
+      if (!alreadyFromThisSource) {
+        existingGroup.selections.push(selection);
+        existingGroup.count += 1;
+      }
+    } else {
+      groups.push({
+        matchup: selection.matchup,
+        market: selection.market,
+        count: 1,
+        selections: [selection],
+      });
+    }
+  }
+
+  return groups.filter((g) => g.count >= 2).sort((a, b) => b.count - a.count);
+}

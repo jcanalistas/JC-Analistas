@@ -1,0 +1,69 @@
+import { Telegraf } from "telegraf";
+import { env } from "./config/env";
+import { buildAllPrompts } from "./config/prompts";
+import { runDeepResearchBatch, DeepResearchError } from "./gemini/deepResearch";
+import { parseSelections, findRepeatedSelections, type Selection } from "./matching/matchSelections";
+import { formatIndividualSelections, formatRepeatedSelections } from "./format/telegramFormat";
+
+export const bot = new Telegraf(env.telegramBotToken);
+
+let researchInProgress = false;
+
+bot.use(async (ctx, next) => {
+  const userId = ctx.from?.id?.toString();
+  if (userId !== env.telegramAllowedUserId) {
+    await ctx.reply("No tienes autorización para usar este bot.");
+    return;
+  }
+  return next();
+});
+
+bot.start((ctx) =>
+  ctx.reply(
+    "Bot de JC Analistas listo.\n\nComandos disponibles:\n/research — lanza los 3 Deep Research en Gemini y compara las selecciones."
+  )
+);
+
+bot.command("research", async (ctx) => {
+  if (researchInProgress) {
+    await ctx.reply("Ya hay un Deep Research en curso, espera a que termine antes de lanzar otro.");
+    return;
+  }
+
+  researchInProgress = true;
+  try {
+    await ctx.reply(
+      "🔎 Lanzando los 3 Deep Research en Gemini. Esto puede tardar varios minutos, te aviso cuando termine…"
+    );
+
+    const prompts = buildAllPrompts();
+    const results = await runDeepResearchBatch(prompts, {
+      storageStatePath: env.geminiStorageStatePath,
+      timeoutMinutes: env.deepResearchTimeoutMinutes,
+    });
+
+    const selectionsBySource: Selection[][] = results.map((r, idx) =>
+      parseSelections(r.reportText, idx)
+    );
+
+    for (const chunk of formatIndividualSelections(results, selectionsBySource)) {
+      await ctx.reply(chunk, { parse_mode: "Markdown" });
+    }
+
+    const allSelections = selectionsBySource.flat();
+    const repeatedGroups = findRepeatedSelections(allSelections);
+
+    for (const chunk of formatRepeatedSelections(repeatedGroups)) {
+      await ctx.reply(chunk, { parse_mode: "Markdown" });
+    }
+  } catch (err) {
+    if (err instanceof DeepResearchError) {
+      await ctx.reply(`⚠️ Error ejecutando Deep Research: ${err.message}`);
+    } else {
+      console.error(err);
+      await ctx.reply("⚠️ Ocurrió un error inesperado ejecutando los Deep Research. Revisa los logs.");
+    }
+  } finally {
+    researchInProgress = false;
+  }
+});
