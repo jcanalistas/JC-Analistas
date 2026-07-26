@@ -125,12 +125,16 @@ gratuita, pero Google pide una tarjeta para verificar identidad).
 > repo clonado y `node_modules` siguen ahí si vuelves más tarde. Si algo
 > falla, vuelve a correr el script del paso 3.
 
-## 5. Ajustar tus 3 prompts
+## 5. Ajustar tus 6 prompts (3 de fútbol + 3 de tenis)
+
+Al escribir `/research`, el bot pregunta primero qué deporte analizar
+(⚽ Fútbol / 🎾 Tenis) con botones, y lanza los 3 prompts de ese deporte.
 
 Edita `src/config/prompts.ts` y sustituye el contenido de
-`RESEARCH_PROMPTS` por tus 3 enfoques reales (ligas, mercados, criterios).
-No toques la parte de `OUTPUT_FORMAT_INSTRUCTIONS`: es lo que le exige a
-Gemini terminar con un bloque `SELECCIONES FINALES` parseable por el bot.
+`FOOTBALL_PROMPTS` y `TENNIS_PROMPTS` por tus enfoques reales (ligas,
+mercados, criterios). No toques `OUTPUT_FORMAT_INSTRUCTIONS`: es lo que
+le exige a Gemini terminar con un bloque `SELECCIONES FINALES` parseable
+por el bot.
 
 ## 6. Probar en local
 

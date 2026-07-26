@@ -1,6 +1,6 @@
-import { Telegraf } from "telegraf";
+import { Markup, Telegraf } from "telegraf";
 import { env } from "./config/env";
-import { buildAllPrompts } from "./config/prompts";
+import { buildAllPrompts, SPORT_LABELS, type Sport } from "./config/prompts";
 import { runDeepResearchBatch, DeepResearchError } from "./gemini/deepResearch";
 import { parseSelections, findRepeatedSelections, type Selection } from "./matching/matchSelections";
 import { formatIndividualSelections, formatRepeatedSelections } from "./format/telegramFormat";
@@ -30,13 +30,33 @@ bot.command("research", async (ctx) => {
     return;
   }
 
+  await ctx.reply(
+    "¿Qué deporte analizamos?",
+    Markup.inlineKeyboard([
+      Markup.button.callback(SPORT_LABELS.futbol, "research:futbol"),
+      Markup.button.callback(SPORT_LABELS.tenis, "research:tenis"),
+    ])
+  );
+});
+
+bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
+  const sport = ctx.match[1] as Sport;
+
+  if (researchInProgress) {
+    await ctx.answerCbQuery("Ya hay un Deep Research en curso.");
+    return;
+  }
+
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(`Deporte elegido: ${SPORT_LABELS[sport]}`);
+
   researchInProgress = true;
   try {
     await ctx.reply(
-      "🔎 Lanzando los 3 Deep Research en Gemini. Esto puede tardar varios minutos, te aviso cuando termine…"
+      `🔎 Lanzando los 3 Deep Research de ${SPORT_LABELS[sport]} en Gemini. Esto puede tardar varios minutos, te aviso cuando termine…`
     );
 
-    const prompts = buildAllPrompts();
+    const prompts = buildAllPrompts(sport);
     const results = await runDeepResearchBatch(prompts, {
       storageStatePath: env.geminiStorageStatePath,
       timeoutMinutes: env.deepResearchTimeoutMinutes,
