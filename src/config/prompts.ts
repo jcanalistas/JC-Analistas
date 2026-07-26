@@ -2,7 +2,7 @@
  * Los prompts que se lanzan como Deep Research en Gemini, agrupados por
  * deporte. El bot pregunta primero qué deporte analizar (ver bot.ts) y
  * lanza los 3 prompts del deporte elegido, en este orden fijo:
- * 1. Tipster, 2. Analista cuantitativo, 3. Machine Learning.
+ * 1. Tipster, 2. Machine Learning, 3. Analista cuantitativo.
  *
  * El bot añade automáticamente al final de cada uno (ver
  * OUTPUT_FORMAT_INSTRUCTIONS) las instrucciones de formato necesarias
@@ -41,41 +41,6 @@ Formato de Salida (Tabla):
 | Deporte | Evento | Mercado | Cuota | Justificación Técnica (Valor) |
 |---|---|---|---|---|
 | Fútbol | [Equipo A vs Equipo B] | [Pick] | [1,6x] | [Motivo estadístico/noticia] |`,
-  },
-  {
-    label: "Analista cuantitativo",
-    prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en fútbol (MLS, LaLiga 1ª y 2ª división española, 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League y competiciones europeas: Champions League, Europa League y Conference League). Tu objetivo es realizar un análisis probabilístico y estadístico exhaustivo para las próximas 24h (analiza la hora actual para restringir los partidos a las próximas 24h desde ahora).
-Quiero determinar si existe valor esperado positivo (EV+) en algún mercado para cada partido, priorizando selecciones de cuota superior a 1.70 y con una probabilidad de éxito superior al 60%.
-Sigue estrictamente los siguientes pasos de análisis detallados:
-
-CONTEXTO Y ENTORNO DEL PARTIDO
-Localía: ¿Quién juega en casa? Factor estadio/afición e impacto de desplazamientos largos (especialmente relevante en MLS).
-Condiciones: Clima (lluvia, viento, calor extremo) si es relevante para el estilo de juego, y estado del césped.
-Motivación y Calendario: Categoría de la competición (Champions League, Europa League, Conference League, Liga doméstica). ¿Se juega algo importante (título, descenso, ascenso, clasificación europea) o es un partido ya decidido de cara a la temporada? ¿Hay un partido importante entre semana (europeo) que pueda provocar rotaciones?
-
-RENDIMIENTO ESTADÍSTICO RECIENTE (Últimos 10 partidos como local/visitante según corresponda)
-Analiza y compara detalladamente las siguientes métricas para ambos equipos:
-xG generado y xG concedido por partido.
-Tiros a puerta a favor y en contra.
-Posesión media y córners a favor/en contra.
-Índice ofensivo/defensivo: relación entre goles marcados esperados (xG a favor) y goles evitados (xG concedido invertido), equivalente futbolístico al Dominance Ratio.
-Rendimiento en rachas: partidos ganados/perdidos/empatados en los últimos 10.
-
-MATCH-UP TÁCTICO Y FATIGA
-Historial Cara a Cara (Head-to-Head): resultados previos generales y específicos en esta competición. ¿Hay algún patrón táctico recurrente (ej. un equipo que presiona alto castigando la salida de balón del rival)?
-Estilos de juego: ¿cómo interactúan sus estilos? (ej: equipo de posesión contra equipo de contragolpe, presión alta contra bloque bajo).
-Estado físico y fatiga: minutos jugados por los titulares clave en los últimos partidos. ¿Vienen de un partido europeo entre semana o de prórroga? ¿Hay reportes de lesiones, sanciones o sobrecarga muscular recientes?
-
-ANÁLISIS DE MERCADO Y DETECCIÓN DE VALOR (EV+)
-Revisa las cuotas actuales en las principales casas de apuestas (como Winamax).
-Calcula tu propia probabilidad implícita para el resultado del partido basándote en los datos anteriores.
-Compara tu probabilidad calculada con la probabilidad implícita de las cuotas de la casa de apuestas (Fórmula: 1 / Cuota).
-Identifica si hay discrepancias donde la cuota de la casa pague más de lo que la probabilidad real sugiere (Valor Esperado Positivo).
-
-RESTRICCIONES Y FORMATO DE ENTREGA:
-NO me ofrezcas bajo ninguna circunstancia pronósticos que incluyan combinadas.
-Entrega tu análisis dividido claramente en estas secciones.
-Concluye con un máximo de 8 recomendaciones de apuestas específicas que consideres de ALTA PROBABILIDAD DE ACIERTO, como resultado, hándicap, over/under de goles, córners, tarjetas, etc., y que tengan EV+ (indicando mercado, cuota estimada y la justificación matemática de por qué es EV+).`,
   },
   {
     label: "Machine Learning",
@@ -138,6 +103,41 @@ Compara tus probabilidades con las cuotas reales del mercado proporcionadas. Sel
 - Cuota de la casa: [X.XX]
 - Stake Sugerido (1 al 5): [X/5] (Basado en el tamaño del 'edge' y fiabilidad de los datos disponibles según la competición).`,
   },
+  {
+    label: "Analista cuantitativo",
+    prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en fútbol (MLS, LaLiga 1ª y 2ª división española, 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League y competiciones europeas: Champions League, Europa League y Conference League). Tu objetivo es realizar un análisis probabilístico y estadístico exhaustivo para las próximas 24h (analiza la hora actual para restringir los partidos a las próximas 24h desde ahora).
+Quiero determinar si existe valor esperado positivo (EV+) en algún mercado para cada partido, priorizando selecciones de cuota superior a 1.70 y con una probabilidad de éxito superior al 60%.
+Sigue estrictamente los siguientes pasos de análisis detallados:
+
+CONTEXTO Y ENTORNO DEL PARTIDO
+Localía: ¿Quién juega en casa? Factor estadio/afición e impacto de desplazamientos largos (especialmente relevante en MLS).
+Condiciones: Clima (lluvia, viento, calor extremo) si es relevante para el estilo de juego, y estado del césped.
+Motivación y Calendario: Categoría de la competición (Champions League, Europa League, Conference League, Liga doméstica). ¿Se juega algo importante (título, descenso, ascenso, clasificación europea) o es un partido ya decidido de cara a la temporada? ¿Hay un partido importante entre semana (europeo) que pueda provocar rotaciones?
+
+RENDIMIENTO ESTADÍSTICO RECIENTE (Últimos 10 partidos como local/visitante según corresponda)
+Analiza y compara detalladamente las siguientes métricas para ambos equipos:
+xG generado y xG concedido por partido.
+Tiros a puerta a favor y en contra.
+Posesión media y córners a favor/en contra.
+Índice ofensivo/defensivo: relación entre goles marcados esperados (xG a favor) y goles evitados (xG concedido invertido), equivalente futbolístico al Dominance Ratio.
+Rendimiento en rachas: partidos ganados/perdidos/empatados en los últimos 10.
+
+MATCH-UP TÁCTICO Y FATIGA
+Historial Cara a Cara (Head-to-Head): resultados previos generales y específicos en esta competición. ¿Hay algún patrón táctico recurrente (ej. un equipo que presiona alto castigando la salida de balón del rival)?
+Estilos de juego: ¿cómo interactúan sus estilos? (ej: equipo de posesión contra equipo de contragolpe, presión alta contra bloque bajo).
+Estado físico y fatiga: minutos jugados por los titulares clave en los últimos partidos. ¿Vienen de un partido europeo entre semana o de prórroga? ¿Hay reportes de lesiones, sanciones o sobrecarga muscular recientes?
+
+ANÁLISIS DE MERCADO Y DETECCIÓN DE VALOR (EV+)
+Revisa las cuotas actuales en las principales casas de apuestas (como Winamax).
+Calcula tu propia probabilidad implícita para el resultado del partido basándote en los datos anteriores.
+Compara tu probabilidad calculada con la probabilidad implícita de las cuotas de la casa de apuestas (Fórmula: 1 / Cuota).
+Identifica si hay discrepancias donde la cuota de la casa pague más de lo que la probabilidad real sugiere (Valor Esperado Positivo).
+
+RESTRICCIONES Y FORMATO DE ENTREGA:
+NO me ofrezcas bajo ninguna circunstancia pronósticos que incluyan combinadas.
+Entrega tu análisis dividido claramente en estas secciones.
+Concluye con un máximo de 8 recomendaciones de apuestas específicas que consideres de ALTA PROBABILIDAD DE ACIERTO, como resultado, hándicap, over/under de goles, córners, tarjetas, etc., y que tengan EV+ (indicando mercado, cuota estimada y la justificación matemática de por qué es EV+).`,
+  },
 ];
 
 const TENNIS_PROMPT_DEFS: PromptDefinition[] = [
@@ -157,40 +157,6 @@ Formato de Salida (Tabla):
 | Deporte | Evento | Mercado | Cuota | Justificación Técnica (Valor) |
 |---|---|---|---|---|
 | Tenis | [Jugador A vs B] | [Pick] | [1,6x] | [Motivo superficie/H2H] |`,
-  },
-  {
-    label: "Analista cuantitativo",
-    prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en tenis ATP y Challenger (Singles Masculinos). Tu objetivo es realizar un análisis probabilístico y estadístico exhaustivo para las próximas 24h (analiza la hora actual para restringir los partidos a las próximas 24h desde ahora) en los atp y challenger single masculino.
-Quiero determinar si existe valor esperado positivo (EV+) en algún mercado para este partido, priorizando selecciones de cuota superior a 1.70 y con una probabilidad de éxito superior al 60%.
-Sigue estrictamente los siguientes pasos de análisis detallados:
-
-CONTEXTO Y ENTORNO DEL PARTIDO
-Superficie exacta: Tipo de pista (arcilla, hierba, dura, dura bajo techo) y velocidad de la pista (Court Pace Index - CPI si está disponible).
-Condiciones climáticas: Temperatura, humedad, viento, altitud y si se juega indoor o al aire libre. ¿A quién favorecen estas condiciones según su estilo de juego?
-Motivación y Calendario: Categoría del torneo (Grand Slam, Master 1000, ATP 250...). ¿Tiene alguno de los jugadores que defender puntos del año pasado? ¿Hay fatiga acumulada o un torneo importante la próxima semana?
-
-RENDIMIENTO ESTADÍSTICO RECIENTE (Últimos 10 partidos en esta superficie)
-Analiza y compara detalladamente las siguientes métricas para ambos jugadores en esta superficie:
-Porcentaje de puntos ganados con el primer servicio y con el segundo servicio.
-Porcentaje de break points salvados y break points convertidos.
-Dominance Ratio (DR): Puntos de devolución ganados (%) / Puntos de servicio perdidos (%).
-Hold/Break Index: La suma del % de juegos de servicio ganados + % de juegos de devolución ganados. (Busca si alguno supera el umbral de 105%).
-
-MATCH-UP TÁCTICO Y FATIGA
-Historial Cara a Cara (Head-to-Head): Resultados previos generales y específicos en esta superficie. ¿Hay algún patrón táctico recurrente (ej. un zurdo castigando el revés a una mano del rival)?
-Estilos de juego: ¿Cómo interactúan sus estilos? (ej: sacador contra restador, contragolpeador contra jugador agresivo).
-Estado físico y fatiga: Tiempo en pista en sus últimos partidos de este torneo. ¿Vienen de partidos largos a 3 sets (o 5 sets)? ¿Hay reportes de molestias físicas o asistencia del fisioterapeuta recientemente?
-
-ANÁLISIS DE MERCADO Y DETECCIÓN DE VALOR (EV+)
-Revisa las cuotas actuales en las principales casas de apuestas (como Winamax).
-Calcula tu propia probabilidad implícita para la victoria de cada jugador basándote en los datos anteriores.
-Compara tu probabilidad calculada con la probabilidad implícita de las cuotas de la casa de apuestas (Fórmula: 1 / Cuota).
-Identifica si hay discrepancias donde la cuota de la casa pague más de lo que la probabilidad real sugiere (Valor Esperado Positivo).
-
-RESTRICCIONES Y FORMATO DE ENTREGA:
-NO me ofrezcas bajo ninguna circunstancia pronósticos que incluyan combinadas.
-Entrega tu análisis dividido claramente en estas secciones.
-Concluye con un máximo de 8 recomendaciones de apuestas específicas que consideres de ALTA PROBABILIDAD DE ACIERTO, como ganador, numero de juegos, aces, handicaps, etc y que tengan EV+ (indicando mercado, cuota estimada y la justificación matemática de por qué es EV+).`,
   },
   {
     label: "Machine Learning",
@@ -250,6 +216,40 @@ Compara tus probabilidades con las cuotas reales del mercado proporcionadas. Sel
 - Cuota de la casa: [X.XX]
 - Stake Sugerido (1 al 5): [X/5] (Basado en el tamaño del 'edge' y confiabilidad de los datos en circuito Challenger/ATP).`,
   },
+  {
+    label: "Analista cuantitativo",
+    prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en tenis ATP y Challenger (Singles Masculinos). Tu objetivo es realizar un análisis probabilístico y estadístico exhaustivo para las próximas 24h (analiza la hora actual para restringir los partidos a las próximas 24h desde ahora) en los atp y challenger single masculino.
+Quiero determinar si existe valor esperado positivo (EV+) en algún mercado para este partido, priorizando selecciones de cuota superior a 1.70 y con una probabilidad de éxito superior al 60%.
+Sigue estrictamente los siguientes pasos de análisis detallados:
+
+CONTEXTO Y ENTORNO DEL PARTIDO
+Superficie exacta: Tipo de pista (arcilla, hierba, dura, dura bajo techo) y velocidad de la pista (Court Pace Index - CPI si está disponible).
+Condiciones climáticas: Temperatura, humedad, viento, altitud y si se juega indoor o al aire libre. ¿A quién favorecen estas condiciones según su estilo de juego?
+Motivación y Calendario: Categoría del torneo (Grand Slam, Master 1000, ATP 250...). ¿Tiene alguno de los jugadores que defender puntos del año pasado? ¿Hay fatiga acumulada o un torneo importante la próxima semana?
+
+RENDIMIENTO ESTADÍSTICO RECIENTE (Últimos 10 partidos en esta superficie)
+Analiza y compara detalladamente las siguientes métricas para ambos jugadores en esta superficie:
+Porcentaje de puntos ganados con el primer servicio y con el segundo servicio.
+Porcentaje de break points salvados y break points convertidos.
+Dominance Ratio (DR): Puntos de devolución ganados (%) / Puntos de servicio perdidos (%).
+Hold/Break Index: La suma del % de juegos de servicio ganados + % de juegos de devolución ganados. (Busca si alguno supera el umbral de 105%).
+
+MATCH-UP TÁCTICO Y FATIGA
+Historial Cara a Cara (Head-to-Head): Resultados previos generales y específicos en esta superficie. ¿Hay algún patrón táctico recurrente (ej. un zurdo castigando el revés a una mano del rival)?
+Estilos de juego: ¿Cómo interactúan sus estilos? (ej: sacador contra restador, contragolpeador contra jugador agresivo).
+Estado físico y fatiga: Tiempo en pista en sus últimos partidos de este torneo. ¿Vienen de partidos largos a 3 sets (o 5 sets)? ¿Hay reportes de molestias físicas o asistencia del fisioterapeuta recientemente?
+
+ANÁLISIS DE MERCADO Y DETECCIÓN DE VALOR (EV+)
+Revisa las cuotas actuales en las principales casas de apuestas (como Winamax).
+Calcula tu propia probabilidad implícita para la victoria de cada jugador basándote en los datos anteriores.
+Compara tu probabilidad calculada con la probabilidad implícita de las cuotas de la casa de apuestas (Fórmula: 1 / Cuota).
+Identifica si hay discrepancias donde la cuota de la casa pague más de lo que la probabilidad real sugiere (Valor Esperado Positivo).
+
+RESTRICCIONES Y FORMATO DE ENTREGA:
+NO me ofrezcas bajo ninguna circunstancia pronósticos que incluyan combinadas.
+Entrega tu análisis dividido claramente en estas secciones.
+Concluye con un máximo de 8 recomendaciones de apuestas específicas que consideres de ALTA PROBABILIDAD DE ACIERTO, como ganador, numero de juegos, aces, handicaps, etc y que tengan EV+ (indicando mercado, cuota estimada y la justificación matemática de por qué es EV+).`,
+  },
 ];
 
 const PROMPT_DEFS_BY_SPORT: Record<Sport, PromptDefinition[]> = {
@@ -266,7 +266,7 @@ Al terminar tu informe, añade una última sección titulada exactamente
 selección como una línea numerada con este formato exacto, una selección
 por línea:
 
-N. Partido/Jugador vs Jugador | Mercado: <mercado> | Cuota: <cuota> | EV: <valor EV+ estimado, ej. +8% o el indicador que uses> | Explicación: <explicación breve en 1-2 frases>
+N. Partido/Jugador vs Jugador | Mercado: <mercado> | Cuota: <cuota> | EV: <valor EV+ estimado, ej. +8% o el indicador que uses> | % Éxito: <probabilidad de acierto estimada, ej. 65%> | Explicación: <explicación breve en 1-2 frases>
 
 No uses negritas, encabezados adicionales ni texto extra dentro de esa
 sección: solo la lista numerada en ese formato exacto.`;
@@ -275,7 +275,7 @@ export function buildPrompt(basePrompt: string): string {
   return `${basePrompt.trim()}${OUTPUT_FORMAT_INSTRUCTIONS}`;
 }
 
-/** Devuelve los 3 prompts del deporte, en orden Tipster → Analista cuantitativo → Machine Learning. */
+/** Devuelve los 3 prompts del deporte, en orden Tipster → Machine Learning → Analista cuantitativo. */
 export function buildAllPrompts(sport: Sport): PromptDefinition[] {
   return PROMPT_DEFS_BY_SPORT[sport].map((def) => ({
     label: def.label,

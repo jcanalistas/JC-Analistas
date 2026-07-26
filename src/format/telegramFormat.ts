@@ -4,8 +4,8 @@ const TELEGRAM_MAX_LEN = 4096;
 
 /**
  * Mensaje 1: selecciones finales de cada Deep Research, agrupadas por
- * perfil (Tipster, Analista cuantitativo, Machine Learning), con cuota,
- * EV y explicación de cada pick.
+ * perfil (Tipster, Machine Learning, Analista cuantitativo), con cuota,
+ * EV, % de éxito y explicación de cada pick.
  */
 export function formatIndividualSelections(
   labels: string[],
@@ -22,10 +22,14 @@ export function formatIndividualSelections(
     }
     selections.forEach((s, i) => {
       lines.push(`${i + 1}. ${s.matchup} — ${s.market}`);
-      const oddsEv = [s.odds ? `Cuota: ${s.odds}` : null, s.ev ? `EV: ${s.ev}` : null]
+      const details = [
+        s.odds ? `Cuota: ${s.odds}` : null,
+        s.ev ? `EV: ${s.ev}` : null,
+        s.successRate ? `% Éxito: ${s.successRate}` : null,
+      ]
         .filter(Boolean)
         .join(" · ");
-      if (oddsEv) lines.push(oddsEv);
+      if (details) lines.push(details);
       lines.push(`_${s.explanation || "Sin explicación detallada."}_`);
     });
   });
@@ -47,11 +51,15 @@ export function formatRepeatedSelections(groups: SelectionGroup[]): string[] {
     group.selections
       .sort((a, b) => a.sourceIndex - b.sourceIndex)
       .forEach((s) => {
-        const oddsEv = [s.odds ? `@${s.odds}` : null, s.ev ? `EV: ${s.ev}` : null]
+        const details = [
+          s.odds ? `@${s.odds}` : null,
+          s.ev ? `EV: ${s.ev}` : null,
+          s.successRate ? `% Éxito: ${s.successRate}` : null,
+        ]
           .filter(Boolean)
           .join(" · ");
         lines.push(
-          `• _${s.sourceLabel}${oddsEv ? ` (${oddsEv})` : ""}:_ ${
+          `• _${s.sourceLabel}${details ? ` (${details})` : ""}:_ ${
             s.explanation || "Sin explicación detallada."
           }`
         );
