@@ -10,6 +10,7 @@
     "dev": "tsx watch src/server.ts",
     "gemini:login": "tsx src/gemini/captureLogin.ts",
     "gemini:debug": "tsx src/gemini/debugOpen.ts",
+    "gemini:test-auth": "tsx src/gemini/testAuth.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
