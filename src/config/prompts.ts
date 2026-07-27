@@ -161,6 +161,12 @@ Concluye con un máximo de 8 recomendaciones de apuestas específicas que consid
   },
 ];
 
+// Compartido por los 3 prompts de tenis: retiradas, walkovers, Time Out
+// Médico y Lucky Loser son señales que el mercado suele sobrerreaccionar
+// (o infravalorar) y que un análisis puramente estadístico puede pasar
+// por alto si no se le pide explícitamente que las busque.
+const TENNIS_RETIREMENT_LUCKY_LOSER_CHECK = `IMPORTANTE - Retiradas, walkovers, Time Out Médico y Lucky Loser: antes de dar por buena una selección, comprueba si alguno de los dos jugadores se retiró (RET), tuvo un walkover (WO) o pidió un Time Out Médico (MTO) en su partido más reciente. Si es así, investiga el motivo exacto (golpe de calor, calambres, lesión muscular/articular, etc.) y si es un problema puntual/ambiental (normalmente resuelto en 24-48h) o una lesión estructural con riesgo real de recaída — no penalices automáticamente a un jugador por una retirada de un solo día por calor si hoy las condiciones son mejores y no hay lesión estructural reportada; si crees que el mercado ha inflado su cuota por miedo injustificado, señálalo como posible valor (EV+). Comprueba también si alguno de los dos entró en el cuadro principal como Lucky Loser (promovido desde la fase de clasificación por la baja de otro jugador) y qué implica eso en su carga de partidos reciente. Si detectas cualquiera de estas circunstancias en un partido que recomiendes, menciónalo expresamente en la Explicación de ese pick para que se pueda revisar a mano.`;
+
 const TENNIS_PROMPT_DEFS: PromptDefinition[] = [
   {
     label: "Tipster",
@@ -173,6 +179,8 @@ const TENNIS_PROMPT_DEFS: PromptDefinition[] = [
  * Busca jugadores con un rendimiento en superficie superior al >65% y que se enfrenten a rivales con H2H muy desfavorable o que tengan un win rate % Modesto en la superficie. Analiza cualquier aspecto adicional que consideres, como noticias o rumores. Analiza si han vencido a jugadores de mayor nivel en los partidos recientes del torneo para darles más % de victoria. Analiza las bolas de break que concedieron, puntos al primer servicio y al segundo, etc. Procura que la selección tenga EV+.
 4. Análisis de Valor:
  * Para cada pick, verifica si la cuota ha bajado recientemente (indicador de dinero profesional) o si hay noticias de última hora como lesiones, desgaste físico por exceso de partidos los días previos, etc. valora la importancia de cada cosa para darle valor o no
+
+${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
 
 Formato de Salida (Tabla):
 | Deporte | Evento | Mercado | Cuota | Justificación Técnica (Valor) |
@@ -207,6 +215,8 @@ Analizarás minuciosamente los datos de los partidos single masculino ATP y Chal
 
 5. AJUSTE DE CATEGORÍA (ATP vs. CHALLENGER) (Ponderación: 10%)
 - Si el partido es Challenger, ajusta la volatilidad: penaliza la irregularidad en el servicio y premia el % de puntos ganados al segundo saque y la resiliencia mental.
+
+${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
 
 ---
 
@@ -265,6 +275,8 @@ Revisa las cuotas actuales en las principales casas de apuestas (como Winamax).
 Calcula tu propia probabilidad implícita para la victoria de cada jugador basándote en los datos anteriores.
 Compara tu probabilidad calculada con la probabilidad implícita de las cuotas de la casa de apuestas (Fórmula: 1 / Cuota).
 Identifica si hay discrepancias donde la cuota de la casa pague más de lo que la probabilidad real sugiere (Valor Esperado Positivo).
+
+${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
 
 RESTRICCIONES Y FORMATO DE ENTREGA:
 NO me ofrezcas bajo ninguna circunstancia pronósticos que incluyan combinadas.
