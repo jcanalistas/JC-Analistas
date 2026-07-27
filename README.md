@@ -164,8 +164,10 @@ mismo que su comando equivalente:
   ya recortada, sin fondo blanco alrededor) y luego la foto de fondo, y
   devuelve el montaje con el ticket centrado sobre el fondo (esquinas
   redondeadas), con un texto generado automáticamente a partir del propio
-  ticket (usando la visión de Gemini): icono del deporte + competición
-  subrayada, selecciones en negrita, y "📊 Stake 2" fijo.
+  ticket (usando la visión de Gemini con búsqueda de Google activada, para
+  confirmar el torneo real en vez de adivinarlo solo por la imagen): icono
+  del deporte + competición subrayada, selecciones en negrita, "📊 Stake 2"
+  fijo, y una última línea fija en cursiva "🔞 Misma cuota aquí" enlazada.
 
 ## Limitaciones conocidas de esta primera versión
 
