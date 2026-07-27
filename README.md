@@ -190,12 +190,15 @@ mismo que su comando equivalente:
      fijo, y una última línea fija en cursiva "🔞 Misma cuota aquí"
      enlazada.
   2. Un segundo mensaje aparte con el resumen corto en negrita y
-     subrayado, entre ✅: `✅ Topo + Prado Set @1,91 ✅` (selecciones +
-     cuota total, tal como se lee en el ticket).
+     subrayado, entre ✅: `✅ Topo + Prado Set @1,91 ✅`, y debajo, en
+     cursiva con la cifra en negrita, el beneficio calculado sobre un
+     stake fijo de 50€ (25€ = 1ud, redondeado hacia arriba desde ",50"):
+     `Sumamos +46€ / +1,8ud. 🫡`.
 
   El mensaje del montaje trae dos botones: **"✅ Publicar en canal"**
-  (publica la foto+texto y, si lo hay, el segundo mensaje del resumen,
-  directamente en tu canal — sin marca de "Reenviado desde", porque son
+  (publica la foto+texto en tu canal y, si lo hay, el segundo mensaje del
+  resumen respondiendo al de la foto — para tener trazabilidad de qué
+  ticket es cada resumen — sin marca de "Reenviado desde", porque son
   mensajes nuevos del bot, no un reenvío — y no se envía nada hasta que lo
   pulsas) y **"✏️ Editar texto"** (te pide un texto nuevo y sustituye el
   de la foto, por si hay que corregir algo antes de publicar).

@@ -386,13 +386,17 @@ bot.action(/^publish:(\d+)$/, async (ctx) => {
   }
 
   try {
-    await ctx.telegram.sendPhoto(
+    const publishedPhoto = await ctx.telegram.sendPhoto(
       env.telegramChannelId,
       pending.fileId,
       pending.caption ? { caption: pending.caption, parse_mode: "HTML" } : undefined
     );
     if (pending.summary) {
-      await ctx.telegram.sendMessage(env.telegramChannelId, pending.summary, { parse_mode: "HTML" });
+      // Responde al mensaje del ticket original, para trazabilidad.
+      await ctx.telegram.sendMessage(env.telegramChannelId, pending.summary, {
+        parse_mode: "HTML",
+        reply_parameters: { message_id: publishedPhoto.message_id },
+      });
     }
     pendingPublish.delete(messageId);
     await ctx.answerCbQuery("Publicado en el canal ✅");
