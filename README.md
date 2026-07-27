@@ -216,9 +216,11 @@ mismo que su comando equivalente:
      ej. un perfil pide "Tiafoe 2-0" y otro "Tiafoe -2.5 juegos") —
      muestra todas las opciones para ese partido.
   4. "Combinada sugerida" (si aplica): entre todas las selecciones de los
-     3 informes, busca 2 "victorias claras" (cuota individual baja) de
-     partidos distintos cuya cuota combinada llegue a 1,80 o más, y
-     propone la combinación más segura posible que aún así supere ese
+     3 informes, busca 2 picks de cuota individual baja (de cualquier
+     mercado, no tienen por qué ser los dos ganador — puede ser "gana el
+     partido" + "gana un set") de partidos distintos cuya cuota combinada
+     llegue a 1,80 o más, y propone la combinación más segura posible que
+     aún así supere ese
      mínimo — un complemento a las selecciones simples de cuota alta.
 - `/ticket` (o "📸 Ticket") — pide primero la foto del ticket (la tarjeta
   ya recortada, sin fondo blanco alrededor). Para el fondo, si ya usaste

@@ -111,17 +111,18 @@ export function formatMixedMarketMatchups(groups: MatchupGroup[]): string[] {
 }
 
 /**
- * Mensaje 4 (opcional): combinada de 2 "victorias claras" (cuota
- * individual baja) de partidos distintos cuya cuota combinada llega a
- * 1.80+ — un complemento a las selecciones simples de cuota alta. Vacío
- * si no hay ninguna combinación válida ese día.
+ * Mensaje 4 (opcional): combinada de 2 picks de cuota individual baja
+ * (cualquier mercado, no necesariamente ganador — puede ser "gana el
+ * partido" + "gana un set", etc.) de partidos distintos cuya cuota
+ * combinada llega a 1.80+ — un complemento a las selecciones simples de
+ * cuota alta. Vacío si no hay ninguna combinación válida ese día.
  */
 export function formatCombinadaSuggestion(combinada: CombinadaSuggestion | null): string[] {
   if (!combinada) return [];
 
   const { legA, legB, oddsA, oddsB, combinedOdds } = combinada;
   const lines = [
-    "🎰 *Combinada sugerida* (2 victorias claras)\n",
+    "🎰 *Combinada sugerida* (2 picks seguros)\n",
     `1. *${legA.matchup}* — ${legA.market} (💰 ${formatOdds(oddsA)})`,
     legA.tournament ? `🏟️ ${legA.tournament}` : null,
     `\n2. *${legB.matchup}* — ${legB.market} (💰 ${formatOdds(oddsB)})`,

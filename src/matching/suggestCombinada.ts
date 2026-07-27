@@ -20,14 +20,15 @@ function parseOddsNumber(raw: string): number | null {
 }
 
 /**
- * Sugiere una combinada de 2 picks de partidos distintos ("victorias
- * claras" de cuota individual baja) cuya cuota combinada (producto) sea
- * >= 1.80 — para complementar las selecciones simples de cuota alta con
- * una opción de cuota más ajustada por pick pero atractiva combinada,
- * como los picks sueltos de cuota baja no llegan solos al listón de las
- * 8 selecciones (1.60/1.65). Entre todas las combinaciones válidas,
- * devuelve la de cuota combinada más baja que aún así supere el mínimo
- * (la más "segura" posible) — o null si ninguna llega a 1.80.
+ * Sugiere una combinada de 2 picks de cuota individual baja, de partidos
+ * distintos, cuya cuota combinada (producto) sea >= 1.80 — no tienen por
+ * qué ser del mismo tipo de mercado (puede ser "gana el partido" + "gana
+ * un set", por ejemplo). Complementa las selecciones simples de cuota
+ * alta con una opción de cuota más ajustada por pick pero atractiva
+ * combinada, ya que esos picks sueltos de cuota baja no llegan solos al
+ * listón de las 8 selecciones (1.60/1.65). Entre todas las combinaciones
+ * válidas, devuelve la de cuota combinada más baja que aún así supere el
+ * mínimo (la más "segura" posible) — o null si ninguna llega a 1.80.
  */
 export function suggestCombinada(allSelections: Selection[]): CombinadaSuggestion | null {
   const candidates = allSelections
