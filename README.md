@@ -21,8 +21,9 @@ sesión personal de Google. Solo hace falta una API key de Google AI
 Studio. Cada Deep Research corre en segundo plano en los servidores de
 Google; el bot hace polling hasta que termina y te manda el resultado.
 
-Los 3 se lanzan **en secuencia**, no en paralelo, y cada uno puede tardar
-varios minutos — el bot avisa por Telegram según va terminando cada uno.
+Los 3 se lanzan **en paralelo** (cada uno es una llamada de API
+independiente) y cada uno puede tardar varios minutos — el bot avisa por
+Telegram según va terminando cada uno.
 
 ## Requisitos
 

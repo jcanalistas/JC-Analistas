@@ -61,23 +61,24 @@ bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
   researchInProgress = true;
   try {
     await ctx.reply(
-      `🔎 Lanzando los 3 Deep Research de ${SPORT_LABELS[sport]} en Gemini, uno detrás de otro. Cada uno puede tardar bastantes minutos — te aviso según vaya terminando cada uno.`
+      `🔎 Lanzando los 3 Deep Research de ${SPORT_LABELS[sport]} en Gemini, en paralelo. Cada uno puede tardar varios minutos — te aviso según vaya terminando cada uno.`
     );
 
     const promptDefs = buildAllPrompts(sport);
-    const results: DeepResearchResult[] = [];
-    const labels: string[] = [];
-    for (let i = 0; i < promptDefs.length; i++) {
-      const { label, prompt } = promptDefs[i];
-      const result = await runDeepResearch(prompt, {
-        apiKey: env.geminiApiKey,
-        agent: env.geminiDeepResearchAgent,
-        timeoutMinutes: env.deepResearchTimeoutMinutes,
-      });
-      results.push(result);
-      labels.push(label);
-      await ctx.reply(`✅ ${label} (${i + 1}/${promptDefs.length}) completado.`);
-    }
+    const labels = promptDefs.map((def) => def.label);
+    // En paralelo: cada uno es una llamada de API independiente (no hay
+    // ninguna sesión de navegador compartida que pueda saturarse).
+    const results: DeepResearchResult[] = await Promise.all(
+      promptDefs.map(async ({ label, prompt }) => {
+        const result = await runDeepResearch(prompt, {
+          apiKey: env.geminiApiKey,
+          agent: env.geminiDeepResearchAgent,
+          timeoutMinutes: env.deepResearchTimeoutMinutes,
+        });
+        await ctx.reply(`✅ ${label} completado.`);
+        return result;
+      })
+    );
 
     const selectionsBySource: Selection[][] = results.map((r, idx) =>
       parseSelections(r.reportText, idx, labels[idx])
