@@ -204,8 +204,10 @@ mismo que su comando equivalente:
   nuevos del bot, no un reenvío — y no se envía nada hasta que lo pulsas)
   y **"✏️ Editar"** (te pide un texto nuevo y sustituye el de la foto, por
   si hay que corregir algo antes de publicar). El segundo mensaje (el del
-  resumen) trae también su propio botón **"✅ Publicar"**, por si quieres
-  publicarlo suelto sin la foto.
+  resumen) trae sus propios botones **"✅ Publicar"** (por si quieres
+  publicarlo suelto sin la foto — aunque en ese caso no menciona el
+  ticket, ya que el enlace solo se puede crear cuando el bot publica la
+  foto en el mismo momento) y **"✏️ Editar"**.
 
 ## Limitaciones conocidas de esta primera versión
 

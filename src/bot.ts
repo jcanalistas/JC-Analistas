@@ -436,7 +436,8 @@ bot.on("photo", async (ctx) => {
         summaryMsg.message_id,
         undefined,
         Markup.inlineKeyboard([
-          Markup.button.callback("✅ Publicar", `publishsummary:${summaryMsg.message_id}`),
+          [Markup.button.callback("✅ Publicar", `publishsummary:${summaryMsg.message_id}`)],
+          [Markup.button.callback("✏️ Editar", `editsum:${summaryMsg.message_id}`)],
         ]).reply_markup
       );
     }
@@ -525,8 +526,12 @@ bot.action(/^publishsummary:(\d+)$/, async (ctx) => {
   }
 });
 
-// userId -> message_id del montaje cuyo texto está esperando ser reemplazado
+// userId -> message_id del montaje/resumen cuyo texto está esperando ser
+// reemplazado. Son dos mapas separados porque uno edita el caption de una
+// foto (editMessageCaption) y el otro el texto de un mensaje normal
+// (editMessageText) — son llamadas de API distintas.
 const editingCaption = new Map<number, number>();
+const editingSummary = new Map<number, number>();
 
 bot.action(/^editcap:(\d+)$/, async (ctx) => {
   const messageId = Number(ctx.match[1]);
@@ -541,7 +546,47 @@ bot.action(/^editcap:(\d+)$/, async (ctx) => {
   );
 });
 
+bot.action(/^editsum:(\d+)$/, async (ctx) => {
+  const messageId = Number(ctx.match[1]);
+  if (!pendingSummaryPublish.has(messageId)) {
+    await ctx.answerCbQuery("Este mensaje ya se publicó o ha caducado.");
+    return;
+  }
+  editingSummary.set(ctx.from!.id, messageId);
+  await ctx.answerCbQuery();
+  await ctx.reply("✏️ Mándame el texto nuevo para el resumen (puedes usar HTML: <u>, <b>, <i>).");
+});
+
 bot.on("text", async (ctx) => {
+  const summaryMessageId = editingSummary.get(ctx.from.id);
+  if (summaryMessageId !== undefined) {
+    editingSummary.delete(ctx.from.id);
+
+    const pending = pendingSummaryPublish.get(summaryMessageId);
+    if (!pending) {
+      await ctx.reply("⚠️ Ese mensaje ya no está disponible para editar.");
+      return;
+    }
+
+    const newText = ctx.message.text;
+    try {
+      await ctx.telegram.editMessageText(ctx.chat.id, summaryMessageId, undefined, newText, {
+        parse_mode: "HTML",
+      });
+      pending.text = newText;
+      // Si luego publican desde el botón de la foto, que use el texto ya editado.
+      const photoPending = pendingPublish.get(pending.photoMessageId);
+      if (photoPending?.summary !== undefined) photoPending.summary = newText;
+      await ctx.reply("✏️ Texto actualizado.");
+    } catch (err) {
+      console.error("No se pudo actualizar el resumen:", err);
+      await ctx.reply(
+        "⚠️ No pude actualizar el texto (¿formato HTML inválido?). Pulsa 'Editar' de nuevo para reintentar."
+      );
+    }
+    return;
+  }
+
   const messageId = editingCaption.get(ctx.from.id);
   if (messageId === undefined) return; // no hay ninguna edición de texto en curso, se ignora
   editingCaption.delete(ctx.from.id);
