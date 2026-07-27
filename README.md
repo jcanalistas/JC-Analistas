@@ -219,9 +219,8 @@ mismo que su comando equivalente:
      3 informes, busca 2 picks de cuota individual baja (de cualquier
      mercado, no tienen por qué ser los dos ganador — puede ser "gana el
      partido" + "gana un set") de partidos distintos cuya cuota combinada
-     llegue a 1,80 o más, y propone la combinación más segura posible que
-     aún así supere ese
-     mínimo — un complemento a las selecciones simples de cuota alta.
+     caiga entre 1,70 y 2,20, y propone la más segura posible dentro de
+     ese rango — un complemento a las selecciones simples de cuota alta.
 - `/ticket` (o "📸 Ticket") — pide primero la foto del ticket (la tarjeta
   ya recortada, sin fondo blanco alrededor). Para el fondo, si ya usaste
   uno antes te ofrece un botón "🔁 Usar el mismo fondo de la última vez"
