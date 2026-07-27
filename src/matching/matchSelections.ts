@@ -21,8 +21,11 @@ export interface SelectionGroup {
 
 const SECTION_TITLE_RE = /selecciones finales/i;
 // N. Equipo local vs Equipo visitante | Mercado: X | Cuota: Y | EV: Z | % Éxito: W | Explicación: V
+// El campo final admite "Explicación" o "Justificación" como etiqueta: los
+// prompts de Tipster y Analista cuantitativo usan "justificación" en su
+// propio texto y a veces el informe arrastra esa palabra al listado final.
 const LINE_RE =
-  /^\s*\d+[.)]\s*(.+?)\s*\|\s*mercado:\s*(.+?)\s*\|\s*cuota:\s*(.+?)\s*\|\s*ev:\s*(.+?)\s*\|\s*%?\s*[eé]xito:\s*(.+?)\s*\|\s*explicaci[oó]n:\s*(.+?)\s*$/i;
+  /^\s*\d+[.)]\s*(.+?)\s*\|\s*mercado:\s*(.+?)\s*\|\s*cuota:\s*(.+?)\s*\|\s*ev:\s*(.+?)\s*\|\s*%?\s*[eé]xito:\s*(.+?)\s*\|\s*(?:explicaci[oó]n|justificaci[oó]n(?:\s+t[eé]cnica)?(?:\s*\(?valor\)?)?):\s*(.+?)\s*$/i;
 
 /**
  * Extrae las selecciones de la sección "SELECCIONES FINALES" de un informe.
@@ -84,8 +87,8 @@ function parseLoose(
   const odds = (parts.find((p) => /cuota/i.test(p)) ?? "").replace(/cuota:?/i, "").trim();
   const ev = (parts.find((p) => /^ev\b/i.test(p)) ?? "").replace(/^ev:?/i, "").trim();
   const successRate = (parts.find((p) => /[eé]xito/i.test(p)) ?? "").replace(/%?\s*[eé]xito:?/i, "").trim();
-  const explanation = (parts.find((p) => /explicaci/i.test(p)) ?? "")
-    .replace(/explicaci[oó]n:?/i, "")
+  const explanation = (parts.find((p) => /explicaci|justificaci/i.test(p)) ?? "")
+    .replace(/explicaci[oó]n:?|justificaci[oó]n(\s+t[eé]cnica)?(\s*\(?valor\)?)?:?/i, "")
     .trim();
 
   if (!matchup || !market) return null;

@@ -21,7 +21,7 @@ export function formatIndividualSelections(
       return;
     }
     selections.forEach((s, i) => {
-      lines.push(`${i + 1}. ${s.matchup} — ${s.market}`);
+      lines.push(`\n*${i + 1}. ${s.matchup}* — ${s.market}`);
       const details = [
         s.odds ? `Cuota: ${s.odds}` : null,
         s.ev ? `EV: ${s.ev}` : null,

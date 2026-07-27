@@ -268,6 +268,14 @@ por línea:
 
 N. Partido/Jugador vs Jugador | Mercado: <mercado> | Cuota: <cuota> | EV: <valor EV+ estimado, ej. +8% o el indicador que uses> | % Éxito: <probabilidad de acierto estimada, ej. 65%> | Explicación: <explicación breve en 1-2 frases>
 
+El campo Explicación es OBLIGATORIO en las 8 líneas: nunca lo dejes vacío,
+ni pongas un guion o "ver análisis arriba". Resume ahí, en 1-2 frases
+concretas, el motivo real de ese pick (el mismo motivo que ya hayas
+argumentado antes en el informe para ese partido/jugador: estadística
+clave, contexto, lesión, motivación, etc.) — no lo dejes solo en la parte
+narrativa del informe, tiene que estar repetido/resumido en esta línea
+porque es la única parte que se le reenvía al usuario final.
+
 No uses negritas, encabezados adicionales ni texto extra dentro de esa
 sección: solo la lista numerada en ese formato exacto.`;
 
