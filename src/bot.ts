@@ -55,19 +55,20 @@ async function sendWelcome(ctx: Context) {
 bot.start(sendWelcome);
 bot.hears(START_BUTTON_TEXT, sendWelcome);
 
+function sportKeyboard() {
+  return Markup.inlineKeyboard([
+    Markup.button.callback(SPORT_LABELS.futbol, "research:futbol"),
+    Markup.button.callback(SPORT_LABELS.tenis, "research:tenis"),
+  ]);
+}
+
 async function startResearchFlow(ctx: Context) {
   if (researchInProgress) {
     await ctx.reply("Ya hay un Deep Research en curso, espera a que termine antes de lanzar otro.");
     return;
   }
 
-  await ctx.reply(
-    "¿Qué deporte analizamos?",
-    Markup.inlineKeyboard([
-      Markup.button.callback(SPORT_LABELS.futbol, "research:futbol"),
-      Markup.button.callback(SPORT_LABELS.tenis, "research:tenis"),
-    ])
-  );
+  await ctx.reply("¿Qué deporte analizamos?", sportKeyboard());
 }
 
 bot.command("analizar", startResearchFlow);
@@ -75,6 +76,9 @@ bot.hears(RESEARCH_BUTTON_TEXT, startResearchFlow);
 
 // Selección de competiciones de fútbol (opcional) antes de lanzar, por
 // usuario: qué ids de FOOTBALL_COMPETITIONS lleva marcados ahora mismo.
+// Todo el recorrido futbol -> todas/elegir -> lista de competiciones vive
+// en UN solo mensaje que se va editando, para poder ofrecer "⬅️ Atrás" en
+// cada paso sin dejar mensajes duplicados por el camino.
 const competitionSelection = new Map<number, Set<string>>();
 
 function competitionKeyboard(userId: number) {
@@ -86,7 +90,19 @@ function competitionKeyboard(userId: number) {
     ),
   ]);
   rows.push([Markup.button.callback("▶️ Lanzar con esta selección", "comp:confirm")]);
+  rows.push([Markup.button.callback("⬅️ Atrás", "back:footbolmode")]);
   return Markup.inlineKeyboard(rows);
+}
+
+async function showFootbolModeStep(ctx: Context) {
+  await ctx.editMessageText(
+    "Deporte elegido: Fútbol ⚽\n\n¿Analizamos todas las competiciones o restringimos a algunas?",
+    Markup.inlineKeyboard([
+      [Markup.button.callback("✅ Todas las competiciones", "comp:all")],
+      [Markup.button.callback("🎯 Elegir competiciones", "comp:pick")],
+      [Markup.button.callback("⬅️ Atrás", "back:sport")],
+    ])
+  );
 }
 
 bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
@@ -104,14 +120,19 @@ bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
     return;
   }
 
-  await ctx.editMessageText(`Deporte elegido: ${SPORT_LABELS.futbol}`);
-  await ctx.reply(
-    "¿Analizamos todas las competiciones o restringimos a algunas?",
-    Markup.inlineKeyboard([
-      [Markup.button.callback("✅ Todas las competiciones", "comp:all")],
-      [Markup.button.callback("🎯 Elegir competiciones", "comp:pick")],
-    ])
-  );
+  await showFootbolModeStep(ctx);
+});
+
+bot.action("back:sport", async (ctx) => {
+  await ctx.answerCbQuery();
+  competitionSelection.delete(ctx.from!.id);
+  await ctx.editMessageText("¿Qué deporte analizamos?", sportKeyboard());
+});
+
+bot.action("back:footbolmode", async (ctx) => {
+  await ctx.answerCbQuery();
+  competitionSelection.delete(ctx.from!.id);
+  await showFootbolModeStep(ctx);
 });
 
 bot.action("comp:all", async (ctx) => {

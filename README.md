@@ -161,9 +161,11 @@ mismo que su comando equivalente:
   antes de lanzar nada pregunta si quieres analizar todas las
   competiciones o restringir a una selección concreta (p. ej. solo
   Champions League) marcando con botones de la lista (con la bandera del
-  país de cada una, o de la UEFA en las 3 europeas): MLS, LaLiga 1ª/2ª,
-  1ª/2ª RFEF, Liga Portugal, Premier League, Bundesliga, Brasileirão,
-  Champions/Europa/Conference League; Tenis 🎾 lanza directo. Al terminar,
+  país de cada una, o de la UEFA en las 3 europeas): LaLiga 1ª/2ª, 1ª/2ª
+  RFEF, Liga Portugal, Premier League, Bundesliga, MLS, Brasileirão,
+  Champions/Europa/Conference League; Tenis 🎾 lanza directo. Cada paso
+  tiene un botón "⬅️ Atrás" para volver al anterior (p. ej. desde la lista
+  de competiciones puedes volver a elegir Tenis en vez de Fútbol). Al terminar,
   envía:
   1. Las selecciones finales de cada perfil (Tipster, Machine Learning,
      Analista cuantitativo): partido, mercado, cuota, EV, % de éxito y
