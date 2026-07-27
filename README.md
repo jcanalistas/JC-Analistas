@@ -194,11 +194,13 @@ mismo que su comando equivalente:
   Champions League) marcando con botones de la lista (con la bandera del
   país de cada una, o de la UEFA en las 3 europeas): LaLiga 1ª/2ª, 1ª/2ª
   RFEF, Liga Portugal, Premier League, Bundesliga, MLS, Brasileirão,
-  Champions/Europa/Conference League; Tenis 🎾 lanza directo. Cada paso
-  tiene un botón "⬅️ Atrás" para volver al anterior (p. ej. desde la lista
-  de competiciones puedes volver a elegir Tenis en vez de Fútbol). El
-  tenis además se lanza solo, sin tocar nada, todas las mañanas a las
-  7:00 (hora de España) si configuraste el paso 7.5 — los resultados te
+  Champions/Europa/Conference League. Si eliges Tenis 🎾, pregunta si
+  quieres **Solo ATP**, **Solo Challenger**, o **ATP + Challenger**
+  (siempre individuales masculinos). Cada paso tiene un botón "⬅️ Atrás"
+  para volver al anterior (p. ej. desde la lista de competiciones puedes
+  volver a elegir Tenis en vez de Fútbol). El tenis además se lanza solo,
+  sin tocar nada (con ambas categorías), todas las mañanas a las 7:00
+  (hora de España) si configuraste el paso 7.5 — los resultados te
   llegan igual que si lo hubieras pulsado tú. Al terminar, envía:
   1. Las selecciones finales de cada perfil (Tipster, Machine Learning,
      Analista cuantitativo): partido, mercado, cuota, EV, % de éxito y

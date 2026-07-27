@@ -356,9 +356,19 @@ function buildDateFilterOverride(dateFilter: DateFilter | undefined, now: Date):
   return `\n\nVENTANA DE PARTIDOS PARA ESTE ANÁLISIS EN CONCRETO: analiza ÚNICAMENTE partidos que se juegan ${momento}, ${fechaLabel}, ${rango}. Ignora partidos de cualquier otro día, aunque el resto de instrucciones mencionen genéricamente "las próximas 24 horas" — para este análisis en concreto, esa expresión debe entenderse como esta ventana, no como un plazo literal de 24h desde ahora.`;
 }
 
+export type TennisCategory = "atp" | "challenger" | "ambos";
+
+function buildTennisCategoryRestriction(category?: TennisCategory): string {
+  if (!category || category === "ambos") return "";
+  const label = category === "atp" ? "ATP (excluye Challenger)" : "Challenger (excluye ATP)";
+  return `\n\nRESTRICCIÓN OBLIGATORIA DE CATEGORÍA: para este análisis en concreto, analiza ÚNICAMENTE partidos de categoría ${label}, siempre cuadro individual (singles) masculino. Ignora la otra categoría aunque el resto de instrucciones la mencione — si no hay suficientes partidos EV+ en la categoría indicada, devuelve menos de 8 picks en vez de rellenar con la otra categoría.`;
+}
+
 export interface BuildPromptOptions {
   /** Solo para fútbol: si se indica, restringe el análisis a estas competiciones (ver FOOTBALL_COMPETITIONS). */
   competitions?: string[];
+  /** Solo para tenis: restringe a ATP, Challenger, o ambos (por defecto). */
+  tennisCategory?: TennisCategory;
   /** Ventana de partidos a analizar: hoy, mañana, o el comportamiento por defecto de "próximas 24h desde ahora". */
   dateFilter?: DateFilter;
   now?: Date;
@@ -368,8 +378,9 @@ export function buildPrompt(basePrompt: string, options: BuildPromptOptions = {}
   const now = options.now ?? new Date();
   const temporalContext = `\n\nCONTEXTO TEMPORAL OBLIGATORIO: ahora mismo es ${formatMadridNow(now)} (hora de España, Europe/Madrid). Usa este momento exacto como "ahora" para calcular la ventana de las próximas 24 horas — no calcules ni busques la hora actual por tu cuenta, usa este dato tal cual.`;
   const restriction = buildCompetitionRestriction(options.competitions);
+  const categoryRestriction = buildTennisCategoryRestriction(options.tennisCategory);
   const dateOverride = buildDateFilterOverride(options.dateFilter, now);
-  return `${basePrompt.trim()}${restriction}${dateOverride}${temporalContext}${OUTPUT_FORMAT_INSTRUCTIONS}`;
+  return `${basePrompt.trim()}${restriction}${categoryRestriction}${dateOverride}${temporalContext}${OUTPUT_FORMAT_INSTRUCTIONS}`;
 }
 
 /** Devuelve los 3 prompts del deporte, en orden Tipster → Machine Learning → Analista cuantitativo. */

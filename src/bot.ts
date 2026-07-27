@@ -7,6 +7,7 @@ import {
   SPORT_LABELS,
   type DateFilter,
   type Sport,
+  type TennisCategory,
 } from "./config/prompts";
 import { runDeepResearch, DeepResearchError, type DeepResearchResult } from "./gemini/deepResearch";
 import {
@@ -143,8 +144,30 @@ async function showFootbolModeStep(ctx: Context) {
     Markup.inlineKeyboard([
       [Markup.button.callback("✅ Todas las competiciones", "comp:all")],
       [Markup.button.callback("🎯 Elegir competiciones", "comp:pick")],
-      [Markup.button.callback("⬅️ Atrás", "back:date")],
+      [Markup.button.callback("⬅️ Atrás", "back:date:futbol")],
     ])
+  );
+}
+
+function tennisCategoryLabel(category: TennisCategory): string {
+  if (category === "atp") return "Solo ATP";
+  if (category === "challenger") return "Solo Challenger";
+  return "ATP + Challenger";
+}
+
+function tennisCategoryKeyboard() {
+  return Markup.inlineKeyboard([
+    [Markup.button.callback("🎾 Solo ATP", "tenniscat:atp")],
+    [Markup.button.callback("🏆 Solo Challenger", "tenniscat:challenger")],
+    [Markup.button.callback("✅ ATP + Challenger", "tenniscat:ambos")],
+    [Markup.button.callback("⬅️ Atrás", "back:date:tenis")],
+  ]);
+}
+
+async function showTennisCategoryStep(ctx: Context) {
+  await ctx.editMessageText(
+    "Deporte elegido: Tenis 🎾\n\n¿Qué categoría de torneos analizamos? (siempre individuales masculinos)",
+    tennisCategoryKeyboard()
   );
 }
 
@@ -178,18 +201,33 @@ bot.action(/^date:(hoy|manana|24h):(futbol|tenis)$/, async (ctx) => {
   dateFilterSelection.set(ctx.from!.id, filter);
 
   if (sport === "tenis") {
-    await ctx.editMessageText(`Deporte elegido: ${SPORT_LABELS.tenis}\nFecha: ${dateFilterLabel(filter)}`);
-    await launchResearch(ctx, "tenis", undefined, filter);
+    await showTennisCategoryStep(ctx);
     return;
   }
 
   await showFootbolModeStep(ctx);
 });
 
-bot.action("back:date", async (ctx) => {
+bot.action(/^back:date:(futbol|tenis)$/, async (ctx) => {
   await ctx.answerCbQuery();
   competitionSelection.delete(ctx.from!.id);
-  await showDateStep(ctx, "futbol");
+  await showDateStep(ctx, ctx.match[1] as Sport);
+});
+
+bot.action(/^tenniscat:(atp|challenger|ambos)$/, async (ctx) => {
+  const category = ctx.match[1] as TennisCategory;
+
+  if (researchInProgress) {
+    await ctx.answerCbQuery("Ya hay un Deep Research en curso.");
+    return;
+  }
+  await ctx.answerCbQuery();
+
+  const dateFilter = dateFilterSelection.get(ctx.from!.id);
+  await ctx.editMessageText(
+    `Deporte elegido: ${SPORT_LABELS.tenis}\nFecha: ${dateFilterLabel(dateFilter ?? "24h")}\nCategoría: ${tennisCategoryLabel(category)}`
+  );
+  await launchResearch(ctx, "tenis", undefined, dateFilter, category);
 });
 
 bot.action("back:footbolmode", async (ctx) => {
@@ -258,16 +296,18 @@ async function launchResearch(
   ctx: Context,
   sport: Sport,
   competitions?: string[],
-  dateFilter?: DateFilter
+  dateFilter?: DateFilter,
+  tennisCategory?: TennisCategory
 ) {
-  await runResearch((text, extra) => ctx.reply(text, extra), sport, competitions, dateFilter);
+  await runResearch((text, extra) => ctx.reply(text, extra), sport, competitions, dateFilter, tennisCategory);
 }
 
 async function runResearch(
   reply: ReplyFn,
   sport: Sport,
   competitions?: string[],
-  dateFilter?: DateFilter
+  dateFilter?: DateFilter,
+  tennisCategory?: TennisCategory
 ) {
   if (researchInProgress) {
     await reply("Ya hay un Deep Research en curso, espera a que termine antes de lanzar otro.");
@@ -276,11 +316,12 @@ async function runResearch(
 
   researchInProgress = true;
   try {
+    const categoryNote = sport === "tenis" && tennisCategory ? `, ${tennisCategoryLabel(tennisCategory)}` : "";
     await reply(
-      `🔎 Lanzando los 3 Deep Research de ${SPORT_LABELS[sport]} (${dateFilterLabel(dateFilter ?? "24h")}) en Gemini, te aviso según vaya terminando cada uno.`
+      `🔎 Lanzando los 3 Deep Research de ${SPORT_LABELS[sport]} (${dateFilterLabel(dateFilter ?? "24h")}${categoryNote}) en Gemini, te aviso según vaya terminando cada uno.`
     );
 
-    const promptDefs = buildAllPrompts(sport, { competitions, dateFilter });
+    const promptDefs = buildAllPrompts(sport, { competitions, dateFilter, tennisCategory });
     // En paralelo: cada uno es una llamada de API independiente (no hay
     // ninguna sesión de navegador compartida que pueda saturarse).
     // allSettled en vez de all: si un perfil falla (cuota, timeout...) no
