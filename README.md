@@ -147,7 +147,8 @@ Debe apuntar a `https://<tu-servicio>.a.run.app/telegram/<WEBHOOK_SECRET_PATH>`.
 
 En Telegram, háblale al bot:
 
-- `/start` — mensaje de bienvenida, deja fijo el botón "🔎 Research".
+- `/start` (o el botón "Empezar") — mensaje de bienvenida, deja fijos los
+  botones "🔎 Research" y "Empezar".
 - `/research` (o el botón) — pregunta el deporte y, al elegirlo, lanza
   los 3 Deep Research. Al terminar, envía:
   1. Las selecciones finales de cada perfil (Tipster, Machine Learning,
@@ -156,6 +157,9 @@ En Telegram, háblale al bot:
   2. Las "Recomendaciones": selecciones que coincidieron en 2 o 3
      informes, combinadas en una sola entrada con la explicación de cada
      perfil que coincidió.
+- `/ticket` — pide primero la foto del ticket (la tarjeta ya recortada,
+  sin fondo blanco alrededor) y luego la foto de fondo, y devuelve el
+  montaje con el ticket centrado sobre el fondo.
 
 ## Limitaciones conocidas de esta primera versión
 

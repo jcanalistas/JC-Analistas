@@ -4,14 +4,16 @@ import { buildAllPrompts, SPORT_LABELS, type Sport } from "./config/prompts";
 import { runDeepResearch, DeepResearchError, type DeepResearchResult } from "./gemini/deepResearch";
 import { parseSelections, findRepeatedSelections, type Selection } from "./matching/matchSelections";
 import { formatIndividualSelections, formatRepeatedSelections } from "./format/telegramFormat";
+import { composeMontage } from "./montage/composeMontage";
 
 export const bot = new Telegraf(env.telegramBotToken);
 
 let researchInProgress = false;
 
-// Botón fijo debajo del teclado, siempre visible, alternativa a escribir /research.
+// Botones fijos debajo del teclado, siempre visibles.
 const RESEARCH_BUTTON_TEXT = "🔎 Research";
-const mainKeyboard = Markup.keyboard([[RESEARCH_BUTTON_TEXT]]).resize();
+const START_BUTTON_TEXT = "Empezar";
+const mainKeyboard = Markup.keyboard([[RESEARCH_BUTTON_TEXT], [START_BUTTON_TEXT]]).resize();
 
 bot.use(async (ctx, next) => {
   const userId = ctx.from?.id?.toString();
@@ -22,12 +24,17 @@ bot.use(async (ctx, next) => {
   return next();
 });
 
-bot.start((ctx) =>
-  ctx.reply(
-    "Bot de JC Analistas listo.\n\nToca el botón de abajo (o escribe /research) para lanzar los 3 Deep Research en Gemini y comparar las selecciones.",
+async function sendWelcome(ctx: Context) {
+  await ctx.reply(
+    "Bot de JC Analistas listo.\n\n" +
+      "Toca el botón de abajo (o escribe /research) para lanzar los 3 Deep Research en Gemini y comparar las selecciones.\n\n" +
+      "/ticket — te pide la foto del ticket y una foto de fondo, y te devuelve el montaje.",
     mainKeyboard
-  )
-);
+  );
+}
+
+bot.start(sendWelcome);
+bot.hears(START_BUTTON_TEXT, sendWelcome);
 
 async function startResearchFlow(ctx: Context) {
   if (researchInProgress) {
@@ -61,7 +68,7 @@ bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
   researchInProgress = true;
   try {
     await ctx.reply(
-      `🔎 Lanzando los 3 Deep Research de ${SPORT_LABELS[sport]} en Gemini, en paralelo. Cada uno puede tardar varios minutos — te aviso según vaya terminando cada uno.`
+      `🔎 Lanzando los 3 Deep Research de ${SPORT_LABELS[sport]} en Gemini, te aviso según vaya terminando cada uno.`
     );
 
     const promptDefs = buildAllPrompts(sport);
@@ -103,5 +110,65 @@ bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
     }
   } finally {
     researchInProgress = false;
+  }
+});
+
+// --- /ticket: superpone la foto del ticket sobre una foto de fondo ---
+
+interface MontageState {
+  step: "esperando_ticket" | "esperando_fondo";
+  ticketBuffer?: Buffer;
+}
+const montageState = new Map<number, MontageState>();
+
+bot.command("ticket", async (ctx) => {
+  montageState.set(ctx.from.id, { step: "esperando_ticket" });
+  await ctx.reply(
+    "📸 Mándame la foto del ticket (la tarjeta ya recortada, sin fondo blanco alrededor)."
+  );
+});
+
+async function downloadTelegramPhoto(ctx: Context): Promise<Buffer> {
+  const message = ctx.message as { photo?: Array<{ file_id: string }> } | undefined;
+  const photos = message?.photo;
+  if (!photos || photos.length === 0) {
+    throw new Error("No se encontró ninguna foto en el mensaje.");
+  }
+  const fileId = photos[photos.length - 1].file_id; // la de mayor resolución
+  const fileLink = await ctx.telegram.getFileLink(fileId);
+  const response = await fetch(fileLink.href);
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
+bot.on("photo", async (ctx) => {
+  const state = montageState.get(ctx.from.id);
+  if (!state) return; // no hay ningún /ticket en curso, se ignora
+
+  let photoBuffer: Buffer;
+  try {
+    photoBuffer = await downloadTelegramPhoto(ctx);
+  } catch (err) {
+    console.error(err);
+    await ctx.reply("⚠️ No pude descargar esa foto, inténtalo de nuevo.");
+    return;
+  }
+
+  if (state.step === "esperando_ticket") {
+    montageState.set(ctx.from.id, { step: "esperando_fondo", ticketBuffer: photoBuffer });
+    await ctx.reply("🖼️ Ticket recibido. Ahora mándame la foto de fondo.");
+    return;
+  }
+
+  // step === "esperando_fondo"
+  await ctx.reply("🎨 Montando la imagen…");
+  try {
+    const result = await composeMontage(state.ticketBuffer!, photoBuffer);
+    await ctx.replyWithPhoto({ source: result });
+  } catch (err) {
+    console.error(err);
+    await ctx.reply("⚠️ No se pudo generar el montaje. Revisa que ambas fotos sean válidas e inténtalo de nuevo con /ticket.");
+  } finally {
+    montageState.delete(ctx.from.id);
   }
 });

@@ -14,7 +14,7 @@
 export type Sport = "futbol" | "tenis";
 
 export const SPORT_LABELS: Record<Sport, string> = {
-  futbol: "Fútbol ⚽️",
+  futbol: "Fútbol ⚽",
   tenis: "Tenis 🎾",
 };
 
