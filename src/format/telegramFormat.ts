@@ -23,12 +23,12 @@ export function formatIndividualSelections(
     selections.forEach((s, i) => {
       lines.push(`\n*${i + 1}. ${s.matchup}* — ${s.market}`);
       const details = [
-        s.odds ? `Cuota: ${s.odds}` : null,
-        s.ev ? `EV: ${s.ev}` : null,
-        s.successRate ? `% Éxito: ${s.successRate}` : null,
+        s.odds ? `💰 ${s.odds}` : null,
+        s.ev ? `📈 ${s.ev}` : null,
+        s.successRate ? `🎯 ${s.successRate}` : null,
       ]
         .filter(Boolean)
-        .join(" · ");
+        .join("  ·  ");
       if (details) lines.push(details);
       lines.push(`_${s.explanation || "Sin explicación detallada."}_`);
     });
@@ -56,12 +56,12 @@ export function formatRepeatedSelections(groups: SelectionGroup[]): string[] {
     lines.push(`Coincide en ${group.count} de 3 informes (${sorted.map((s) => s.sourceLabel).join(", ")})`);
 
     const details = [
-      uniqueJoin(sorted.map((s) => s.odds), "Cuota"),
-      uniqueJoin(sorted.map((s) => s.ev), "EV"),
-      uniqueJoin(sorted.map((s) => s.successRate), "% Éxito"),
+      uniqueJoin(sorted.map((s) => s.odds), "💰"),
+      uniqueJoin(sorted.map((s) => s.ev), "📈"),
+      uniqueJoin(sorted.map((s) => s.successRate), "🎯"),
     ]
       .filter(Boolean)
-      .join(" · ");
+      .join("  ·  ");
     if (details) lines.push(details);
 
     const combinedExplanation = sorted
@@ -74,11 +74,11 @@ export function formatRepeatedSelections(groups: SelectionGroup[]): string[] {
   return chunkMessage(lines.join("\n"));
 }
 
-/** Junta valores únicos (no vacíos) con " / ", con una etiqueta delante (p.ej. "Cuota: 1.85 / 1.90"). */
-function uniqueJoin(values: string[], label: string): string {
+/** Junta valores únicos (no vacíos) con " / ", con un icono delante (p.ej. "💰 1.85 / 1.90"). */
+function uniqueJoin(values: string[], icon: string): string {
   const unique = [...new Set(values.map((v) => v.trim()).filter(Boolean))];
   if (unique.length === 0) return "";
-  return `${label}: ${unique.join(" / ")}`;
+  return `${icon} ${unique.join(" / ")}`;
 }
 
 /** Parte un texto largo en trozos que caben en un mensaje de Telegram. */
