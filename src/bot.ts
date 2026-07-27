@@ -10,10 +10,13 @@ export const bot = new Telegraf(env.telegramBotToken);
 
 let researchInProgress = false;
 
-// Botones fijos debajo del teclado, siempre visibles.
-const RESEARCH_BUTTON_TEXT = "🔎 Analizar";
-const START_BUTTON_TEXT = "Empezar";
-const mainKeyboard = Markup.keyboard([[RESEARCH_BUTTON_TEXT], [START_BUTTON_TEXT]]).resize();
+// Botones fijos debajo del teclado, siempre visibles, en este orden.
+const START_BUTTON_TEXT = "🏠 Empezar";
+const RESEARCH_BUTTON_TEXT = "🔍 Analizar";
+const TICKET_BUTTON_TEXT = "📸 Ticket";
+const mainKeyboard = Markup.keyboard([
+  [START_BUTTON_TEXT, RESEARCH_BUTTON_TEXT, TICKET_BUTTON_TEXT],
+]).resize();
 
 bot.use(async (ctx, next) => {
   const userId = ctx.from?.id?.toString();
@@ -27,8 +30,8 @@ bot.use(async (ctx, next) => {
 async function sendWelcome(ctx: Context) {
   await ctx.reply(
     "Bot de JC Analistas listo.\n\n" +
-      "Toca el botón de abajo (o escribe /analizar) para lanzar los 3 Deep Research en Gemini y comparar las selecciones.\n\n" +
-      "/ticket — te pide la foto del ticket y una foto de fondo, y te devuelve el montaje.",
+      "🔍 Analizar — lanza los 3 Deep Research en Gemini y compara las selecciones.\n" +
+      "📸 Ticket — te pide la foto del ticket y una foto de fondo, y te devuelve el montaje.",
     mainKeyboard
   );
 }
@@ -121,12 +124,15 @@ interface MontageState {
 }
 const montageState = new Map<number, MontageState>();
 
-bot.command("ticket", async (ctx) => {
-  montageState.set(ctx.from.id, { step: "esperando_ticket" });
+async function startTicketFlow(ctx: Context) {
+  montageState.set(ctx.from!.id, { step: "esperando_ticket" });
   await ctx.reply(
     "📸 Mándame la foto del ticket (la tarjeta ya recortada, sin fondo blanco alrededor)."
   );
-});
+}
+
+bot.command("ticket", startTicketFlow);
+bot.hears(TICKET_BUTTON_TEXT, startTicketFlow);
 
 async function downloadTelegramPhoto(ctx: Context): Promise<Buffer> {
   const message = ctx.message as { photo?: Array<{ file_id: string }> } | undefined;
