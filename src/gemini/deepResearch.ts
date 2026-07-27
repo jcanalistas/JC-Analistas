@@ -21,6 +21,18 @@ interface RunOptions {
 }
 
 const DEFAULT_POLL_INTERVAL_MS = 10_000;
+const MAX_CONSECUTIVE_POLL_ERRORS = 5;
+
+// El SDK aplica por defecto un timeout de 90s a cada petición HTTP, muy
+// corto para crear un Deep Research (que puede tardar en confirmar el
+// arranque). Lo subimos igualmente, aunque el timeout real que nos
+// protege es el nuestro propio (ver withTimeout): se ha observado que
+// algunos rechazos internos del SDK quedan "huérfanos" (no propagan al
+// await que nosotros hacemos), dejando la petición colgada para siempre
+// sin error ni resultado. withTimeout garantiza que SIEMPRE avancemos.
+const HTTP_TIMEOUT_MS = 5 * 60_000;
+const CREATE_TIMEOUT_MS = 2 * 60_000;
+const POLL_TIMEOUT_MS = 60_000;
 
 /**
  * Ejecuta un Deep Research usando la API oficial de Gemini (Interactions
@@ -28,11 +40,6 @@ const DEFAULT_POLL_INTERVAL_MS = 10_000;
  * Studio. La tarea corre en segundo plano en los servidores de Google y
  * aquí hacemos polling hasta que termina.
  */
-// El SDK aplica por defecto un timeout de 90s a cada petición HTTP, muy
-// corto para crear un Deep Research (que puede tardar en confirmar el
-// arranque). Lo subimos a 5 minutos para evitar TimeoutError espurios.
-const HTTP_TIMEOUT_MS = 5 * 60_000;
-
 export async function runDeepResearch(prompt: string, options: RunOptions): Promise<DeepResearchResult> {
   const client = new GoogleGenAI({
     apiKey: options.apiKey,
@@ -41,11 +48,15 @@ export async function runDeepResearch(prompt: string, options: RunOptions): Prom
 
   let interactionId: string;
   try {
-    const interaction = await client.interactions.create({
-      input: prompt,
-      agent: options.agent,
-      background: true,
-    });
+    const interaction = await withTimeout(
+      client.interactions.create({
+        input: prompt,
+        agent: options.agent,
+        background: true,
+      }),
+      CREATE_TIMEOUT_MS,
+      "Tiempo de espera agotado creando la interacción"
+    );
     interactionId = interaction.id;
   } catch (err) {
     throw new DeepResearchError(
@@ -56,6 +67,7 @@ export async function runDeepResearch(prompt: string, options: RunOptions): Prom
 
   const pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
   const deadline = Date.now() + options.timeoutMinutes * 60_000;
+  let consecutivePollErrors = 0;
 
   while (true) {
     if (Date.now() > deadline) {
@@ -68,12 +80,24 @@ export async function runDeepResearch(prompt: string, options: RunOptions): Prom
 
     let result;
     try {
-      result = await client.interactions.get(interactionId);
-    } catch (err) {
-      throw new DeepResearchError(
-        `Error consultando el estado del Deep Research: ${describeError(err)}`,
-        prompt
+      result = await withTimeout(
+        client.interactions.get(interactionId),
+        POLL_TIMEOUT_MS,
+        "Tiempo de espera agotado consultando el estado"
       );
+      consecutivePollErrors = 0;
+    } catch (err) {
+      consecutivePollErrors++;
+      if (consecutivePollErrors > MAX_CONSECUTIVE_POLL_ERRORS) {
+        throw new DeepResearchError(
+          `Error consultando el estado del Deep Research (${consecutivePollErrors} intentos fallidos seguidos): ${describeError(err)}`,
+          prompt
+        );
+      }
+      // Fallo puntual (p.ej. un timeout huérfano del SDK): esperamos y
+      // reintentamos en vez de abortar todo el research de golpe.
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+      continue;
     }
 
     if (result.status === "completed") {
@@ -93,6 +117,28 @@ export async function runDeepResearch(prompt: string, options: RunOptions): Prom
 
     await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
   }
+}
+
+/**
+ * Fuerza que una promesa se resuelva o rechace en un plazo máximo,
+ * independientemente de lo que haga internamente. Necesario porque se ha
+ * observado que el SDK de Gemini puede dejar una petición colgada para
+ * siempre (ni resuelve ni rechaza) tras un fallo interno, en vez de
+ * propagar el error al propio await.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${message} (${ms / 1000}s)`)), ms);
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
 }
 
 /**
