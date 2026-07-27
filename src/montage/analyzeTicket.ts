@@ -10,10 +10,17 @@ export interface TicketInfo {
 
 const ANALYSIS_MODEL = "gemini-flash-latest";
 
-const ANALYZE_PROMPT = `Analiza esta imagen de un ticket de apuesta deportiva (tenis o fútbol).
+const ANALYZE_PROMPT = `Analiza esta imagen de un ticket de apuesta deportiva (tenis o fútbol) de Winamax. Puede tener una o varias selecciones (picks).
+
+Para identificar la competición de cada selección:
+- La bandera pequeña junto a cada partido indica el PAÍS del torneo/liga (es la convención de Winamax), no la nacionalidad de los jugadores.
+- Combina esa bandera con los nombres de jugadores/equipos y cualquier texto visible en el ticket para deducir el torneo exacto, con el formato habitual: en tenis "ATP <ciudad>" o "CH <ciudad>" (Challenger), en fútbol el nombre de la liga o competición (ej. "LaLiga", "Premier League", "Champions League").
+- Si TODAS las selecciones del ticket son del mismo torneo/competición, escribe ese torneo una sola vez.
+- Si hay selecciones de torneos/competiciones distintos, escribe todos separados por " & ", por ejemplo "ATP Estoril & CH Bonn".
+
 Devuelve tu respuesta EXACTAMENTE en este formato, una línea por campo, sin nada más:
 DEPORTE: tenis
-COMPETICION: <nombre de la competición o torneo tal como aparece en el ticket>
+COMPETICION: <torneo o torneos, según las reglas de arriba>
 SELECCIONES: <resumen breve combinando apellidos de jugadores o equipos y el mercado de cada selección, unidos por " + ", por ejemplo "Poljicak + Dalla Valle Set">
 
 DEPORTE debe ser exactamente "tenis" o "futbol", según corresponda.`;
