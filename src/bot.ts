@@ -249,20 +249,34 @@ bot.action("comp:confirm", async (ctx) => {
   await launchResearch(ctx, "futbol", labels, dateFilterSelection.get(userId));
 });
 
+// Firma común de ctx.reply — así runResearch() sirve tanto para el flujo
+// interactivo (pasando ctx.reply) como para el disparo programado (pasando
+// una función que manda directamente al chat privado del usuario, sin ctx).
+type ReplyFn = (text: string, extra?: Record<string, unknown>) => Promise<unknown>;
+
 async function launchResearch(
   ctx: Context,
   sport: Sport,
   competitions?: string[],
   dateFilter?: DateFilter
 ) {
+  await runResearch((text, extra) => ctx.reply(text, extra), sport, competitions, dateFilter);
+}
+
+async function runResearch(
+  reply: ReplyFn,
+  sport: Sport,
+  competitions?: string[],
+  dateFilter?: DateFilter
+) {
   if (researchInProgress) {
-    await ctx.reply("Ya hay un Deep Research en curso, espera a que termine antes de lanzar otro.");
+    await reply("Ya hay un Deep Research en curso, espera a que termine antes de lanzar otro.");
     return;
   }
 
   researchInProgress = true;
   try {
-    await ctx.reply(
+    await reply(
       `🔎 Lanzando los 3 Deep Research de ${SPORT_LABELS[sport]} (${dateFilterLabel(dateFilter ?? "24h")}) en Gemini, te aviso según vaya terminando cada uno.`
     );
 
@@ -278,7 +292,7 @@ async function launchResearch(
           agent: env.geminiDeepResearchAgent,
           timeoutMinutes: env.deepResearchTimeoutMinutes,
         });
-        await ctx.reply(`✅ ${label} completado.`);
+        await reply(`✅ ${label} completado.`);
         return { label, result };
       })
     );
@@ -290,12 +304,12 @@ async function launchResearch(
       } else {
         const reason = outcome.reason;
         const message = reason instanceof DeepResearchError ? reason.message : describeError(reason);
-        await ctx.reply(`⚠️ Ese perfil falló: ${message}`);
+        await reply(`⚠️ Ese perfil falló: ${message}`);
       }
     }
 
     if (successful.length === 0) {
-      await ctx.reply("⚠️ Los 3 Deep Research fallaron, no hay nada que mostrar.");
+      await reply("⚠️ Los 3 Deep Research fallaron, no hay nada que mostrar.");
       return;
     }
 
@@ -305,26 +319,26 @@ async function launchResearch(
     );
 
     for (const chunk of formatIndividualSelections(labels, selectionsBySource)) {
-      await ctx.reply(chunk, { parse_mode: "Markdown" });
+      await reply(chunk, { parse_mode: "Markdown" });
     }
 
     const allSelections = selectionsBySource.flat();
     const repeatedGroups = findRepeatedSelections(allSelections);
 
     for (const chunk of formatRepeatedSelections(repeatedGroups)) {
-      await ctx.reply(chunk, { parse_mode: "Markdown" });
+      await reply(chunk, { parse_mode: "Markdown" });
     }
 
     const mixedMarketGroups = findRepeatedMatchupsWithDifferentMarkets(allSelections);
     for (const chunk of formatMixedMarketMatchups(mixedMarketGroups)) {
-      await ctx.reply(chunk, { parse_mode: "Markdown" });
+      await reply(chunk, { parse_mode: "Markdown" });
     }
   } catch (err) {
     if (err instanceof DeepResearchError) {
-      await ctx.reply(`⚠️ Error ejecutando Deep Research: ${err.message}`);
+      await reply(`⚠️ Error ejecutando Deep Research: ${err.message}`);
     } else {
       console.error(err);
-      await ctx.reply("⚠️ Ocurrió un error inesperado ejecutando los Deep Research. Revisa los logs.");
+      await reply("⚠️ Ocurrió un error inesperado ejecutando los Deep Research. Revisa los logs.");
     }
   } finally {
     researchInProgress = false;
@@ -333,6 +347,13 @@ async function launchResearch(
 
 function describeError(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+/** Lanzado desde fuera de Telegram (ver server.ts): /analizar de tenis automático a las 7:00. */
+export async function runScheduledTennisAnalysis(): Promise<void> {
+  const reply: ReplyFn = (text, extra) => bot.telegram.sendMessage(env.telegramAllowedUserId, text, extra);
+  await reply("⏰ Análisis automático de tenis (7:00) empezando...");
+  await runResearch(reply, "tenis");
 }
 
 // --- /ticket: superpone la foto del ticket sobre una foto de fondo ---
@@ -363,6 +384,10 @@ interface PendingSummaryPublish {
 }
 const pendingSummaryPublish = new Map<number, PendingSummaryPublish>();
 
+// Último fondo enviado por cada usuario, para poder reutilizarlo sin
+// tener que volver a mandarlo cada vez.
+const lastBackground = new Map<number, Buffer>();
+
 async function startTicketFlow(ctx: Context) {
   montageState.set(ctx.from!.id, { step: "esperando_ticket" });
   await ctx.reply(
@@ -386,34 +411,15 @@ async function downloadTelegramPhoto(ctx: Context): Promise<Buffer> {
   return Buffer.from(arrayBuffer);
 }
 
-bot.on("photo", async (ctx) => {
-  const state = montageState.get(ctx.from.id);
-  if (!state) return; // no hay ningún /ticket en curso, se ignora
-
-  let photoBuffer: Buffer;
-  try {
-    photoBuffer = await downloadTelegramPhoto(ctx);
-  } catch (err) {
-    console.error(err);
-    await ctx.reply("⚠️ No pude descargar esa foto, inténtalo de nuevo.");
-    return;
-  }
-
-  if (state.step === "esperando_ticket") {
-    montageState.set(ctx.from.id, { step: "esperando_fondo", ticketBuffer: photoBuffer });
-    await ctx.reply("🖼️ Ticket recibido. Ahora mándame la foto de fondo.");
-    return;
-  }
-
-  // step === "esperando_fondo"
+async function finishTicketMontage(ctx: Context, userId: number, ticketBuffer: Buffer, backgroundBuffer: Buffer) {
   await ctx.reply("🎨 Montando la imagen…");
   try {
-    const result = await composeMontage(state.ticketBuffer!, photoBuffer);
+    const result = await composeMontage(ticketBuffer, backgroundBuffer);
 
     let caption: string | undefined;
     let summary: string | undefined;
     try {
-      const ticketInfo = await analyzeTicket(state.ticketBuffer!, env.geminiApiKey);
+      const ticketInfo = await analyzeTicket(ticketBuffer, env.geminiApiKey);
       caption = formatTicketCaption(ticketInfo);
       if (ticketInfo.odds) summary = formatSelectionsSummary(ticketInfo);
     } catch (err) {
@@ -459,8 +465,52 @@ bot.on("photo", async (ctx) => {
     console.error(err);
     await ctx.reply("⚠️ No se pudo generar el montaje. Revisa que ambas fotos sean válidas e inténtalo de nuevo con /ticket.");
   } finally {
-    montageState.delete(ctx.from.id);
+    montageState.delete(userId);
   }
+}
+
+bot.on("photo", async (ctx) => {
+  const state = montageState.get(ctx.from.id);
+  if (!state) return; // no hay ningún /ticket en curso, se ignora
+
+  let photoBuffer: Buffer;
+  try {
+    photoBuffer = await downloadTelegramPhoto(ctx);
+  } catch (err) {
+    console.error(err);
+    await ctx.reply("⚠️ No pude descargar esa foto, inténtalo de nuevo.");
+    return;
+  }
+
+  if (state.step === "esperando_ticket") {
+    montageState.set(ctx.from.id, { step: "esperando_fondo", ticketBuffer: photoBuffer });
+    if (lastBackground.has(ctx.from.id)) {
+      await ctx.reply(
+        "🖼️ Ticket recibido. Mándame la foto de fondo, o reutiliza la última:",
+        Markup.inlineKeyboard([[Markup.button.callback("🔁 Usar el mismo fondo de la última vez", "reusebg")]])
+      );
+    } else {
+      await ctx.reply("🖼️ Ticket recibido. Ahora mándame la foto de fondo.");
+    }
+    return;
+  }
+
+  // step === "esperando_fondo"
+  lastBackground.set(ctx.from.id, photoBuffer);
+  await finishTicketMontage(ctx, ctx.from.id, state.ticketBuffer!, photoBuffer);
+});
+
+bot.action("reusebg", async (ctx) => {
+  const userId = ctx.from!.id;
+  const state = montageState.get(userId);
+  const background = lastBackground.get(userId);
+  if (!state || state.step !== "esperando_fondo" || !background) {
+    await ctx.answerCbQuery("Ya no aplica: manda la foto del ticket de nuevo con /ticket.");
+    return;
+  }
+  await ctx.answerCbQuery();
+  await ctx.editMessageReplyMarkup(undefined);
+  await finishTicketMontage(ctx, userId, state.ticketBuffer!, background);
 });
 
 bot.action(/^publish:(\d+)$/, async (ctx) => {

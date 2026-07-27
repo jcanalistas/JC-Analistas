@@ -1,5 +1,5 @@
 import express from "express";
-import { bot } from "./bot";
+import { bot, runScheduledTennisAnalysis } from "./bot";
 import { env } from "./config/env";
 
 // Red de seguridad: sin esto, un rechazo de promesa no capturado en
@@ -23,6 +23,22 @@ app.get("/", (_req, res) => {
 });
 
 app.use(bot.webhookCallback(webhookPath));
+
+// Lo llama Cloud Scheduler todos los días a las 7:00 (hora de España) para
+// lanzar el /analizar de tenis automáticamente. Responde rápido y sigue en
+// segundo plano: Cloud Scheduler no necesita esperar a que termine el
+// Deep Research (puede tardar varios minutos).
+app.post("/internal/auto-analizar-tenis", (req, res) => {
+  const secret = req.query.secret ?? req.get("X-Auto-Secret");
+  if (secret !== env.autoAnalizarSecret) {
+    res.status(401).send("unauthorized");
+    return;
+  }
+  res.status(202).send("ok");
+  runScheduledTennisAnalysis().catch((err) => {
+    console.error("El análisis automático de tenis falló:", err);
+  });
+});
 
 async function main() {
   if (env.publicUrl) {

@@ -26,4 +26,7 @@ export const env = {
   // rápido; "max-preview" es más exhaustivo pero más lento.
   geminiDeepResearchAgent: process.env.GEMINI_DEEP_RESEARCH_AGENT ?? "deep-research-preview-04-2026",
   deepResearchTimeoutMinutes: Number(process.env.DEEP_RESEARCH_TIMEOUT_MINUTES ?? 20),
+  // Secreto compartido con Cloud Scheduler para autorizar la llamada al
+  // endpoint que lanza el /analizar automático de tenis (ver server.ts).
+  autoAnalizarSecret: required("AUTO_ANALIZAR_SECRET"),
 };

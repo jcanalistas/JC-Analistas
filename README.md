@@ -116,7 +116,7 @@ gcloud run deploy jc-analistas-bot \
   --source . \
   --region europe-southwest1 \
   --allow-unauthenticated \
-  --set-env-vars TELEGRAM_ALLOWED_USER_ID=TU_ID_DE_TELEGRAM,TELEGRAM_CHANNEL_ID=TU_ID_DE_CANAL,WEBHOOK_SECRET_PATH=UNA_CADENA_ALEATORIA,DEEP_RESEARCH_TIMEOUT_MINUTES=20 \
+  --set-env-vars TELEGRAM_ALLOWED_USER_ID=TU_ID_DE_TELEGRAM,TELEGRAM_CHANNEL_ID=TU_ID_DE_CANAL,WEBHOOK_SECRET_PATH=UNA_CADENA_ALEATORIA,DEEP_RESEARCH_TIMEOUT_MINUTES=20,AUTO_ANALIZAR_SECRET=OTRA_CADENA_ALEATORIA \
   --set-secrets TELEGRAM_BOT_TOKEN=telegram-bot-token:latest,GEMINI_API_KEY=gemini-api-key:latest \
   --timeout=3600
 ```
@@ -148,6 +148,35 @@ curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getWebhookInfo"
 
 Debe apuntar a `https://<tu-servicio>.a.run.app/telegram/<WEBHOOK_SECRET_PATH>`.
 
+### 7.5 (Opcional) /analizar de tenis automático cada mañana a las 7:00
+
+El propio bot no puede programarse solo a sí mismo (Cloud Run apaga el
+contenedor cuando no hay tráfico), así que quien lo despierta a las 7:00
+es Cloud Scheduler, llamando a un endpoint del propio servicio:
+
+```bash
+gcloud services enable cloudscheduler.googleapis.com
+
+gcloud scheduler jobs create http auto-analizar-tenis \
+  --location=europe-west1 \
+  --schedule="0 7 * * *" \
+  --time-zone="Europe/Madrid" \
+  --uri="https://TU-URL-DE-CLOUD-RUN.a.run.app/internal/auto-analizar-tenis?secret=TU_AUTO_ANALIZAR_SECRET" \
+  --http-method=POST
+```
+
+`--location` es la región de Cloud Scheduler (no tiene por qué coincidir
+con la de Cloud Run); si `europe-west1` da error de región no soportada,
+prueba con otra de la [lista de ubicaciones de Cloud
+Scheduler](https://cloud.google.com/scheduler/docs/#locations). El
+`secret` es el mismo valor que pusiste en `AUTO_ANALIZAR_SECRET` al
+desplegar — evita que cualquiera que encuentre la URL pueda lanzar el
+análisis.
+
+Para desactivarlo sin borrar el job: `gcloud scheduler jobs pause
+auto-analizar-tenis`. Para lanzarlo ya mismo y probarlo: `gcloud
+scheduler jobs run auto-analizar-tenis`.
+
 ## Uso
 
 En Telegram, háblale al bot:
@@ -167,8 +196,10 @@ mismo que su comando equivalente:
   RFEF, Liga Portugal, Premier League, Bundesliga, MLS, Brasileirão,
   Champions/Europa/Conference League; Tenis 🎾 lanza directo. Cada paso
   tiene un botón "⬅️ Atrás" para volver al anterior (p. ej. desde la lista
-  de competiciones puedes volver a elegir Tenis en vez de Fútbol). Al terminar,
-  envía:
+  de competiciones puedes volver a elegir Tenis en vez de Fútbol). El
+  tenis además se lanza solo, sin tocar nada, todas las mañanas a las
+  7:00 (hora de España) si configuraste el paso 7.5 — los resultados te
+  llegan igual que si lo hubieras pulsado tú. Al terminar, envía:
   1. Las selecciones finales de cada perfil (Tipster, Machine Learning,
      Analista cuantitativo): partido, mercado, cuota, EV, % de éxito y
      explicación. Si algún perfil falla (p. ej. cuota agotada), se avisa
@@ -182,8 +213,10 @@ mismo que su comando equivalente:
      ej. un perfil pide "Tiafoe 2-0" y otro "Tiafoe -2.5 juegos") —
      muestra todas las opciones para ese partido.
 - `/ticket` (o "📸 Ticket") — pide primero la foto del ticket (la tarjeta
-  ya recortada, sin fondo blanco alrededor) y luego la foto de fondo, y
-  devuelve:
+  ya recortada, sin fondo blanco alrededor). Para el fondo, si ya usaste
+  uno antes te ofrece un botón "🔁 Usar el mismo fondo de la última vez"
+  además de poder mandar uno nuevo (el que mandes queda guardado para la
+  próxima). Devuelve:
   1. El montaje con el ticket centrado sobre el fondo (esquinas
      redondeadas), con un texto generado automáticamente a partir del
      propio ticket (usando la visión de Gemini para leer la imagen:
@@ -216,7 +249,12 @@ mismo que su comando equivalente:
   todo si los informes redactan el mismo partido de forma muy distinta.
 - El agente Deep Research de la API de Gemini está en preview: Google
   puede cambiar su comportamiento, precios o disponibilidad.
-- Solo un `/analizar` puede correr a la vez.
+- Solo un `/analizar` puede correr a la vez (incluido el automático de las
+  7:00: si coincide con uno que lanzaste tú a mano, avisa y no lo lanza).
+- El último fondo de `/ticket` y los montajes/resúmenes pendientes de
+  publicar/editar viven en memoria del proceso: si Cloud Run apaga el
+  contenedor por inactividad entre medias, se pierden (el botón de
+  reutilizar fondo deja de ofrecerse, y los de publicar/editar caducan).
 
 ## Estructura del proyecto
 
