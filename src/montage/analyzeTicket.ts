@@ -30,35 +30,62 @@ SELECCIONES: <resumen breve combinando apellidos de jugadores o equipos y el mer
 DEPORTE debe ser exactamente "tenis" o "futbol", según corresponda.`;
 }
 
+const ANALYZE_TIMEOUT_MS = 3 * 60_000;
+
 /** Usa la visión de Gemini (con búsqueda de Google) para leer el ticket y extraer deporte, competición y selecciones. */
 export async function analyzeTicket(ticketBuffer: Buffer, apiKey: string): Promise<TicketInfo> {
-  const client = new GoogleGenAI({ apiKey });
+  const client = new GoogleGenAI({ apiKey, httpOptions: { timeout: ANALYZE_TIMEOUT_MS } });
 
-  const response = await client.models.generateContent({
-    model: ANALYSIS_MODEL,
-    contents: [
-      { text: buildAnalyzePrompt(new Date()) },
-      { inlineData: { mimeType: "image/png", data: ticketBuffer.toString("base64") } },
-    ],
-    config: {
-      tools: [{ googleSearch: {} }],
-    },
-  });
+  const response = await withTimeout(
+    client.models.generateContent({
+      model: ANALYSIS_MODEL,
+      contents: [
+        { text: buildAnalyzePrompt(new Date()) },
+        { inlineData: { mimeType: "image/png", data: ticketBuffer.toString("base64") } },
+      ],
+      config: {
+        tools: [{ googleSearch: {} }],
+      },
+    }),
+    ANALYZE_TIMEOUT_MS,
+    "Tiempo de espera agotado analizando el ticket"
+  );
 
   return parseTicketInfo(response.text ?? "");
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${message} (${ms / 1000}s)`)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
 function parseTicketInfo(text: string): TicketInfo {
-  const sportMatch = /DEPORTE:\s*(tenis|f[uú]tbol)/i.exec(text);
-  const competitionMatch = /COMPETICION:\s*(.+)/i.exec(text);
-  const selectionsMatch = /SELECCIONES:\s*(.+)/i.exec(text);
+  // La búsqueda de Google a veces hace que el modelo devuelva los campos
+  // envueltos en markdown (**DEPORTE:** tenis) pese a pedir texto plano;
+  // se quitan los símbolos de énfasis antes de parsear.
+  const cleaned = text.replace(/[*_`#]/g, "");
+
+  const sportMatch = /DEPORTE:\s*(tenis|f[uú]tbol)/i.exec(cleaned);
+  const competitionMatch = /COMPETICION:\s*(.+)/i.exec(cleaned);
+  const selectionsMatch = /SELECCIONES:\s*(.+)/i.exec(cleaned);
 
   const sport: Sport = /tenis/i.test(sportMatch?.[1] ?? "") ? "tenis" : "futbol";
   const competition = competitionMatch?.[1]?.trim() ?? "";
   const selections = selectionsMatch?.[1]?.trim() ?? "";
 
   if (!competition || !selections) {
-    throw new Error(`No se pudo extraer la información del ticket. Respuesta recibida: ${text.slice(0, 200)}`);
+    throw new Error(`No se pudo extraer la información del ticket. Respuesta recibida: ${text.slice(0, 300)}`);
   }
 
   return { sport, competition, selections };

@@ -8,7 +8,12 @@ import { composeMontage } from "./montage/composeMontage";
 import { analyzeTicket } from "./montage/analyzeTicket";
 import { formatTicketCaption } from "./montage/formatTicketCaption";
 
-export const bot = new Telegraf(env.telegramBotToken);
+// Por defecto Telegraf corta el procesamiento de cada update a los 90s
+// (handlerTimeout), lo que interrumpía /ticket (búsqueda en Google) y
+// habría interrumpido igualmente /analizar de no ser porque ya tiene su
+// propio límite en deepResearch.ts. Lo desactivamos aquí y cada llamada
+// larga a Gemini se limita a sí misma con su propio timeout.
+export const bot = new Telegraf(env.telegramBotToken, { handlerTimeout: Infinity });
 
 let researchInProgress = false;
 
