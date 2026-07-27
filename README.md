@@ -199,8 +199,8 @@ mismo que su comando equivalente:
   (siempre individuales masculinos). Cada paso tiene un botón "⬅️ Atrás"
   para volver al anterior (p. ej. desde la lista de competiciones puedes
   volver a elegir Tenis en vez de Fútbol). El tenis además se lanza solo,
-  sin tocar nada (con ambas categorías), todas las mañanas a las 7:00
-  (hora de España) si configuraste el paso 7.5 — los resultados te
+  sin tocar nada (fecha "Hoy" fija, ambas categorías), todas las mañanas
+  a las 7:00 (hora de España) si configuraste el paso 7.5 — los resultados te
   llegan igual que si lo hubieras pulsado tú. Al terminar, envía:
   1. Las selecciones finales de cada perfil (Tipster, Machine Learning,
      Analista cuantitativo): partido, torneo/competición exacta (ej. "ATP

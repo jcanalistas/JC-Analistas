@@ -402,7 +402,7 @@ function describeError(err: unknown): string {
 export async function runScheduledTennisAnalysis(): Promise<void> {
   const reply: ReplyFn = (text, extra) => bot.telegram.sendMessage(env.telegramAllowedUserId, text, extra);
   await reply("⏰ Análisis automático de tenis (7:00) empezando...");
-  await runResearch(reply, "tenis");
+  await runResearch(reply, "tenis", undefined, "hoy");
 }
 
 // --- /ticket: superpone la foto del ticket sobre una foto de fondo ---
