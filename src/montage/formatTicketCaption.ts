@@ -24,9 +24,35 @@ export function formatTicketCaption(info: TicketInfo): string {
   );
 }
 
-/** Segundo mensaje, aparte del montaje: resumen corto con las selecciones y la cuota total. */
+// Stake fijo de referencia para calcular el beneficio del segundo mensaje:
+// 50€ apostados, y 25€ de beneficio neto = 1 unidad.
+const STAKE_EUR = 50;
+const UNIT_EUR = 25;
+
+/** Segundo mensaje, aparte del montaje: resumen corto con las selecciones, la cuota total y el beneficio en € y unidades. */
 export function formatSelectionsSummary(info: TicketInfo): string {
-  return `✅ <u><b>${escapeHtml(info.selections)} @${escapeHtml(info.odds)}</b></u> ✅`;
+  const headline = `✅ <u><b>${escapeHtml(info.selections)} @${escapeHtml(info.odds)}</b></u> ✅`;
+
+  const odds = parseOddsNumber(info.odds);
+  if (odds === null || odds <= 1) return headline;
+
+  const profitEur = STAKE_EUR * (odds - 1);
+  const units = profitEur / UNIT_EUR;
+  const profitLine = `<i>Sumamos <b>+${formatEsNumber(profitEur)}€ / +${formatEsNumber(units)}ud.</b> 🫡</i>`;
+
+  return `${headline}\n${profitLine}`;
+}
+
+/** "1,91" (coma decimal, como aparece en el ticket) -> 1.91, o null si no es un número válido. */
+function parseOddsNumber(odds: string): number | null {
+  const value = Number(odds.replace(",", ".").trim());
+  return Number.isFinite(value) ? value : null;
+}
+
+/** Número con coma decimal a la española, sin ceros de más (45.5 -> "45,5", 50 -> "50"). */
+function formatEsNumber(n: number): string {
+  const trimmed = n.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  return trimmed.replace(".", ",");
 }
 
 function escapeHtml(text: string): string {
