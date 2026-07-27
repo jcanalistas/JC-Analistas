@@ -345,6 +345,7 @@ async function runResearch(
       } else {
         const reason = outcome.reason;
         const message = reason instanceof DeepResearchError ? reason.message : describeError(reason);
+        console.error("Un perfil de /analizar falló:", reason);
         await reply(`⚠️ Ese perfil falló: ${message}`);
       }
     }

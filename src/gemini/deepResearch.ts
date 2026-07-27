@@ -70,6 +70,7 @@ export async function runDeepResearch(prompt: string, options: RunOptions): Prom
     );
     interactionId = interaction.id;
   } catch (err) {
+    console.error("No se pudo crear la interacción de Deep Research:", err);
     throw new DeepResearchError(
       `No se pudo iniciar el Deep Research en la API de Gemini: ${describeError(err)}`,
       prompt
@@ -99,6 +100,10 @@ export async function runDeepResearch(prompt: string, options: RunOptions): Prom
       consecutivePollErrors = 0;
     } catch (err) {
       consecutivePollErrors++;
+      console.error(
+        `Fallo consultando interacción ${interactionId} (intento ${consecutivePollErrors}/${MAX_CONSECUTIVE_POLL_ERRORS}):`,
+        err
+      );
       if (consecutivePollErrors > MAX_CONSECUTIVE_POLL_ERRORS) {
         throw new DeepResearchError(
           `Error consultando el estado del Deep Research (${consecutivePollErrors} intentos fallidos seguidos): ${describeError(err)}`,
