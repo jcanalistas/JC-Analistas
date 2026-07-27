@@ -351,19 +351,37 @@ export function formatMadridShortDate(date: Date): string {
   }).format(date);
 }
 
-function buildDateFilterOverride(dateFilter: DateFilter | undefined, now: Date): string {
-  if (!dateFilter || dateFilter === "24h") return "";
+/**
+ * Bloque temporal único (fecha actual + ventana + verificación), en vez de
+ * dos párrafos separados: antes el contexto temporal genérico ("usa esto
+ * para calcular las próximas 24h") se colaba DESPUÉS del override de fecha
+ * fija, re-reforzando la interpretación de ventana móvil justo después de
+ * habérsela prohibido — resultado real observado: con "Mañana" elegido,
+ * devolvía partidos de HOY ya jugados. Ahora es un solo bloque coherente,
+ * siempre termina en la instrucción de verificar que el partido no haya
+ * empezado ni terminado ya.
+ */
+function buildTemporalInstructions(dateFilter: DateFilter | undefined, now: Date): string {
+  const header = `CONTEXTO TEMPORAL OBLIGATORIO: ahora mismo es ${formatMadridNow(now)} (hora de España, Europe/Madrid). No calcules ni busques la hora actual por tu cuenta, usa este dato tal cual.`;
 
-  const targetDate = new Date(now);
-  if (dateFilter === "manana") targetDate.setDate(targetDate.getDate() + 1);
-  const fechaLabel = formatMadridShortDate(targetDate);
-  const momento = dateFilter === "hoy" ? "HOY" : "MAÑANA";
-  const rango =
-    dateFilter === "hoy"
-      ? "desde ahora mismo hasta las 23:59 (hora de España) de hoy"
-      : "durante todo el día, de 00:00 a 23:59 (hora de España)";
+  let window: string;
+  if (dateFilter === "hoy" || dateFilter === "manana") {
+    const targetDate = new Date(now);
+    if (dateFilter === "manana") targetDate.setDate(targetDate.getDate() + 1);
+    const fechaLabel = formatMadridShortDate(targetDate);
+    const momento = dateFilter === "hoy" ? "HOY" : "MAÑANA";
+    const rango =
+      dateFilter === "hoy"
+        ? "desde ahora mismo hasta las 23:59 (hora de España) de hoy"
+        : "durante todo el día, de 00:00 a 23:59 (hora de España)";
+    window = `VENTANA DE PARTIDOS PARA ESTE ANÁLISIS EN CONCRETO: analiza ÚNICAMENTE partidos que se juegan ${momento}, ${fechaLabel}, ${rango}. Ignora partidos de cualquier otro día, aunque el resto de instrucciones mencionen genéricamente "las próximas 24 horas" — para este análisis en concreto, esa expresión debe entenderse como esta ventana, no como un plazo literal de 24h desde ahora.`;
+  } else {
+    window = `VENTANA DE PARTIDOS: calcula "las próximas 24 horas" tomando como punto de partida exacto el momento indicado arriba, no ninguna otra hora.`;
+  }
 
-  return `\n\nVENTANA DE PARTIDOS PARA ESTE ANÁLISIS EN CONCRETO: analiza ÚNICAMENTE partidos que se juegan ${momento}, ${fechaLabel}, ${rango}. Ignora partidos de cualquier otro día, aunque el resto de instrucciones mencionen genéricamente "las próximas 24 horas" — para este análisis en concreto, esa expresión debe entenderse como esta ventana, no como un plazo literal de 24h desde ahora.`;
+  const verification = `VERIFICACIÓN OBLIGATORIA ANTES DE ENTREGAR CADA PICK: comprueba la hora de inicio real de cada partido contra el momento indicado arriba. Si el partido ya ha empezado o ya ha terminado a esa hora, DESCÁRTALO por completo y busca otro dentro de la ventana — nunca incluyas en las 8 selecciones un partido que ya se esté jugando o que ya se haya jugado.`;
+
+  return `\n\n${header}\n\n${window}\n\n${verification}`;
 }
 
 export type TennisCategory = "atp" | "challenger" | "ambos";
@@ -386,11 +404,10 @@ export interface BuildPromptOptions {
 
 export function buildPrompt(basePrompt: string, options: BuildPromptOptions = {}): string {
   const now = options.now ?? new Date();
-  const temporalContext = `\n\nCONTEXTO TEMPORAL OBLIGATORIO: ahora mismo es ${formatMadridNow(now)} (hora de España, Europe/Madrid). Usa este momento exacto como "ahora" para calcular la ventana de las próximas 24 horas — no calcules ni busques la hora actual por tu cuenta, usa este dato tal cual.`;
   const restriction = buildCompetitionRestriction(options.competitions);
   const categoryRestriction = buildTennisCategoryRestriction(options.tennisCategory);
-  const dateOverride = buildDateFilterOverride(options.dateFilter, now);
-  return `${basePrompt.trim()}${restriction}${categoryRestriction}${dateOverride}${temporalContext}${OUTPUT_FORMAT_INSTRUCTIONS}`;
+  const temporal = buildTemporalInstructions(options.dateFilter, now);
+  return `${basePrompt.trim()}${restriction}${categoryRestriction}${temporal}${OUTPUT_FORMAT_INSTRUCTIONS}`;
 }
 
 /** Devuelve los 3 prompts del deporte, en orden Tipster → Machine Learning → Analista cuantitativo. */
