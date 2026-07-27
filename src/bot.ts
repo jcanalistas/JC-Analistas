@@ -70,7 +70,8 @@ bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
     for (let i = 0; i < promptDefs.length; i++) {
       const { label, prompt } = promptDefs[i];
       const result = await runDeepResearch(prompt, {
-        storageStatePath: env.geminiStorageStatePath,
+        apiKey: env.geminiApiKey,
+        agent: env.geminiDeepResearchAgent,
         timeoutMinutes: env.deepResearchTimeoutMinutes,
       });
       results.push(result);
@@ -95,12 +96,6 @@ bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
   } catch (err) {
     if (err instanceof DeepResearchError) {
       await ctx.reply(`⚠️ Error ejecutando Deep Research: ${err.message}`);
-      if (err.screenshot) {
-        await ctx.replyWithPhoto(
-          { source: err.screenshot },
-          { caption: "Captura del navegador en el momento del fallo" }
-        );
-      }
     } else {
       console.error(err);
       await ctx.reply("⚠️ Ocurrió un error inesperado ejecutando los Deep Research. Revisa los logs.");

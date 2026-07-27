@@ -1,7 +1,4 @@
-import fs from "node:fs";
-import { chromium, type Browser, type BrowserContext } from "playwright";
-import { GEMINI_URL, SELECTORS } from "./selectors";
-import { ensureVirtualDisplay } from "./virtualDisplay";
+import { GoogleGenAI } from "@google/genai";
 
 export interface DeepResearchResult {
   prompt: string;
@@ -9,9 +6,6 @@ export interface DeepResearchResult {
 }
 
 export class DeepResearchError extends Error {
-  /** Captura de pantalla del navegador en el momento del fallo, si se pudo tomar. */
-  public screenshot?: Buffer;
-
   constructor(message: string, public readonly promptPreview: string) {
     super(message);
     this.name = "DeepResearchError";
@@ -19,196 +13,96 @@ export class DeepResearchError extends Error {
 }
 
 interface RunOptions {
-  storageStatePath: string;
+  apiKey: string;
+  /** p.ej. "deep-research-preview-04-2026" o "deep-research-max-preview-04-2026" */
+  agent: string;
   timeoutMinutes: number;
-  headless?: boolean;
+  pollIntervalMs?: number;
 }
 
+const DEFAULT_POLL_INTERVAL_MS = 10_000;
+
 /**
- * Ejecuta un único Deep Research en gemini.google.com para un prompt dado
- * y devuelve el texto completo del informe final.
- *
- * Reutiliza la sesión de Google guardada con `npm run gemini:login`, así
- * que no maneja login ni contraseñas.
+ * Ejecuta un Deep Research usando la API oficial de Gemini (Interactions
+ * API), sin navegador ni sesión de Google — solo una API key de Google AI
+ * Studio. La tarea corre en segundo plano en los servidores de Google y
+ * aquí hacemos polling hasta que termina.
  */
-export async function runDeepResearch(
-  prompt: string,
-  options: RunOptions
-): Promise<DeepResearchResult> {
-  if (!fs.existsSync(options.storageStatePath)) {
+export async function runDeepResearch(prompt: string, options: RunOptions): Promise<DeepResearchResult> {
+  const client = new GoogleGenAI({ apiKey: options.apiKey });
+
+  let interactionId: string;
+  try {
+    const interaction = await client.interactions.create({
+      input: prompt,
+      agent: options.agent,
+      background: true,
+    });
+    interactionId = interaction.id;
+  } catch (err) {
     throw new DeepResearchError(
-      `No se encontró la sesión de Gemini en ${options.storageStatePath}. ` +
-        `Corre "npm run gemini:login" primero (o revisa el secreto montado en Cloud Run).`,
+      `No se pudo iniciar el Deep Research en la API de Gemini: ${describeError(err)}`,
       prompt
     );
   }
 
-  // Google detecta y bloquea el uso de Gemini en Chrome headless real
-  // (muestra la página pública de "Sign in" en vez de la sesión logueada),
-  // incluso con cookies de sesión válidas. Por eso corremos SIEMPRE en
-  // modo "visible" (headless: false) contra un display virtual (Xvfb) en
-  // vez de usar el modo headless nativo de Chrome.
-  const headless = options.headless ?? false;
-  if (!headless) {
-    await ensureVirtualDisplay();
-  }
+  const pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
+  const deadline = Date.now() + options.timeoutMinutes * 60_000;
 
-  // Mismo canal "chrome" real y flags anti-detección que en captureLogin.ts.
-  const browser: Browser = await chromium.launch({
-    headless,
-    channel: "chrome",
-    args: [
-      "--disable-blink-features=AutomationControlled",
-      "--window-size=1366,768",
-      "--window-position=0,0",
-    ],
-  });
-  const context: BrowserContext = await browser.newContext({
-    storageState: options.storageStatePath,
-    // viewport: null usa el tamaño real de la ventana (fijado arriba con
-    // --window-size) en vez de forzar un viewport interno distinto.
-    viewport: headless ? { width: 1366, height: 768 } : null,
-  });
-  await context.addInitScript(() => {
-    Object.defineProperty(navigator, "webdriver", { get: () => undefined });
-  });
-
-  let page: import("playwright").Page | undefined;
-  try {
-    page = await context.newPage();
-    await page.goto(GEMINI_URL, { waitUntil: "domcontentloaded" });
-    await waitForChatReady(page);
-
-    await switchToFlashModel(page);
-    await selectDeepResearchMode(page);
-    await submitPrompt(page, prompt);
-    await confirmResearchPlanIfShown(page);
-    await waitForReportReady(page, options.timeoutMinutes);
-
-    const reportText = await extractLastResponseText(page);
-    if (!reportText.trim()) {
+  while (true) {
+    if (Date.now() > deadline) {
       throw new DeepResearchError(
-        "Gemini terminó pero no se pudo extraer texto del informe (selector desactualizado).",
+        `Gemini no terminó el informe en ${options.timeoutMinutes} minutos. ` +
+          `Puedes subir DEEP_RESEARCH_TIMEOUT_MINUTES si tus investigaciones tardan más.`,
         prompt
       );
     }
 
-    return { prompt, reportText };
-  } catch (err) {
-    // Adjunta una captura del momento exacto del fallo, para poder
-    // diagnosticar selectores rotos sin depender de reproducirlo a mano.
-    const screenshot = await page?.screenshot({ type: "png" }).catch(() => undefined);
-    if (err instanceof DeepResearchError) {
-      err.screenshot = screenshot;
-      throw err;
+    let result;
+    try {
+      result = await client.interactions.get(interactionId);
+    } catch (err) {
+      throw new DeepResearchError(
+        `Error consultando el estado del Deep Research: ${describeError(err)}`,
+        prompt
+      );
     }
-    const wrapped = new DeepResearchError(
-      `Error inesperado automatizando Gemini: ${err instanceof Error ? err.message : String(err)}`,
-      prompt
-    );
-    wrapped.screenshot = screenshot;
-    throw wrapped;
-  } finally {
-    await context.close();
-    await browser.close();
+
+    if (result.status === "completed") {
+      const reportText = extractReportText(result);
+      if (!reportText.trim()) {
+        throw new DeepResearchError("Gemini terminó pero no devolvió texto en el informe.", prompt);
+      }
+      return { prompt, reportText };
+    }
+
+    if (result.status === "failed" || result.status === "cancelled" || result.status === "budget_exceeded") {
+      throw new DeepResearchError(
+        `El Deep Research terminó con estado "${result.status}" en la API de Gemini.`,
+        prompt
+      );
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
   }
 }
 
 /**
- * Espera a que la caja de texto principal esté realmente visible antes
- * de interactuar. gemini.google.com es una SPA pesada: "domcontentloaded"
- * dispara mucho antes de que la interfaz de chat termine de montarse, y
- * en headless (sin nadie mirando la pantalla) no hay margen extra como
- * el que hay al probarlo a mano.
+ * `output_text` lo añade el SDK como el texto concatenado del último
+ * output del modelo — es la forma más directa de sacar el informe. Si no
+ * viene (versión distinta de la API), caemos al último "step" de tipo
+ * model_output, tal como muestra el ejemplo oficial de la documentación.
  */
-async function waitForChatReady(page: import("playwright").Page): Promise<void> {
-  try {
-    await page.locator(SELECTORS.promptInput).first().waitFor({ state: "visible", timeout: 30_000 });
-  } catch {
-    throw new DeepResearchError(
-      "La interfaz de Gemini no terminó de cargar (la caja de texto principal nunca apareció). " +
-        "Puede ser un problema temporal de carga o que la sesión haya caducado.",
-      ""
-    );
-  }
+function extractReportText(interaction: { output_text?: string; steps?: unknown[] }): string {
+  if (interaction.output_text) return interaction.output_text;
+
+  const lastStep = interaction.steps?.at(-1) as
+    | { type?: string; content?: Array<{ text?: string }> }
+    | undefined;
+  const text = lastStep?.content?.[0]?.text;
+  return text ?? "";
 }
 
-/**
- * Gemini abre por defecto en el modelo "Flash-Lite", que no tiene Deep
- * Research disponible. Hay que cambiar antes al modelo "Flash".
- */
-async function switchToFlashModel(page: import("playwright").Page): Promise<void> {
-  try {
-    const modelButton = page.locator(SELECTORS.modelSelectorButton).first();
-    await modelButton.click({ timeout: 10_000 });
-
-    const flashOption = page.locator(SELECTORS.modelOptionFlash).first();
-    await flashOption.click({ timeout: 10_000 });
-  } catch (err) {
-    throw new DeepResearchError(
-      "No se pudo cambiar al modelo Flash en Gemini (necesario para Deep Research). " +
-        "Es probable que Google haya cambiado el selector de modelo: revisa src/gemini/selectors.ts.",
-      ""
-    );
-  }
-}
-
-async function selectDeepResearchMode(page: import("playwright").Page): Promise<void> {
-  try {
-    const plusButton = page.locator(SELECTORS.toolsPlusButton).first();
-    await plusButton.click({ timeout: 10_000 });
-
-    const moreTools = page.locator(SELECTORS.moreToolsMenuItem).first();
-    await moreTools.click({ timeout: 10_000 });
-
-    const deepResearchOption = page.locator(SELECTORS.deepResearchOption).first();
-    await deepResearchOption.click({ timeout: 10_000 });
-  } catch (err) {
-    throw new DeepResearchError(
-      "No se pudo activar el modo Deep Research en la interfaz de Gemini. " +
-        "Es probable que Google haya cambiado el menú de herramientas: revisa src/gemini/selectors.ts.",
-      ""
-    );
-  }
-}
-
-async function submitPrompt(page: import("playwright").Page, prompt: string): Promise<void> {
-  const input = page.locator(SELECTORS.promptInput).first();
-  await input.click();
-  await input.fill(prompt);
-
-  const sendButton = page.locator(SELECTORS.sendButton).first();
-  await sendButton.click();
-}
-
-async function confirmResearchPlanIfShown(page: import("playwright").Page): Promise<void> {
-  const startButton = page.locator(SELECTORS.startResearchButton).first();
-  const appeared = await startButton.isVisible({ timeout: 30_000 }).catch(() => false);
-  if (appeared) {
-    await startButton.click();
-  }
-}
-
-async function waitForReportReady(
-  page: import("playwright").Page,
-  timeoutMinutes: number
-): Promise<void> {
-  const timeoutMs = timeoutMinutes * 60_000;
-  try {
-    await page.locator(SELECTORS.reportReadyIndicator).first().waitFor({
-      state: "visible",
-      timeout: timeoutMs,
-    });
-  } catch {
-    throw new DeepResearchError(
-      `Gemini no terminó el informe en ${timeoutMinutes} minutos. ` +
-        `Puedes subir DEEP_RESEARCH_TIMEOUT_MINUTES en el .env si tus investigaciones tardan más.`,
-      ""
-    );
-  }
-}
-
-async function extractLastResponseText(page: import("playwright").Page): Promise<string> {
-  const container = page.locator(SELECTORS.lastResponseContainer).last();
-  return (await container.innerText().catch(() => "")).trim();
+function describeError(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }

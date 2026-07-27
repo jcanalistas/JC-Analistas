@@ -8,15 +8,12 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
-    "gemini:login": "tsx src/gemini/captureLogin.ts",
-    "gemini:debug": "tsx src/gemini/debugOpen.ts",
-    "gemini:test-auth": "tsx src/gemini/testAuth.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@google/genai": "^2.13.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "playwright": "^1.47.0",
     "telegraf": "^4.16.3"
   },
   "devDependencies": {
