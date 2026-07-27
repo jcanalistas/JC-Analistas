@@ -157,11 +157,17 @@ El bot deja fijos, siempre debajo del cuadro de texto, los botones
 mismo que su comando equivalente:
 
 - `/start` (o "🏠 Empezar") — mensaje de bienvenida.
-- `/analizar` (o "🔍 Analizar") — pregunta el deporte y, al elegirlo,
-  lanza los 3 Deep Research. Al terminar, envía:
+- `/analizar` (o "🔍 Analizar") — pregunta el deporte. Si eliges Fútbol ⚽,
+  antes de lanzar nada pregunta si quieres analizar todas las
+  competiciones o restringir a una selección concreta (p. ej. solo
+  Champions League) marcando con botones de la lista (MLS, LaLiga 1ª/2ª,
+  1ª/2ª RFEF, Liga Portugal, Premier League, Champions/Europa/Conference
+  League); Tenis 🎾 lanza directo. Al terminar, envía:
   1. Las selecciones finales de cada perfil (Tipster, Machine Learning,
      Analista cuantitativo): partido, mercado, cuota, EV, % de éxito y
-     explicación.
+     explicación. Si algún perfil falla (p. ej. cuota agotada), se avisa
+     de ese perfil en concreto y se muestran igualmente los que sí
+     terminaron, en vez de perderlo todo.
   2. Las "Recomendaciones": selecciones que coincidieron en 2 o 3
      informes en el mismo partido Y el mismo mercado, combinadas en una
      sola entrada con la explicación de cada perfil que coincidió.
@@ -176,7 +182,11 @@ mismo que su comando equivalente:
   ticket (usando la visión de Gemini para leer la imagen: bandera, nombres
   de jugadores/equipos y contexto visible): icono del deporte +
   competición subrayada, selecciones en negrita, "📊 Stake 2" fijo, y una
-  última línea fija en cursiva "🔞 Misma cuota aquí" enlazada.
+  última línea fija en cursiva "🔞 Misma cuota aquí" enlazada. El mensaje
+  trae dos botones: "✅ Publicar en canal" (publica esa foto+texto
+  directamente en tu canal, sin marca de reenvío) y "✏️ Editar texto" (te
+  pide un texto nuevo y sustituye el generado automáticamente, por si hay
+  que corregir algo antes de publicar).
   El mensaje incluye un botón **"✅ Publicar en canal"**: hasta que no lo
   pulsas, nada se envía al canal — al pulsarlo, el bot publica esa misma
   foto y texto directamente en tu canal (sin la marca de "Reenviado

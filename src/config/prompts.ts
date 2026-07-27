@@ -24,6 +24,24 @@ export interface PromptDefinition {
   prompt: string;
 }
 
+/**
+ * Competiciones de fútbol que cubren los 3 prompts (ver bot.ts: el
+ * selector de competiciones antes de lanzar /analizar solo aplica a
+ * fútbol, ya que en tenis los prompts ya están acotados a ATP/Challenger).
+ */
+export const FOOTBALL_COMPETITIONS: Array<{ id: string; label: string }> = [
+  { id: "mls", label: "MLS" },
+  { id: "laliga1", label: "LaLiga 1ª" },
+  { id: "laliga2", label: "LaLiga 2ª" },
+  { id: "rfef1", label: "1ª RFEF" },
+  { id: "rfef2", label: "2ª RFEF" },
+  { id: "portugal", label: "Liga Portugal" },
+  { id: "premier", label: "Premier League" },
+  { id: "champions", label: "Champions League" },
+  { id: "europa", label: "Europa League" },
+  { id: "conference", label: "Conference League" },
+];
+
 const FOOTBALL_PROMPT_DEFS: PromptDefinition[] = [
   {
     label: "Tipster",
@@ -279,14 +297,41 @@ porque es la única parte que se le reenvía al usuario final.
 No uses negritas, encabezados adicionales ni texto extra dentro de esa
 sección: solo la lista numerada en ese formato exacto.`;
 
-export function buildPrompt(basePrompt: string): string {
-  return `${basePrompt.trim()}${OUTPUT_FORMAT_INSTRUCTIONS}`;
+/** "martes, 28 de julio de 2026, 11:32" en hora de España, sin depender de ninguna librería externa. */
+function formatMadridNow(now: Date): string {
+  return new Intl.DateTimeFormat("es-ES", {
+    timeZone: "Europe/Madrid",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(now);
+}
+
+function buildCompetitionRestriction(competitions?: string[]): string {
+  if (!competitions || competitions.length === 0) return "";
+  return `\n\nRESTRICCIÓN OBLIGATORIA DE COMPETICIONES: para este análisis en concreto, analiza ÚNICAMENTE estas competiciones: ${competitions.join(", ")}. Ignora cualquier otra liga o torneo mencionado en las instrucciones generales de arriba aunque tenga partidos en las próximas 24h — si no hay suficientes partidos EV+ en las competiciones indicadas, devuelve menos de 8 picks en vez de rellenar con otras competiciones.`;
+}
+
+export interface BuildPromptOptions {
+  /** Solo para fútbol: si se indica, restringe el análisis a estas competiciones (ver FOOTBALL_COMPETITIONS). */
+  competitions?: string[];
+  now?: Date;
+}
+
+export function buildPrompt(basePrompt: string, options: BuildPromptOptions = {}): string {
+  const now = options.now ?? new Date();
+  const temporalContext = `\n\nCONTEXTO TEMPORAL OBLIGATORIO: ahora mismo es ${formatMadridNow(now)} (hora de España, Europe/Madrid). Usa este momento exacto como "ahora" para calcular la ventana de las próximas 24 horas — no calcules ni busques la hora actual por tu cuenta, usa este dato tal cual.`;
+  const restriction = buildCompetitionRestriction(options.competitions);
+  return `${basePrompt.trim()}${restriction}${temporalContext}${OUTPUT_FORMAT_INSTRUCTIONS}`;
 }
 
 /** Devuelve los 3 prompts del deporte, en orden Tipster → Machine Learning → Analista cuantitativo. */
-export function buildAllPrompts(sport: Sport): PromptDefinition[] {
+export function buildAllPrompts(sport: Sport, options: BuildPromptOptions = {}): PromptDefinition[] {
   return PROMPT_DEFS_BY_SPORT[sport].map((def) => ({
     label: def.label,
-    prompt: buildPrompt(def.prompt),
+    prompt: buildPrompt(def.prompt, options),
   }));
 }

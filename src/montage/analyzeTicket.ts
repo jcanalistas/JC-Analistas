@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withRetry } from "../gemini/retry";
 
 export type Sport = "tenis" | "futbol";
 
@@ -27,21 +28,27 @@ SELECCIONES: <resumen breve combinando apellidos de jugadores o equipos y el mer
 DEPORTE debe ser exactamente "tenis" o "futbol", según corresponda.`;
 
 const ANALYZE_TIMEOUT_MS = 90_000;
+const ANALYZE_RETRIES = 2;
+const ANALYZE_RETRY_BASE_DELAY_MS = 3_000;
 
 /** Usa la visión de Gemini para leer el ticket y extraer deporte, competición y selecciones. */
 export async function analyzeTicket(ticketBuffer: Buffer, apiKey: string): Promise<TicketInfo> {
   const client = new GoogleGenAI({ apiKey, httpOptions: { timeout: ANALYZE_TIMEOUT_MS } });
 
-  const response = await withTimeout(
-    client.models.generateContent({
-      model: ANALYSIS_MODEL,
-      contents: [
-        { text: ANALYZE_PROMPT },
-        { inlineData: { mimeType: "image/png", data: ticketBuffer.toString("base64") } },
-      ],
-    }),
-    ANALYZE_TIMEOUT_MS,
-    "Tiempo de espera agotado analizando el ticket"
+  const response = await withRetry(
+    () =>
+      withTimeout(
+        client.models.generateContent({
+          model: ANALYSIS_MODEL,
+          contents: [
+            { text: ANALYZE_PROMPT },
+            { inlineData: { mimeType: "image/png", data: ticketBuffer.toString("base64") } },
+          ],
+        }),
+        ANALYZE_TIMEOUT_MS,
+        "Tiempo de espera agotado analizando el ticket"
+      ),
+    { retries: ANALYZE_RETRIES, baseDelayMs: ANALYZE_RETRY_BASE_DELAY_MS }
   );
 
   return parseTicketInfo(response.text ?? "");

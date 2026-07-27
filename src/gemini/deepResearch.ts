@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withRetry } from "./retry";
 
 export interface DeepResearchResult {
   prompt: string;
@@ -33,6 +34,8 @@ const MAX_CONSECUTIVE_POLL_ERRORS = 5;
 const HTTP_TIMEOUT_MS = 5 * 60_000;
 const CREATE_TIMEOUT_MS = 2 * 60_000;
 const POLL_TIMEOUT_MS = 60_000;
+const CREATE_RETRIES = 3;
+const CREATE_RETRY_BASE_DELAY_MS = 3_000;
 
 /**
  * Ejecuta un Deep Research usando la API oficial de Gemini (Interactions
@@ -48,14 +51,22 @@ export async function runDeepResearch(prompt: string, options: RunOptions): Prom
 
   let interactionId: string;
   try {
-    const interaction = await withTimeout(
-      client.interactions.create({
-        input: prompt,
-        agent: options.agent,
-        background: true,
-      }),
-      CREATE_TIMEOUT_MS,
-      "Tiempo de espera agotado creando la interacción"
+    // Lanzar los 3 Deep Research casi a la vez puede toparse con un 429
+    // transitorio de la API; unos segundos de espera y reintento suelen
+    // bastar (a diferencia de un 429 por cuota diaria agotada, que seguirá
+    // fallando igual tras el reintento, pero no cuesta nada intentarlo).
+    const interaction = await withRetry(
+      () =>
+        withTimeout(
+          client.interactions.create({
+            input: prompt,
+            agent: options.agent,
+            background: true,
+          }),
+          CREATE_TIMEOUT_MS,
+          "Tiempo de espera agotado creando la interacción"
+        ),
+      { retries: CREATE_RETRIES, baseDelayMs: CREATE_RETRY_BASE_DELAY_MS }
     );
     interactionId = interaction.id;
   } catch (err) {

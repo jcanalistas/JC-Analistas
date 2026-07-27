@@ -1,6 +1,6 @@
 import { Markup, Telegraf, type Context } from "telegraf";
 import { env } from "./config/env";
-import { buildAllPrompts, SPORT_LABELS, type Sport } from "./config/prompts";
+import { buildAllPrompts, FOOTBALL_COMPETITIONS, SPORT_LABELS, type Sport } from "./config/prompts";
 import { runDeepResearch, DeepResearchError, type DeepResearchResult } from "./gemini/deepResearch";
 import {
   parseSelections,
@@ -73,6 +73,19 @@ async function startResearchFlow(ctx: Context) {
 bot.command("analizar", startResearchFlow);
 bot.hears(RESEARCH_BUTTON_TEXT, startResearchFlow);
 
+// Selección de competiciones de fútbol (opcional) antes de lanzar, por
+// usuario: qué ids de FOOTBALL_COMPETITIONS lleva marcados ahora mismo.
+const competitionSelection = new Map<number, Set<string>>();
+
+function competitionKeyboard(userId: number) {
+  const selected = competitionSelection.get(userId) ?? new Set<string>();
+  const rows = FOOTBALL_COMPETITIONS.map((comp) => [
+    Markup.button.callback(`${selected.has(comp.id) ? "✅" : "⬜"} ${comp.label}`, `comp:toggle:${comp.id}`),
+  ]);
+  rows.push([Markup.button.callback("▶️ Lanzar con esta selección", "comp:confirm")]);
+  return Markup.inlineKeyboard(rows);
+}
+
 bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
   const sport = ctx.match[1] as Sport;
 
@@ -80,9 +93,80 @@ bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
     await ctx.answerCbQuery("Ya hay un Deep Research en curso.");
     return;
   }
-
   await ctx.answerCbQuery();
-  await ctx.editMessageText(`Deporte elegido: ${SPORT_LABELS[sport]}`);
+
+  if (sport === "tenis") {
+    await ctx.editMessageText(`Deporte elegido: ${SPORT_LABELS.tenis}`);
+    await launchResearch(ctx, "tenis");
+    return;
+  }
+
+  await ctx.editMessageText(`Deporte elegido: ${SPORT_LABELS.futbol}`);
+  await ctx.reply(
+    "¿Analizamos todas las competiciones o restringimos a algunas?",
+    Markup.inlineKeyboard([
+      [Markup.button.callback("✅ Todas las competiciones", "comp:all")],
+      [Markup.button.callback("🎯 Elegir competiciones", "comp:pick")],
+    ])
+  );
+});
+
+bot.action("comp:all", async (ctx) => {
+  if (researchInProgress) {
+    await ctx.answerCbQuery("Ya hay un Deep Research en curso.");
+    return;
+  }
+  await ctx.answerCbQuery();
+  await ctx.editMessageText("Todas las competiciones ✅");
+  await launchResearch(ctx, "futbol");
+});
+
+bot.action("comp:pick", async (ctx) => {
+  await ctx.answerCbQuery();
+  competitionSelection.set(ctx.from!.id, new Set());
+  await ctx.editMessageText(
+    "Marca las competiciones a analizar y pulsa 'Lanzar':",
+    { reply_markup: competitionKeyboard(ctx.from!.id).reply_markup }
+  );
+});
+
+bot.action(/^comp:toggle:(\w+)$/, async (ctx) => {
+  const id = ctx.match[1];
+  const userId = ctx.from!.id;
+  const selected = competitionSelection.get(userId) ?? new Set<string>();
+  if (selected.has(id)) selected.delete(id);
+  else selected.add(id);
+  competitionSelection.set(userId, selected);
+  await ctx.answerCbQuery();
+  await ctx.editMessageReplyMarkup(competitionKeyboard(userId).reply_markup);
+});
+
+bot.action("comp:confirm", async (ctx) => {
+  const userId = ctx.from!.id;
+  const selectedIds = competitionSelection.get(userId) ?? new Set<string>();
+  if (selectedIds.size === 0) {
+    await ctx.answerCbQuery("Marca al menos una, o vuelve atrás y pulsa 'Todas las competiciones'.", {
+      show_alert: true,
+    });
+    return;
+  }
+  if (researchInProgress) {
+    await ctx.answerCbQuery("Ya hay un Deep Research en curso.");
+    return;
+  }
+  await ctx.answerCbQuery();
+
+  const labels = FOOTBALL_COMPETITIONS.filter((c) => selectedIds.has(c.id)).map((c) => c.label);
+  competitionSelection.delete(userId);
+  await ctx.editMessageText(`Competiciones elegidas: ${labels.join(", ")}`);
+  await launchResearch(ctx, "futbol", labels);
+});
+
+async function launchResearch(ctx: Context, sport: Sport, competitions?: string[]) {
+  if (researchInProgress) {
+    await ctx.reply("Ya hay un Deep Research en curso, espera a que termine antes de lanzar otro.");
+    return;
+  }
 
   researchInProgress = true;
   try {
@@ -90,11 +174,12 @@ bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
       `🔎 Lanzando los 3 Deep Research de ${SPORT_LABELS[sport]} en Gemini, te aviso según vaya terminando cada uno.`
     );
 
-    const promptDefs = buildAllPrompts(sport);
-    const labels = promptDefs.map((def) => def.label);
+    const promptDefs = buildAllPrompts(sport, { competitions });
     // En paralelo: cada uno es una llamada de API independiente (no hay
     // ninguna sesión de navegador compartida que pueda saturarse).
-    const results: DeepResearchResult[] = await Promise.all(
+    // allSettled en vez de all: si un perfil falla (cuota, timeout...) no
+    // queremos perder los otros dos que sí hayan terminado.
+    const settled = await Promise.allSettled(
       promptDefs.map(async ({ label, prompt }) => {
         const result = await runDeepResearch(prompt, {
           apiKey: env.geminiApiKey,
@@ -102,12 +187,29 @@ bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
           timeoutMinutes: env.deepResearchTimeoutMinutes,
         });
         await ctx.reply(`✅ ${label} completado.`);
-        return result;
+        return { label, result };
       })
     );
 
-    const selectionsBySource: Selection[][] = results.map((r, idx) =>
-      parseSelections(r.reportText, idx, labels[idx])
+    const successful: Array<{ label: string; result: DeepResearchResult }> = [];
+    for (const outcome of settled) {
+      if (outcome.status === "fulfilled") {
+        successful.push(outcome.value);
+      } else {
+        const reason = outcome.reason;
+        const message = reason instanceof DeepResearchError ? reason.message : describeError(reason);
+        await ctx.reply(`⚠️ Ese perfil falló: ${message}`);
+      }
+    }
+
+    if (successful.length === 0) {
+      await ctx.reply("⚠️ Los 3 Deep Research fallaron, no hay nada que mostrar.");
+      return;
+    }
+
+    const labels = successful.map((s) => s.label);
+    const selectionsBySource: Selection[][] = successful.map((s, idx) =>
+      parseSelections(s.result.reportText, idx, s.label)
     );
 
     for (const chunk of formatIndividualSelections(labels, selectionsBySource)) {
@@ -135,7 +237,11 @@ bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
   } finally {
     researchInProgress = false;
   }
-});
+}
+
+function describeError(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
 
 // --- /ticket: superpone la foto del ticket sobre una foto de fondo ---
 
@@ -221,7 +327,8 @@ bot.on("photo", async (ctx) => {
         sentMsg.message_id,
         undefined,
         Markup.inlineKeyboard([
-          Markup.button.callback("✅ Publicar en canal", `publish:${sentMsg.message_id}`),
+          [Markup.button.callback("✅ Publicar en canal", `publish:${sentMsg.message_id}`)],
+          [Markup.button.callback("✏️ Editar texto", `editcap:${sentMsg.message_id}`)],
         ]).reply_markup
       );
     }
@@ -253,5 +360,47 @@ bot.action(/^publish:(\d+)$/, async (ctx) => {
   } catch (err) {
     console.error("No se pudo publicar en el canal:", err);
     await ctx.answerCbQuery("⚠️ No se pudo publicar. ¿Es el bot admin del canal?", { show_alert: true });
+  }
+});
+
+// userId -> message_id del montaje cuyo texto está esperando ser reemplazado
+const editingCaption = new Map<number, number>();
+
+bot.action(/^editcap:(\d+)$/, async (ctx) => {
+  const messageId = Number(ctx.match[1]);
+  if (!pendingPublish.has(messageId)) {
+    await ctx.answerCbQuery("Este montaje ya se publicó o ha caducado.");
+    return;
+  }
+  editingCaption.set(ctx.from!.id, messageId);
+  await ctx.answerCbQuery();
+  await ctx.reply(
+    "✏️ Mándame el texto nuevo para este montaje (puedes usar HTML: <u>, <b>, <i>, <a href=\"...\">)."
+  );
+});
+
+bot.on("text", async (ctx) => {
+  const messageId = editingCaption.get(ctx.from.id);
+  if (messageId === undefined) return; // no hay ninguna edición de texto en curso, se ignora
+  editingCaption.delete(ctx.from.id);
+
+  const pending = pendingPublish.get(messageId);
+  if (!pending) {
+    await ctx.reply("⚠️ Ese montaje ya no está disponible para editar.");
+    return;
+  }
+
+  const newCaption = ctx.message.text;
+  try {
+    await ctx.telegram.editMessageCaption(ctx.chat.id, messageId, undefined, newCaption, {
+      parse_mode: "HTML",
+    });
+    pending.caption = newCaption;
+    await ctx.reply("✏️ Texto actualizado.");
+  } catch (err) {
+    console.error("No se pudo actualizar el texto del montaje:", err);
+    await ctx.reply(
+      "⚠️ No pude actualizar el texto (¿formato HTML inválido?). Pulsa 'Editar texto' de nuevo para reintentar."
+    );
   }
 });
