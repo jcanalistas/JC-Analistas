@@ -38,9 +38,9 @@ export function formatSelectionsSummary(info: TicketInfo): string {
 
   const profitEur = STAKE_EUR * (odds - 1);
   const units = profitEur / UNIT_EUR;
-  const profitLine = `<i>Sumamos <b>+${formatEsNumber(profitEur)}€ / +${formatEsNumber(units)}ud.</b> 🫡</i>`;
+  const profitLine = `<i>Sumamos <b>+${formatEuros(profitEur)}€ / +${formatUnits(units)}ud.</b> 🫡</i>`;
 
-  return `${headline}\n${profitLine}`;
+  return `${headline}\n\n${profitLine}`;
 }
 
 /** "1,91" (coma decimal, como aparece en el ticket) -> 1.91, o null si no es un número válido. */
@@ -49,10 +49,24 @@ function parseOddsNumber(odds: string): number | null {
   return Number.isFinite(value) ? value : null;
 }
 
-/** Número con coma decimal a la española, sin ceros de más (45.5 -> "45,5", 50 -> "50"). */
-function formatEsNumber(n: number): string {
-  const trimmed = n.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
-  return trimmed.replace(".", ",");
+/**
+ * Corrige el ruido de coma flotante antes de redondear: 50 * (1.91 - 1)
+ * da 45.49999999999999 en JS en vez de 45.5, lo que redondearía para
+ * abajo justo en el caso límite que más importa (",50").
+ */
+function cleanFloat(n: number): number {
+  return Math.round(n * 1e6) / 1e6;
+}
+
+/** Euros redondeados a entero (",50" para arriba), sin decimales: 45.5 -> "46". */
+function formatEuros(n: number): string {
+  return String(Math.round(cleanFloat(n)));
+}
+
+/** Unidades redondeadas a 1 decimal (",50" del segundo decimal para arriba), siempre con ese decimal: 1.56 -> "1,6". */
+function formatUnits(n: number): string {
+  const rounded = Math.round(cleanFloat(n) * 10) / 10;
+  return rounded.toFixed(1).replace(".", ",");
 }
 
 function escapeHtml(text: string): string {
