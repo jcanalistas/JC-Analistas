@@ -80,7 +80,10 @@ const competitionSelection = new Map<number, Set<string>>();
 function competitionKeyboard(userId: number) {
   const selected = competitionSelection.get(userId) ?? new Set<string>();
   const rows = FOOTBALL_COMPETITIONS.map((comp) => [
-    Markup.button.callback(`${selected.has(comp.id) ? "✅" : "⬜"} ${comp.label}`, `comp:toggle:${comp.id}`),
+    Markup.button.callback(
+      `${selected.has(comp.id) ? "✅" : "⬜"} ${comp.label} ${comp.flag}`,
+      `comp:toggle:${comp.id}`
+    ),
   ]);
   rows.push([Markup.button.callback("▶️ Lanzar con esta selección", "comp:confirm")]);
   return Markup.inlineKeyboard(rows);

@@ -29,17 +29,20 @@ export interface PromptDefinition {
  * selector de competiciones antes de lanzar /analizar solo aplica a
  * fútbol, ya que en tenis los prompts ya están acotados a ATP/Challenger).
  */
-export const FOOTBALL_COMPETITIONS: Array<{ id: string; label: string }> = [
-  { id: "mls", label: "MLS" },
-  { id: "laliga1", label: "LaLiga 1ª" },
-  { id: "laliga2", label: "LaLiga 2ª" },
-  { id: "rfef1", label: "1ª RFEF" },
-  { id: "rfef2", label: "2ª RFEF" },
-  { id: "portugal", label: "Liga Portugal" },
-  { id: "premier", label: "Premier League" },
-  { id: "champions", label: "Champions League" },
-  { id: "europa", label: "Europa League" },
-  { id: "conference", label: "Conference League" },
+export const FOOTBALL_COMPETITIONS: Array<{ id: string; label: string; flag: string }> = [
+  { id: "mls", label: "MLS", flag: "🇺🇸" },
+  { id: "laliga1", label: "LaLiga 1ª", flag: "🇪🇸" },
+  { id: "laliga2", label: "LaLiga 2ª", flag: "🇪🇸" },
+  { id: "rfef1", label: "1ª RFEF", flag: "🇪🇸" },
+  { id: "rfef2", label: "2ª RFEF", flag: "🇪🇸" },
+  { id: "portugal", label: "Liga Portugal", flag: "🇵🇹" },
+  { id: "premier", label: "Premier League", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+  { id: "bundesliga", label: "Bundesliga", flag: "🇩🇪" },
+  { id: "brasileirao", label: "Brasileirão", flag: "🇧🇷" },
+  // Competiciones de la UEFA: se usa la bandera de la UE como referencia visual.
+  { id: "champions", label: "Champions League", flag: "🇪🇺" },
+  { id: "europa", label: "Europa League", flag: "🇪🇺" },
+  { id: "conference", label: "Conference League", flag: "🇪🇺" },
 ];
 
 const FOOTBALL_PROMPT_DEFS: PromptDefinition[] = [
@@ -50,7 +53,7 @@ const FOOTBALL_PROMPT_DEFS: PromptDefinition[] = [
  * Busca selecciones en la bookie WINAMAX con cuotas superiores a 1,65, ya sea de resultado (1X2), hándicap asiático, más/menos de goles, ambos marcan, córners o tarjetas.
  * Restricción de volumen: Devuelve 8 selecciones de fútbol simples, No repitas partidos en los picks. Ordénalos de mayor confianza de éxito a menos dándole un % de acierto.
 2. Cobertura de Fútbol:
- * Analiza partidos de MLS, LaLiga (1ª y 2ª división española), 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, y competiciones europeas (Champions League, Europa League, Conference League).
+ * Analiza partidos de MLS, LaLiga (1ª y 2ª división española), 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga (Alemania), Brasileirão (Brasil), y competiciones europeas (Champions League, Europa League, Conference League).
  * Busca equipos con un rendimiento como local o visitante (según corresponda) superior al 65% que se enfrenten a rivales con H2H muy desfavorable o con un rendimiento modesto fuera/en casa. Analiza cualquier aspecto adicional que consideres, como noticias o rumores, rotaciones previstas por calendario congestionado (competición europea entre semana) o bajas importantes. Analiza si han vencido a rivales de mayor nivel en partidos recientes para darles más % de victoria. Analiza el xG generado y concedido, tiros a puerta, posesión, etc. Procura que la selección tenga EV+.
 3. Análisis de Valor:
  * Para cada pick, verifica si la cuota ha bajado recientemente (indicador de dinero profesional) o si hay noticias de última hora como lesiones, sanciones, rotaciones por acumulación de partidos, o motivación especial (derbis, pelea por título/descenso/clasificación europea). Valora la importancia de cada cosa para darle valor o no.
@@ -62,7 +65,7 @@ Formato de Salida (Tabla):
   },
   {
     label: "Machine Learning",
-    prompt: `Actúa como un modelo de Machine Learning avanzado y analista cuantitativo especializado en apuestas de fútbol (MLS, LaLiga 1ª y 2ª división española, 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League y competiciones europeas: Champions League, Europa League y Conference League). Tu objetivo es analizar todos los partidos de la jornada de las próximas 24h (analiza la hora actual para restringir los partidos a las próximas 24h) para encontrar valor real frente a las cuotas de las casas de apuestas (Value Betting). La conclusión final deben ser 8 recomendaciones de picks con EV+ cuya probabilidad estimada de acierto sea superior al 50% sin repetir partidos en los picks (8 partidos distintos).
+    prompt: `Actúa como un modelo de Machine Learning avanzado y analista cuantitativo especializado en apuestas de fútbol (MLS, LaLiga 1ª y 2ª división española, 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga, Brasileirão y competiciones europeas: Champions League, Europa League y Conference League). Tu objetivo es analizar todos los partidos de la jornada de las próximas 24h (analiza la hora actual para restringir los partidos a las próximas 24h) para encontrar valor real frente a las cuotas de las casas de apuestas (Value Betting). La conclusión final deben ser 8 recomendaciones de picks con EV+ cuya probabilidad estimada de acierto sea superior al 50% sin repetir partidos en los picks (8 partidos distintos).
 
 Analizarás minuciosamente los datos de los partidos de las próximas 24 horas bajo los siguientes 5 pilares metodológicos:
 
@@ -123,7 +126,7 @@ Compara tus probabilidades con las cuotas reales del mercado proporcionadas. Sel
   },
   {
     label: "Analista cuantitativo",
-    prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en fútbol (MLS, LaLiga 1ª y 2ª división española, 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League y competiciones europeas: Champions League, Europa League y Conference League). Tu objetivo es realizar un análisis probabilístico y estadístico exhaustivo para las próximas 24h (analiza la hora actual para restringir los partidos a las próximas 24h desde ahora).
+    prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en fútbol (MLS, LaLiga 1ª y 2ª división española, 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga, Brasileirão y competiciones europeas: Champions League, Europa League y Conference League). Tu objetivo es realizar un análisis probabilístico y estadístico exhaustivo para las próximas 24h (analiza la hora actual para restringir los partidos a las próximas 24h desde ahora).
 Quiero determinar si existe valor esperado positivo (EV+) en algún mercado para cada partido, priorizando selecciones de cuota superior a 1.70 y con una probabilidad de éxito superior al 60%.
 Sigue estrictamente los siguientes pasos de análisis detallados:
 
