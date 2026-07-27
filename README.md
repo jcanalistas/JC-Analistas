@@ -64,7 +64,7 @@ npm install
 
 ## 5. Ajustar tus 6 prompts (3 de fútbol + 3 de tenis)
 
-Al escribir `/research`, el bot pregunta primero qué deporte analizar
+Al escribir `/analizar`, el bot pregunta primero qué deporte analizar
 (⚽ Fútbol / 🎾 Tenis) con botones, y lanza los 3 prompts de ese deporte
 en el orden Tipster → Machine Learning → Analista cuantitativo.
 
@@ -131,7 +131,7 @@ gcloud run services update jc-analistas-bot \
   --update-env-vars PUBLIC_URL=https://TU-URL-DE-CLOUD-RUN.a.run.app
 ```
 
-Nota: `--timeout=3600` porque un `/research` con 3 Deep Research puede
+Nota: `--timeout=3600` porque un `/analizar` con 3 Deep Research puede
 tardar bastante más que el timeout HTTP por defecto de Cloud Run. Ya no
 hace falta memoria/CPU extra (sin navegador, el contenedor es ligero).
 
@@ -148,8 +148,8 @@ Debe apuntar a `https://<tu-servicio>.a.run.app/telegram/<WEBHOOK_SECRET_PATH>`.
 En Telegram, háblale al bot:
 
 - `/start` (o el botón "Empezar") — mensaje de bienvenida, deja fijos los
-  botones "🔎 Research" y "Empezar".
-- `/research` (o el botón) — pregunta el deporte y, al elegirlo, lanza
+  botones "🔎 Analizar" y "Empezar".
+- `/analizar` (o el botón) — pregunta el deporte y, al elegirlo, lanza
   los 3 Deep Research. Al terminar, envía:
   1. Las selecciones finales de cada perfil (Tipster, Machine Learning,
      Analista cuantitativo): partido, mercado, cuota, EV, % de éxito y
@@ -168,7 +168,7 @@ En Telegram, háblale al bot:
   todo si los informes redactan el mismo partido de forma muy distinta.
 - El agente Deep Research de la API de Gemini está en preview: Google
   puede cambiar su comportamiento, precios o disponibilidad.
-- Solo un `/research` puede correr a la vez.
+- Solo un `/analizar` puede correr a la vez.
 
 ## Estructura del proyecto
 

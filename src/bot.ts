@@ -11,7 +11,7 @@ export const bot = new Telegraf(env.telegramBotToken);
 let researchInProgress = false;
 
 // Botones fijos debajo del teclado, siempre visibles.
-const RESEARCH_BUTTON_TEXT = "🔎 Research";
+const RESEARCH_BUTTON_TEXT = "🔎 Analizar";
 const START_BUTTON_TEXT = "Empezar";
 const mainKeyboard = Markup.keyboard([[RESEARCH_BUTTON_TEXT], [START_BUTTON_TEXT]]).resize();
 
@@ -27,7 +27,7 @@ bot.use(async (ctx, next) => {
 async function sendWelcome(ctx: Context) {
   await ctx.reply(
     "Bot de JC Analistas listo.\n\n" +
-      "Toca el botón de abajo (o escribe /research) para lanzar los 3 Deep Research en Gemini y comparar las selecciones.\n\n" +
+      "Toca el botón de abajo (o escribe /analizar) para lanzar los 3 Deep Research en Gemini y comparar las selecciones.\n\n" +
       "/ticket — te pide la foto del ticket y una foto de fondo, y te devuelve el montaje.",
     mainKeyboard
   );
@@ -51,7 +51,7 @@ async function startResearchFlow(ctx: Context) {
   );
 }
 
-bot.command("research", startResearchFlow);
+bot.command("analizar", startResearchFlow);
 bot.hears(RESEARCH_BUTTON_TEXT, startResearchFlow);
 
 bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
