@@ -28,8 +28,16 @@ const DEFAULT_POLL_INTERVAL_MS = 10_000;
  * Studio. La tarea corre en segundo plano en los servidores de Google y
  * aquí hacemos polling hasta que termina.
  */
+// El SDK aplica por defecto un timeout de 90s a cada petición HTTP, muy
+// corto para crear un Deep Research (que puede tardar en confirmar el
+// arranque). Lo subimos a 5 minutos para evitar TimeoutError espurios.
+const HTTP_TIMEOUT_MS = 5 * 60_000;
+
 export async function runDeepResearch(prompt: string, options: RunOptions): Promise<DeepResearchResult> {
-  const client = new GoogleGenAI({ apiKey: options.apiKey });
+  const client = new GoogleGenAI({
+    apiKey: options.apiKey,
+    httpOptions: { timeout: HTTP_TIMEOUT_MS },
+  });
 
   let interactionId: string;
   try {

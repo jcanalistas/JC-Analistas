@@ -2,6 +2,17 @@ import express from "express";
 import { bot } from "./bot";
 import { env } from "./config/env";
 
+// Red de seguridad: sin esto, un rechazo de promesa no capturado en
+// cualquier dependencia (p.ej. un timeout interno del SDK de Gemini)
+// tumba TODO el proceso — incluidos los /research de otros usuarios en
+// curso. Lo registramos y seguimos vivos en vez de morir.
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled rejection (proceso sigue vivo):", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception (proceso sigue vivo):", err);
+});
+
 const app = express();
 app.use(express.json());
 
