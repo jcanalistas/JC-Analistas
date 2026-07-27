@@ -330,9 +330,37 @@ function buildCompetitionRestriction(competitions?: string[]): string {
   return `\n\nRESTRICCIÓN OBLIGATORIA DE COMPETICIONES: para este análisis en concreto, analiza ÚNICAMENTE estas competiciones: ${competitions.join(", ")}. Ignora cualquier otra liga o torneo mencionado en las instrucciones generales de arriba aunque tenga partidos en las próximas 24h — si no hay suficientes partidos EV+ en las competiciones indicadas, devuelve menos de 8 picks en vez de rellenar con otras competiciones.`;
 }
 
+export type DateFilter = "hoy" | "manana" | "24h";
+
+/** "27 de julio" en hora de España, para las etiquetas de los botones Hoy/Mañana. */
+export function formatMadridShortDate(date: Date): string {
+  return new Intl.DateTimeFormat("es-ES", {
+    timeZone: "Europe/Madrid",
+    day: "numeric",
+    month: "long",
+  }).format(date);
+}
+
+function buildDateFilterOverride(dateFilter: DateFilter | undefined, now: Date): string {
+  if (!dateFilter || dateFilter === "24h") return "";
+
+  const targetDate = new Date(now);
+  if (dateFilter === "manana") targetDate.setDate(targetDate.getDate() + 1);
+  const fechaLabel = formatMadridShortDate(targetDate);
+  const momento = dateFilter === "hoy" ? "HOY" : "MAÑANA";
+  const rango =
+    dateFilter === "hoy"
+      ? "desde ahora mismo hasta las 23:59 (hora de España) de hoy"
+      : "durante todo el día, de 00:00 a 23:59 (hora de España)";
+
+  return `\n\nVENTANA DE PARTIDOS PARA ESTE ANÁLISIS EN CONCRETO: analiza ÚNICAMENTE partidos que se juegan ${momento}, ${fechaLabel}, ${rango}. Ignora partidos de cualquier otro día, aunque el resto de instrucciones mencionen genéricamente "las próximas 24 horas" — para este análisis en concreto, esa expresión debe entenderse como esta ventana, no como un plazo literal de 24h desde ahora.`;
+}
+
 export interface BuildPromptOptions {
   /** Solo para fútbol: si se indica, restringe el análisis a estas competiciones (ver FOOTBALL_COMPETITIONS). */
   competitions?: string[];
+  /** Ventana de partidos a analizar: hoy, mañana, o el comportamiento por defecto de "próximas 24h desde ahora". */
+  dateFilter?: DateFilter;
   now?: Date;
 }
 
@@ -340,7 +368,8 @@ export function buildPrompt(basePrompt: string, options: BuildPromptOptions = {}
   const now = options.now ?? new Date();
   const temporalContext = `\n\nCONTEXTO TEMPORAL OBLIGATORIO: ahora mismo es ${formatMadridNow(now)} (hora de España, Europe/Madrid). Usa este momento exacto como "ahora" para calcular la ventana de las próximas 24 horas — no calcules ni busques la hora actual por tu cuenta, usa este dato tal cual.`;
   const restriction = buildCompetitionRestriction(options.competitions);
-  return `${basePrompt.trim()}${restriction}${temporalContext}${OUTPUT_FORMAT_INSTRUCTIONS}`;
+  const dateOverride = buildDateFilterOverride(options.dateFilter, now);
+  return `${basePrompt.trim()}${restriction}${dateOverride}${temporalContext}${OUTPUT_FORMAT_INSTRUCTIONS}`;
 }
 
 /** Devuelve los 3 prompts del deporte, en orden Tipster → Machine Learning → Analista cuantitativo. */

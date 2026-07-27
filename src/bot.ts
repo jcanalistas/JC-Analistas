@@ -1,6 +1,13 @@
 import { Markup, Telegraf, type Context } from "telegraf";
 import { env } from "./config/env";
-import { buildAllPrompts, FOOTBALL_COMPETITIONS, SPORT_LABELS, type Sport } from "./config/prompts";
+import {
+  buildAllPrompts,
+  formatMadridShortDate,
+  FOOTBALL_COMPETITIONS,
+  SPORT_LABELS,
+  type DateFilter,
+  type Sport,
+} from "./config/prompts";
 import { runDeepResearch, DeepResearchError, type DeepResearchResult } from "./gemini/deepResearch";
 import {
   parseSelections,
@@ -81,11 +88,40 @@ async function startResearchFlow(ctx: Context) {
 bot.command("analizar", startResearchFlow);
 bot.hears(RESEARCH_BUTTON_TEXT, startResearchFlow);
 
+// Filtro de fecha (hoy / mañana / próximas 24h) elegido por cada usuario,
+// antes de la selección de competiciones. Todo el recorrido deporte ->
+// fecha -> [fútbol: todas/elegir -> lista de competiciones] vive en UN
+// solo mensaje que se va editando, para poder ofrecer "⬅️ Atrás" en cada
+// paso sin dejar mensajes duplicados por el camino.
+const dateFilterSelection = new Map<number, DateFilter>();
+
+function dateFilterLabel(filter: DateFilter): string {
+  if (filter === "hoy") return "Hoy";
+  if (filter === "manana") return "Mañana";
+  return "Próximas 24h";
+}
+
+function dateKeyboard(sport: Sport) {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return Markup.inlineKeyboard([
+    [Markup.button.callback(`📅 Hoy (${formatMadridShortDate(today)})`, `date:hoy:${sport}`)],
+    [Markup.button.callback(`📅 Mañana (${formatMadridShortDate(tomorrow)})`, `date:manana:${sport}`)],
+    [Markup.button.callback("🕐 Próximas 24h", `date:24h:${sport}`)],
+    [Markup.button.callback("⬅️ Atrás", "back:sport")],
+  ]);
+}
+
+async function showDateStep(ctx: Context, sport: Sport) {
+  await ctx.editMessageText(
+    `Deporte elegido: ${SPORT_LABELS[sport]}\n\n¿Qué partidos analizamos?`,
+    dateKeyboard(sport)
+  );
+}
+
 // Selección de competiciones de fútbol (opcional) antes de lanzar, por
 // usuario: qué ids de FOOTBALL_COMPETITIONS lleva marcados ahora mismo.
-// Todo el recorrido futbol -> todas/elegir -> lista de competiciones vive
-// en UN solo mensaje que se va editando, para poder ofrecer "⬅️ Atrás" en
-// cada paso sin dejar mensajes duplicados por el camino.
 const competitionSelection = new Map<number, Set<string>>();
 
 function competitionKeyboard(userId: number) {
@@ -107,7 +143,7 @@ async function showFootbolModeStep(ctx: Context) {
     Markup.inlineKeyboard([
       [Markup.button.callback("✅ Todas las competiciones", "comp:all")],
       [Markup.button.callback("🎯 Elegir competiciones", "comp:pick")],
-      [Markup.button.callback("⬅️ Atrás", "back:sport")],
+      [Markup.button.callback("⬅️ Atrás", "back:date")],
     ])
   );
 }
@@ -120,20 +156,40 @@ bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
     return;
   }
   await ctx.answerCbQuery();
+  await showDateStep(ctx, sport);
+});
+
+bot.action("back:sport", async (ctx) => {
+  await ctx.answerCbQuery();
+  competitionSelection.delete(ctx.from!.id);
+  dateFilterSelection.delete(ctx.from!.id);
+  await ctx.editMessageText("¿Qué deporte analizamos?", sportKeyboard());
+});
+
+bot.action(/^date:(hoy|manana|24h):(futbol|tenis)$/, async (ctx) => {
+  const filter = ctx.match[1] as DateFilter;
+  const sport = ctx.match[2] as Sport;
+
+  if (researchInProgress) {
+    await ctx.answerCbQuery("Ya hay un Deep Research en curso.");
+    return;
+  }
+  await ctx.answerCbQuery();
+  dateFilterSelection.set(ctx.from!.id, filter);
 
   if (sport === "tenis") {
-    await ctx.editMessageText(`Deporte elegido: ${SPORT_LABELS.tenis}`);
-    await launchResearch(ctx, "tenis");
+    await ctx.editMessageText(`Deporte elegido: ${SPORT_LABELS.tenis}\nFecha: ${dateFilterLabel(filter)}`);
+    await launchResearch(ctx, "tenis", undefined, filter);
     return;
   }
 
   await showFootbolModeStep(ctx);
 });
 
-bot.action("back:sport", async (ctx) => {
+bot.action("back:date", async (ctx) => {
   await ctx.answerCbQuery();
   competitionSelection.delete(ctx.from!.id);
-  await ctx.editMessageText("¿Qué deporte analizamos?", sportKeyboard());
+  await showDateStep(ctx, "futbol");
 });
 
 bot.action("back:footbolmode", async (ctx) => {
@@ -149,7 +205,7 @@ bot.action("comp:all", async (ctx) => {
   }
   await ctx.answerCbQuery();
   await ctx.editMessageText("Todas las competiciones ✅");
-  await launchResearch(ctx, "futbol");
+  await launchResearch(ctx, "futbol", undefined, dateFilterSelection.get(ctx.from!.id));
 });
 
 bot.action("comp:pick", async (ctx) => {
@@ -190,10 +246,15 @@ bot.action("comp:confirm", async (ctx) => {
   const labels = FOOTBALL_COMPETITIONS.filter((c) => selectedIds.has(c.id)).map((c) => c.label);
   competitionSelection.delete(userId);
   await ctx.editMessageText(`Competiciones elegidas: ${labels.join(", ")}`);
-  await launchResearch(ctx, "futbol", labels);
+  await launchResearch(ctx, "futbol", labels, dateFilterSelection.get(userId));
 });
 
-async function launchResearch(ctx: Context, sport: Sport, competitions?: string[]) {
+async function launchResearch(
+  ctx: Context,
+  sport: Sport,
+  competitions?: string[],
+  dateFilter?: DateFilter
+) {
   if (researchInProgress) {
     await ctx.reply("Ya hay un Deep Research en curso, espera a que termine antes de lanzar otro.");
     return;
@@ -202,10 +263,10 @@ async function launchResearch(ctx: Context, sport: Sport, competitions?: string[
   researchInProgress = true;
   try {
     await ctx.reply(
-      `🔎 Lanzando los 3 Deep Research de ${SPORT_LABELS[sport]} en Gemini, te aviso según vaya terminando cada uno.`
+      `🔎 Lanzando los 3 Deep Research de ${SPORT_LABELS[sport]} (${dateFilterLabel(dateFilter ?? "24h")}) en Gemini, te aviso según vaya terminando cada uno.`
     );
 
-    const promptDefs = buildAllPrompts(sport, { competitions });
+    const promptDefs = buildAllPrompts(sport, { competitions, dateFilter });
     // En paralelo: cada uno es una llamada de API independiente (no hay
     // ninguna sesión de navegador compartida que pueda saturarse).
     // allSettled en vez de all: si un perfil falla (cuota, timeout...) no

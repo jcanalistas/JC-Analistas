@@ -157,9 +157,11 @@ El bot deja fijos, siempre debajo del cuadro de texto, los botones
 mismo que su comando equivalente:
 
 - `/start` (o "🏠 Empezar") — mensaje de bienvenida.
-- `/analizar` (o "🔍 Analizar") — pregunta el deporte. Si eliges Fútbol ⚽,
-  antes de lanzar nada pregunta si quieres analizar todas las
-  competiciones o restringir a una selección concreta (p. ej. solo
+- `/analizar` (o "🔍 Analizar") — pregunta el deporte y, después, qué
+  partidos analizar: **Hoy** (con la fecha), **Mañana** (con la fecha) o
+  **Próximas 24h** (el comportamiento por defecto, ventana móvil desde
+  ahora). Si eliges Fútbol ⚽, además pregunta si quieres analizar todas
+  las competiciones o restringir a una selección concreta (p. ej. solo
   Champions League) marcando con botones de la lista (con la bandera del
   país de cada una, o de la UEFA en las 3 europeas): LaLiga 1ª/2ª, 1ª/2ª
   RFEF, Liga Portugal, Premier League, Bundesliga, MLS, Brasileirão,
