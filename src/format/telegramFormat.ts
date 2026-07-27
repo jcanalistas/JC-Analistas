@@ -1,4 +1,4 @@
-import type { Selection, SelectionGroup } from "../matching/matchSelections";
+import type { MatchupGroup, Selection, SelectionGroup } from "../matching/matchSelections";
 
 const TELEGRAM_MAX_LEN = 4096;
 
@@ -69,6 +69,38 @@ export function formatRepeatedSelections(groups: SelectionGroup[]): string[] {
       .map((s) => `*${s.sourceLabel}:* ${s.explanation}`)
       .join(" ");
     lines.push(`_${combinedExplanation || "Sin explicación detallada."}_`);
+  });
+
+  return chunkMessage(lines.join("\n"));
+}
+
+/**
+ * Mensaje 3 (opcional): partidos que analizaron 2 o 3 perfiles pero con
+ * mercados distintos entre sí (p. ej. un perfil recomienda "Tiafoe 2-0" y
+ * otro "Tiafoe -2.5 juegos") — mismo partido visto como valor, aunque no
+ * coincidan en la apuesta exacta. Se muestran todas las opciones.
+ */
+export function formatMixedMarketMatchups(groups: MatchupGroup[]): string[] {
+  if (groups.length === 0) return [];
+
+  const lines: string[] = ["🔀 *Mismo partido, distinto mercado*\n"];
+
+  groups.forEach((group, idx) => {
+    const sorted = [...group.selections].sort((a, b) => a.sourceIndex - b.sourceIndex);
+    lines.push(`\n*${idx + 1}. ${group.matchup}*`);
+
+    sorted.forEach((s) => {
+      lines.push(`\n*${s.sourceLabel}:* ${s.market}`);
+      const details = [
+        s.odds ? `💰 ${s.odds}` : null,
+        s.ev ? `📈 ${s.ev}` : null,
+        s.successRate ? `🎯 ${s.successRate}` : null,
+      ]
+        .filter(Boolean)
+        .join("  ·  ");
+      if (details) lines.push(details);
+      lines.push(`_${s.explanation || "Sin explicación detallada."}_`);
+    });
   });
 
   return chunkMessage(lines.join("\n"));

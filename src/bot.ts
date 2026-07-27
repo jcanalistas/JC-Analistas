@@ -2,8 +2,17 @@ import { Markup, Telegraf, type Context } from "telegraf";
 import { env } from "./config/env";
 import { buildAllPrompts, SPORT_LABELS, type Sport } from "./config/prompts";
 import { runDeepResearch, DeepResearchError, type DeepResearchResult } from "./gemini/deepResearch";
-import { parseSelections, findRepeatedSelections, type Selection } from "./matching/matchSelections";
-import { formatIndividualSelections, formatRepeatedSelections } from "./format/telegramFormat";
+import {
+  parseSelections,
+  findRepeatedSelections,
+  findRepeatedMatchupsWithDifferentMarkets,
+  type Selection,
+} from "./matching/matchSelections";
+import {
+  formatIndividualSelections,
+  formatRepeatedSelections,
+  formatMixedMarketMatchups,
+} from "./format/telegramFormat";
 import { composeMontage } from "./montage/composeMontage";
 import { analyzeTicket } from "./montage/analyzeTicket";
 import { formatTicketCaption } from "./montage/formatTicketCaption";
@@ -109,6 +118,11 @@ bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
     const repeatedGroups = findRepeatedSelections(allSelections);
 
     for (const chunk of formatRepeatedSelections(repeatedGroups)) {
+      await ctx.reply(chunk, { parse_mode: "Markdown" });
+    }
+
+    const mixedMarketGroups = findRepeatedMatchupsWithDifferentMarkets(allSelections);
+    for (const chunk of formatMixedMarketMatchups(mixedMarketGroups)) {
       await ctx.reply(chunk, { parse_mode: "Markdown" });
     }
   } catch (err) {

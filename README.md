@@ -163,8 +163,12 @@ mismo que su comando equivalente:
      Analista cuantitativo): partido, mercado, cuota, EV, % de éxito y
      explicación.
   2. Las "Recomendaciones": selecciones que coincidieron en 2 o 3
-     informes, combinadas en una sola entrada con la explicación de cada
-     perfil que coincidió.
+     informes en el mismo partido Y el mismo mercado, combinadas en una
+     sola entrada con la explicación de cada perfil que coincidió.
+  3. "Mismo partido, distinto mercado" (si aplica): partidos que
+     analizaron 2 o 3 perfiles pero recomendando mercados distintos (p.
+     ej. un perfil pide "Tiafoe 2-0" y otro "Tiafoe -2.5 juegos") —
+     muestra todas las opciones para ese partido.
 - `/ticket` (o "📸 Ticket") — pide primero la foto del ticket (la tarjeta
   ya recortada, sin fondo blanco alrededor) y luego la foto de fondo, y
   devuelve el montaje con el ticket centrado sobre el fondo (esquinas

@@ -141,3 +141,40 @@ export function findRepeatedSelections(allSelections: Selection[]): SelectionGro
 
   return groups.filter((g) => g.count >= 2).sort((a, b) => b.count - a.count);
 }
+
+export interface MatchupGroup {
+  matchup: string;
+  selections: Selection[]; // una por cada informe distinto que analizó este partido
+}
+
+/**
+ * Agrupa selecciones por PARTIDO únicamente (ignorando el mercado) y
+ * devuelve los partidos que aparecen en 2 o 3 informes pero con mercados
+ * distintos entre sí (p. ej. un informe recomienda "Tiafoe 2-0" y otro
+ * "Tiafoe -2.5 juegos"): mismo partido visto como valor por varios
+ * perfiles, aunque no coincidan en la apuesta exacta. Los que sí coinciden
+ * en partido Y mercado ya se muestran en findRepeatedSelections.
+ */
+export function findRepeatedMatchupsWithDifferentMarkets(allSelections: Selection[]): MatchupGroup[] {
+  const groups: MatchupGroup[] = [];
+
+  for (const selection of allSelections) {
+    const existingGroup = groups.find((g) => matchupsMatch(g.matchup, selection.matchup));
+
+    if (existingGroup) {
+      const alreadyFromThisSource = existingGroup.selections.some(
+        (s) => s.sourceIndex === selection.sourceIndex
+      );
+      if (!alreadyFromThisSource) {
+        existingGroup.selections.push(selection);
+      }
+    } else {
+      groups.push({ matchup: selection.matchup, selections: [selection] });
+    }
+  }
+
+  return groups
+    .filter((g) => g.selections.length >= 2)
+    .filter((g) => new Set(g.selections.map((s) => normalizeMarket(s.market))).size > 1)
+    .sort((a, b) => b.selections.length - a.selections.length);
+}
