@@ -15,7 +15,7 @@ import {
 } from "./format/telegramFormat";
 import { composeMontage } from "./montage/composeMontage";
 import { analyzeTicket } from "./montage/analyzeTicket";
-import { formatTicketCaption } from "./montage/formatTicketCaption";
+import { formatTicketCaption, formatSelectionsSummary } from "./montage/formatTicketCaption";
 
 // Por defecto Telegraf corta el procesamiento de cada update a los 90s
 // (handlerTimeout), lo que interrumpía /ticket (búsqueda en Google) y
@@ -287,6 +287,7 @@ const montageState = new Map<number, MontageState>();
 interface PendingPublish {
   fileId: string;
   caption?: string;
+  summary?: string;
 }
 const pendingPublish = new Map<number, PendingPublish>();
 
@@ -338,9 +339,11 @@ bot.on("photo", async (ctx) => {
     const result = await composeMontage(state.ticketBuffer!, photoBuffer);
 
     let caption: string | undefined;
+    let summary: string | undefined;
     try {
       const ticketInfo = await analyzeTicket(state.ticketBuffer!, env.geminiApiKey);
       caption = formatTicketCaption(ticketInfo);
+      if (ticketInfo.odds) summary = formatSelectionsSummary(ticketInfo);
     } catch (err) {
       console.error("No se pudo analizar el ticket para generar el texto:", err);
       await ctx.reply("⚠️ No pude leer los datos del ticket, te mando la imagen sin el texto.");
@@ -350,9 +353,12 @@ bot.on("photo", async (ctx) => {
       { source: result },
       caption ? { caption, parse_mode: "HTML" } : undefined
     );
+    if (summary) {
+      await ctx.reply(summary, { parse_mode: "HTML" });
+    }
     const largestPhoto = sentMsg.photo?.at(-1);
     if (largestPhoto) {
-      pendingPublish.set(sentMsg.message_id, { fileId: largestPhoto.file_id, caption });
+      pendingPublish.set(sentMsg.message_id, { fileId: largestPhoto.file_id, caption, summary });
       await ctx.telegram.editMessageReplyMarkup(
         sentMsg.chat.id,
         sentMsg.message_id,
@@ -385,6 +391,9 @@ bot.action(/^publish:(\d+)$/, async (ctx) => {
       pending.fileId,
       pending.caption ? { caption: pending.caption, parse_mode: "HTML" } : undefined
     );
+    if (pending.summary) {
+      await ctx.telegram.sendMessage(env.telegramChannelId, pending.summary, { parse_mode: "HTML" });
+    }
     pendingPublish.delete(messageId);
     await ctx.answerCbQuery("Publicado en el canal ✅");
     await ctx.editMessageReplyMarkup(undefined);

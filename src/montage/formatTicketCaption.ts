@@ -24,6 +24,11 @@ export function formatTicketCaption(info: TicketInfo): string {
   );
 }
 
+/** Segundo mensaje, aparte del montaje: resumen corto con las selecciones y la cuota total. */
+export function formatSelectionsSummary(info: TicketInfo): string {
+  return `✅ <u><b>${escapeHtml(info.selections)} @${escapeHtml(info.odds)}</b></u> ✅`;
+}
+
 function escapeHtml(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

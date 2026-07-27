@@ -7,6 +7,8 @@ export interface TicketInfo {
   sport: Sport;
   competition: string;
   selections: string;
+  /** Cuota total combinada del ticket, tal como aparece en la imagen (ej. "1,91"). Vacío si no se pudo leer. */
+  odds: string;
 }
 
 const ANALYSIS_MODEL = "gemini-flash-latest";
@@ -24,6 +26,7 @@ Devuelve tu respuesta EXACTAMENTE en este formato, una línea por campo, sin nad
 DEPORTE: tenis
 COMPETICION: <torneo o torneos, según las reglas de arriba>
 SELECCIONES: <resumen breve combinando apellidos de jugadores o equipos y el mercado de cada selección, unidos por " + ", por ejemplo "Poljicak + Dalla Valle Set">
+CUOTA: <cuota total combinada del ticket, tal como aparece en la imagen (con coma decimal), ej. 1,91>
 
 DEPORTE debe ser exactamente "tenis" o "futbol", según corresponda.`;
 
@@ -79,14 +82,18 @@ function parseTicketInfo(text: string): TicketInfo {
   const sportMatch = /DEPORTE:\s*(tenis|f[uú]tbol)/i.exec(cleaned);
   const competitionMatch = /COMPETICION:\s*(.+)/i.exec(cleaned);
   const selectionsMatch = /SELECCIONES:\s*(.+)/i.exec(cleaned);
+  const oddsMatch = /CUOTA:\s*(.+)/i.exec(cleaned);
 
   const sport: Sport = /tenis/i.test(sportMatch?.[1] ?? "") ? "tenis" : "futbol";
   const competition = competitionMatch?.[1]?.trim() ?? "";
   const selections = selectionsMatch?.[1]?.trim() ?? "";
+  // La cuota es opcional: si Gemini no la lee bien, seguimos con el resto
+  // (el bot simplemente no genera el segundo mensaje de resumen).
+  const odds = oddsMatch?.[1]?.trim() ?? "";
 
   if (!competition || !selections) {
     throw new Error(`No se pudo extraer la información del ticket. Respuesta recibida: ${text.slice(0, 300)}`);
   }
 
-  return { sport, competition, selections };
+  return { sport, competition, selections, odds };
 }

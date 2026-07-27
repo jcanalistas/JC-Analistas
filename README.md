@@ -181,20 +181,24 @@ mismo que su comando equivalente:
      muestra todas las opciones para ese partido.
 - `/ticket` (o "📸 Ticket") — pide primero la foto del ticket (la tarjeta
   ya recortada, sin fondo blanco alrededor) y luego la foto de fondo, y
-  devuelve el montaje con el ticket centrado sobre el fondo (esquinas
-  redondeadas), con un texto generado automáticamente a partir del propio
-  ticket (usando la visión de Gemini para leer la imagen: bandera, nombres
-  de jugadores/equipos y contexto visible): icono del deporte +
-  competición subrayada, selecciones en negrita, "📊 Stake 2" fijo, y una
-  última línea fija en cursiva "🔞 Misma cuota aquí" enlazada. El mensaje
-  trae dos botones: "✅ Publicar en canal" (publica esa foto+texto
-  directamente en tu canal, sin marca de reenvío) y "✏️ Editar texto" (te
-  pide un texto nuevo y sustituye el generado automáticamente, por si hay
-  que corregir algo antes de publicar).
-  El mensaje incluye un botón **"✅ Publicar en canal"**: hasta que no lo
-  pulsas, nada se envía al canal — al pulsarlo, el bot publica esa misma
-  foto y texto directamente en tu canal (sin la marca de "Reenviado
-  desde", porque es un mensaje nuevo del bot, no un reenvío).
+  devuelve:
+  1. El montaje con el ticket centrado sobre el fondo (esquinas
+     redondeadas), con un texto generado automáticamente a partir del
+     propio ticket (usando la visión de Gemini para leer la imagen:
+     bandera, nombres de jugadores/equipos y contexto visible): icono del
+     deporte + competición subrayada, selecciones en negrita, "📊 Stake 2"
+     fijo, y una última línea fija en cursiva "🔞 Misma cuota aquí"
+     enlazada.
+  2. Un segundo mensaje aparte con el resumen corto en negrita y
+     subrayado, entre ✅: `✅ Topo + Prado Set @1,91 ✅` (selecciones +
+     cuota total, tal como se lee en el ticket).
+
+  El mensaje del montaje trae dos botones: **"✅ Publicar en canal"**
+  (publica la foto+texto y, si lo hay, el segundo mensaje del resumen,
+  directamente en tu canal — sin marca de "Reenviado desde", porque son
+  mensajes nuevos del bot, no un reenvío — y no se envía nada hasta que lo
+  pulsas) y **"✏️ Editar texto"** (te pide un texto nuevo y sustituye el
+  de la foto, por si hay que corregir algo antes de publicar).
 
 ## Limitaciones conocidas de esta primera versión
 
