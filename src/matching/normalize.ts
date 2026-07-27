@@ -5,15 +5,31 @@
  * "Más de 2.5 goles" vs "Over 2.5").
  */
 
-const MARKET_SYNONYMS: Array<{ pattern: RegExp; canonical: string }> = [
-  { pattern: /\bover\b|\bmás de\b|\bmas de\b/i, canonical: "over" },
-  { pattern: /\bunder\b|\bmenos de\b/i, canonical: "under" },
+// Palabra clave que indica sobre qué se cuenta un over/under o hándicap
+// (goles, córners, sets, juegos...), para no confundir p. ej. "Hándicap de
+// sets -1.5" con "Hándicap de juegos -1.5" solo porque comparten número.
+const DIMENSION_PATTERNS: Array<{ pattern: RegExp; tag: string }> = [
+  { pattern: /\bsets?\b/i, tag: "sets" },
+  { pattern: /\bjuegos?\b|\bgames?\b/i, tag: "games" },
+  { pattern: /\bgoles?\b|\bgoals?\b/i, tag: "goals" },
+  { pattern: /\bc[oó]rners?\b/i, tag: "corners" },
+  { pattern: /\btarjetas?\b|\bcards?\b/i, tag: "cards" },
+  { pattern: /\baces?\b/i, tag: "aces" },
+];
+
+const MARKET_SYNONYMS: Array<{ pattern: RegExp; canonical: string; useDimension?: boolean }> = [
+  { pattern: /\bover\b|\bm[aá]s de\b|\bsuperior a\b|\bpor encima de\b/i, canonical: "over", useDimension: true },
+  { pattern: /\bunder\b|\bmenos de\b|\binferior a\b|\bpor debajo de\b/i, canonical: "under", useDimension: true },
   { pattern: /\bambos marcan\b|\bbtts\b|\bgoal-goal\b|\bgg\b/i, canonical: "btts" },
-  { pattern: /\bh[aá]ndicap asi[aá]tico\b|\bahc\b|\bah\b/i, canonical: "hcap" },
+  { pattern: /\bh[aá]ndicap\b|\bahc\b|\bah\b/i, canonical: "hcap", useDimension: true },
   { pattern: /\bdoble oportunidad\b|\bdouble chance\b/i, canonical: "dc" },
-  { pattern: /\bcórners?\b|\bcorners?\b/i, canonical: "corners" },
+  { pattern: /\bc[oó]rners?\b/i, canonical: "corners" },
   { pattern: /\btarjetas?\b|\bcards?\b/i, canonical: "cards" },
   { pattern: /\bempate\b|\bdraw\b/i, canonical: "draw" },
+  // Ganador del partido (moneyline): la forma en la que más difieren los
+  // 3 perfiles al redactar el mismo mercado.
+  { pattern: /\bganador\b|\bgana(r[aá]?)?\b|\bvictoria\b|\bvencedor\b|\bmoneyline\b/i, canonical: "winner" },
+  { pattern: /\baces?\b/i, canonical: "aces" },
 ];
 
 export function stripAccents(text: string): string {
@@ -27,15 +43,39 @@ export function normalizeText(text: string): string {
     .trim();
 }
 
+/**
+ * Separa un "Equipo/Jugador A vs Equipo/Jugador B" en sus dos lados. Se hace
+ * sobre el texto ORIGINAL (antes de normalizeText) porque normalizeText
+ * elimina el guion "-", que es el separador que usan varios informes en vez
+ * de "vs" — normalizar primero y luego intentar partir por "-" nunca
+ * encuentra el separador.
+ */
+function splitMatchupSides(matchup: string): string[] {
+  const byVs = matchup.split(/\s+vs\.?\s+|\s+v\.?\s+/i);
+  const raw = byVs.length > 1 ? byVs : matchup.split(/-|\|/);
+  return raw.map((side) => normalizeText(side)).filter(Boolean);
+}
+
 /** Normaliza un nombre de partido para que el orden de los equipos no importe. */
 export function normalizeMatchup(matchup: string): string {
-  const normalized = normalizeText(matchup).replace(/\bvs\b|\bv\b/g, "-");
-  const teams = normalized
-    .split(/-|\|/)
-    .map((t) => t.trim())
-    .filter(Boolean)
+  return splitMatchupSides(matchup).sort().join(" - ");
+}
+
+/**
+ * Extrae, por cada lado del partido, la palabra más larga (heurística para
+ * el apellido: en tenis los 3 informes no siempre nombran a un jugador
+ * igual, p. ej. "T. Griekspoor" vs "Tallon Griekspoor" — el apellido es lo
+ * único estable). Se usa para comparar partidos entre informes tolerando
+ * esas variaciones de nombre, en vez de comparar la cadena completa.
+ */
+export function matchupSurnames(matchup: string): string[] {
+  return splitMatchupSides(matchup)
+    .map((side) => {
+      const words = side.split(/\s+/).filter(Boolean);
+      if (!words.length) return "";
+      return words.reduce((longest, w) => (w.length > longest.length ? w : longest), words[0]);
+    })
     .sort();
-  return teams.join(" - ");
 }
 
 /**

@@ -1,4 +1,4 @@
-import { normalizeMarket, normalizeMatchup, similarity } from "./normalize";
+import { matchupSurnames, normalizeMarket, similarity } from "./normalize";
 
 export interface Selection {
   sourceIndex: number; // qué deep research (0, 1, 2) la produjo
@@ -92,7 +92,15 @@ function parseLoose(
   return { matchup, market, odds, ev, successRate, explanation };
 }
 
-const MATCHUP_SIMILARITY_THRESHOLD = 0.82;
+const SURNAME_SIMILARITY_THRESHOLD = 0.8;
+
+/** Compara dos partidos por apellido de cada lado (ver matchupSurnames), sin importar el orden. */
+function matchupsMatch(a: string, b: string): boolean {
+  const surnamesA = matchupSurnames(a);
+  const surnamesB = matchupSurnames(b);
+  if (!surnamesA.length || surnamesA.length !== surnamesB.length) return false;
+  return surnamesA.every((s, i) => similarity(s, surnamesB[i]) >= SURNAME_SIMILARITY_THRESHOLD);
+}
 
 /**
  * Agrupa selecciones equivalentes entre los distintos informes (mismo
@@ -103,13 +111,10 @@ export function findRepeatedSelections(allSelections: Selection[]): SelectionGro
   const groups: SelectionGroup[] = [];
 
   for (const selection of allSelections) {
-    const normMatchup = normalizeMatchup(selection.matchup);
     const normMarket = normalizeMarket(selection.market);
 
     const existingGroup = groups.find(
-      (g) =>
-        normalizeMarket(g.market) === normMarket &&
-        similarity(normalizeMatchup(g.matchup), normMatchup) >= MATCHUP_SIMILARITY_THRESHOLD
+      (g) => normalizeMarket(g.market) === normMarket && matchupsMatch(g.matchup, selection.matchup)
     );
 
     if (existingGroup) {
