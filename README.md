@@ -6,8 +6,8 @@ implementada:
 1. Lanza **3 Deep Research distintos en Gemini** (Tipster, Machine
    Learning y Analista cuantitativo), para el deporte que elijas con
    botones (⚽ Fútbol / 🎾 Tenis).
-2. Devuelve las **selecciones finales** de cada uno (partido, mercado,
-   cuota, EV, % de éxito y explicación).
+2. Devuelve las **selecciones finales** de cada uno (partido, torneo,
+   mercado, cuota, EV, % de éxito y explicación).
 3. Resalta qué selecciones **se repiten en 2 o 3** informes, con la
    explicación combinada de cada perfil que coincidió.
 
@@ -203,7 +203,8 @@ mismo que su comando equivalente:
   (hora de España) si configuraste el paso 7.5 — los resultados te
   llegan igual que si lo hubieras pulsado tú. Al terminar, envía:
   1. Las selecciones finales de cada perfil (Tipster, Machine Learning,
-     Analista cuantitativo): partido, mercado, cuota, EV, % de éxito y
+     Analista cuantitativo): partido, torneo/competición exacta (ej. "ATP
+     Washington", "CH Bonn"), mercado, cuota, EV, % de éxito y
      explicación. Si algún perfil falla (p. ej. cuota agotada), se avisa
      de ese perfil en concreto y se muestran igualmente los que sí
      terminaron, en vez de perderlo todo.

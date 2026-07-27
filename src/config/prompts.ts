@@ -299,7 +299,11 @@ Al terminar tu informe, añade una última sección titulada exactamente
 selección como una línea numerada con este formato exacto, una selección
 por línea:
 
-N. Partido/Jugador vs Jugador | Mercado: <mercado> | Cuota: <cuota> | EV: <valor EV+ estimado, ej. +8% o el indicador que uses> | % Éxito: <probabilidad de acierto estimada, ej. 65%> | Explicación: <explicación breve en 1-2 frases>
+N. Partido/Jugador vs Jugador | Torneo: <torneo o competición exacta, ej. "ATP Washington", "CH Bonn" o "Champions League" — nunca solo "ATP" o "Challenger" a secas> | Mercado: <mercado> | Cuota: <cuota> | EV: <valor EV+ estimado, ej. +8% o el indicador que uses> | % Éxito: <probabilidad de acierto estimada, ej. 65%> | Explicación: <explicación breve en 1-2 frases>
+
+El campo Torneo es OBLIGATORIO en las 8 líneas y debe ser el nombre
+concreto del torneo/competición de ese partido (el que hayas identificado
+en tu propia investigación), nunca solo la categoría genérica.
 
 El campo Explicación es OBLIGATORIO en las 8 líneas: nunca lo dejes vacío,
 ni pongas un guion o "ver análisis arriba". Resume ahí, en 1-2 frases

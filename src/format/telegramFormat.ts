@@ -22,6 +22,7 @@ export function formatIndividualSelections(
     }
     selections.forEach((s, i) => {
       lines.push(`\n*${i + 1}. ${s.matchup}* — ${s.market}`);
+      if (s.tournament) lines.push(`🏟️ ${s.tournament}`);
       const details = [
         s.odds ? `💰 ${s.odds}` : null,
         s.ev ? `📈 ${s.ev}` : null,
@@ -53,6 +54,7 @@ export function formatRepeatedSelections(groups: SelectionGroup[]): string[] {
     const sorted = [...group.selections].sort((a, b) => a.sourceIndex - b.sourceIndex);
 
     lines.push(`\n*${idx + 1}. ${group.matchup} — ${group.market}*`);
+    if (group.tournament) lines.push(`🏟️ ${group.tournament}`);
     lines.push(`Coincide en ${group.count} de 3 informes (${sorted.map((s) => s.sourceLabel).join(", ")})`);
 
     const details = [
@@ -88,6 +90,7 @@ export function formatMixedMarketMatchups(groups: MatchupGroup[]): string[] {
   groups.forEach((group, idx) => {
     const sorted = [...group.selections].sort((a, b) => a.sourceIndex - b.sourceIndex);
     lines.push(`\n*${idx + 1}. ${group.matchup}*`);
+    if (group.tournament) lines.push(`🏟️ ${group.tournament}`);
 
     sorted.forEach((s) => {
       lines.push(`\n*${s.sourceLabel}:* ${s.market}`);

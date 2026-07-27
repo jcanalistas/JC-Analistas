@@ -5,6 +5,7 @@ export interface Selection {
   sourceLabel: string; // p.ej. "Tipster", "Analista cuantitativo", "Machine Learning"
   raw: string; // línea original tal cual la escribió Gemini
   matchup: string;
+  tournament: string;
   market: string;
   odds: string;
   ev: string;
@@ -14,18 +15,19 @@ export interface Selection {
 
 export interface SelectionGroup {
   matchup: string;
+  tournament: string;
   market: string;
   count: number; // en cuántos de los 3 informes aparece
   selections: Selection[]; // una por cada informe en el que aparece
 }
 
 const SECTION_TITLE_RE = /selecciones finales/i;
-// N. Equipo local vs Equipo visitante | Mercado: X | Cuota: Y | EV: Z | % Éxito: W | Explicación: V
+// N. Equipo local vs Equipo visitante | Torneo: X | Mercado: Y | Cuota: Z | EV: W | % Éxito: V | Explicación: U
 // El campo final admite "Explicación" o "Justificación" como etiqueta: los
 // prompts de Tipster y Analista cuantitativo usan "justificación" en su
 // propio texto y a veces el informe arrastra esa palabra al listado final.
 const LINE_RE =
-  /^\s*\d+[.)]\s*(.+?)\s*\|\s*mercado:\s*(.+?)\s*\|\s*cuota:\s*(.+?)\s*\|\s*ev:\s*(.+?)\s*\|\s*%?\s*[eé]xito:\s*(.+?)\s*\|\s*(?:explicaci[oó]n|justificaci[oó]n(?:\s+t[eé]cnica)?(?:\s*\(?valor\)?)?):\s*(.+?)\s*$/i;
+  /^\s*\d+[.)]\s*(.+?)\s*\|\s*torneo:\s*(.+?)\s*\|\s*mercado:\s*(.+?)\s*\|\s*cuota:\s*(.+?)\s*\|\s*ev:\s*(.+?)\s*\|\s*%?\s*[eé]xito:\s*(.+?)\s*\|\s*(?:explicaci[oó]n|justificaci[oó]n(?:\s+t[eé]cnica)?(?:\s*\(?valor\)?)?):\s*(.+?)\s*$/i;
 
 /**
  * Extrae las selecciones de la sección "SELECCIONES FINALES" de un informe.
@@ -47,12 +49,13 @@ export function parseSelections(
 
     const strict = LINE_RE.exec(trimmed);
     if (strict) {
-      const [, matchup, market, odds, ev, successRate, explanation] = strict;
+      const [, matchup, tournament, market, odds, ev, successRate, explanation] = strict;
       selections.push({
         sourceIndex,
         sourceLabel,
         raw: trimmed,
         matchup,
+        tournament,
         market,
         odds,
         ev,
@@ -77,12 +80,25 @@ function extractSection(reportText: string): string | null {
 
 function parseLoose(
   line: string
-): { matchup: string; market: string; odds: string; ev: string; successRate: string; explanation: string } | null {
+):
+  | {
+      matchup: string;
+      tournament: string;
+      market: string;
+      odds: string;
+      ev: string;
+      successRate: string;
+      explanation: string;
+    }
+  | null {
   const withoutNumber = line.replace(/^\s*\d+[.)]\s*/, "");
   const parts = withoutNumber.split("|").map((p) => p.trim());
   if (parts.length < 2) return null;
 
   const matchup = parts[0] ?? "";
+  const tournament = (parts.find((p) => /torneo|competici[oó]n/i.test(p)) ?? "")
+    .replace(/torneo:?|competici[oó]n:?/i, "")
+    .trim();
   const market = (parts.find((p) => /mercado/i.test(p)) ?? parts[1] ?? "").replace(/mercado:?/i, "").trim();
   const odds = (parts.find((p) => /cuota/i.test(p)) ?? "").replace(/cuota:?/i, "").trim();
   const ev = (parts.find((p) => /^ev\b/i.test(p)) ?? "").replace(/^ev:?/i, "").trim();
@@ -92,7 +108,7 @@ function parseLoose(
     .trim();
 
   if (!matchup || !market) return null;
-  return { matchup, market, odds, ev, successRate, explanation };
+  return { matchup, tournament, market, odds, ev, successRate, explanation };
 }
 
 const SURNAME_SIMILARITY_THRESHOLD = 0.8;
@@ -133,6 +149,7 @@ export function findRepeatedSelections(allSelections: Selection[]): SelectionGro
     } else {
       groups.push({
         matchup: selection.matchup,
+        tournament: selection.tournament,
         market: selection.market,
         count: 1,
         selections: [selection],
@@ -145,6 +162,7 @@ export function findRepeatedSelections(allSelections: Selection[]): SelectionGro
 
 export interface MatchupGroup {
   matchup: string;
+  tournament: string;
   selections: Selection[]; // una por cada informe distinto que analizó este partido
 }
 
@@ -170,7 +188,7 @@ export function findRepeatedMatchupsWithDifferentMarkets(allSelections: Selectio
         existingGroup.selections.push(selection);
       }
     } else {
-      groups.push({ matchup: selection.matchup, selections: [selection] });
+      groups.push({ matchup: selection.matchup, tournament: selection.tournament, selections: [selection] });
     }
   }
 
