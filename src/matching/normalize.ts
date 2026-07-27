@@ -62,18 +62,21 @@ export function normalizeMatchup(matchup: string): string {
 }
 
 /**
- * Extrae, por cada lado del partido, la palabra más larga (heurística para
- * el apellido: en tenis los 3 informes no siempre nombran a un jugador
- * igual, p. ej. "T. Griekspoor" vs "Tallon Griekspoor" — el apellido es lo
- * único estable). Se usa para comparar partidos entre informes tolerando
- * esas variaciones de nombre, en vez de comparar la cadena completa.
+ * Extrae, por cada lado del partido, la ÚLTIMA palabra (heurística para el
+ * apellido, siguiendo la convención habitual "nombre(s) + apellido": en
+ * tenis los 3 informes no siempre nombran a un jugador igual, p. ej.
+ * "T. Griekspoor" vs "Tallon Griekspoor" — el apellido es lo único
+ * estable). Antes se usaba la palabra más larga, pero eso falla con
+ * nombres de pila largos como "Alejandro Tabilo" (elegía "Alejandro" en
+ * vez de "Tabilo"). Se usa para comparar partidos entre informes
+ * tolerando esas variaciones de nombre, en vez de comparar la cadena
+ * completa.
  */
 export function matchupSurnames(matchup: string): string[] {
   return splitMatchupSides(matchup)
     .map((side) => {
       const words = side.split(/\s+/).filter(Boolean);
-      if (!words.length) return "";
-      return words.reduce((longest, w) => (w.length > longest.length ? w : longest), words[0]);
+      return words.at(-1) ?? "";
     })
     .sort();
 }
@@ -96,6 +99,23 @@ export function normalizeMarket(market: string): string {
     }
   }
   return normalized;
+}
+
+/**
+ * Firma de un mercado que además distingue A QUIÉN respalda la selección,
+ * cuando se puede identificar. normalizeMarket() por sí sola colapsa
+ * "Ganador Griekspoor" y "Ganador Tabilo" en el mismo "winner" — correcto
+ * para comparar el TIPO de mercado, pero letal si dos informes recomiendan
+ * lados opuestos del mismo partido (Griekspoor gana vs. Tabilo gana): se
+ * mostrarían como si los 3 informes coincidieran en la misma selección
+ * cuando en realidad son contradictorios. Se añade el apellido detectado
+ * en el texto del mercado (si aparece) para separarlos.
+ */
+export function marketSignature(market: string, surnames: string[]): string {
+  const base = normalizeMarket(market);
+  const normalizedMarket = normalizeText(market);
+  const side = surnames.find((s) => s && normalizedMarket.includes(s));
+  return side ? `${base}::${side}` : base;
 }
 
 /** Similitud simple basada en distancia de Levenshtein, entre 0 y 1. */

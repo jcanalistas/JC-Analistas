@@ -1,4 +1,4 @@
-import { matchupSurnames, normalizeMarket, similarity } from "./normalize";
+import { marketSignature, matchupSurnames, similarity } from "./normalize";
 
 export interface Selection {
   sourceIndex: number; // qué deep research (0, 1, 2) la produjo
@@ -114,10 +114,11 @@ export function findRepeatedSelections(allSelections: Selection[]): SelectionGro
   const groups: SelectionGroup[] = [];
 
   for (const selection of allSelections) {
-    const normMarket = normalizeMarket(selection.market);
+    const signature = marketSignature(selection.market, matchupSurnames(selection.matchup));
 
     const existingGroup = groups.find(
-      (g) => normalizeMarket(g.market) === normMarket && matchupsMatch(g.matchup, selection.matchup)
+      (g) =>
+        marketSignature(g.market, matchupSurnames(g.matchup)) === signature && matchupsMatch(g.matchup, selection.matchup)
     );
 
     if (existingGroup) {
@@ -175,6 +176,6 @@ export function findRepeatedMatchupsWithDifferentMarkets(allSelections: Selectio
 
   return groups
     .filter((g) => g.selections.length >= 2)
-    .filter((g) => new Set(g.selections.map((s) => normalizeMarket(s.market))).size > 1)
+    .filter((g) => new Set(g.selections.map((s) => marketSignature(s.market, matchupSurnames(s.matchup)))).size > 1)
     .sort((a, b) => b.selections.length - a.selections.length);
 }
