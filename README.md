@@ -169,10 +169,10 @@ mismo que su comando equivalente:
   ya recortada, sin fondo blanco alrededor) y luego la foto de fondo, y
   devuelve el montaje con el ticket centrado sobre el fondo (esquinas
   redondeadas), con un texto generado automáticamente a partir del propio
-  ticket (usando la visión de Gemini con búsqueda de Google activada, para
-  confirmar el torneo real en vez de adivinarlo solo por la imagen): icono
-  del deporte + competición subrayada, selecciones en negrita, "📊 Stake 2"
-  fijo, y una última línea fija en cursiva "🔞 Misma cuota aquí" enlazada.
+  ticket (usando la visión de Gemini para leer la imagen: bandera, nombres
+  de jugadores/equipos y contexto visible): icono del deporte +
+  competición subrayada, selecciones en negrita, "📊 Stake 2" fijo, y una
+  última línea fija en cursiva "🔞 Misma cuota aquí" enlazada.
   El mensaje incluye un botón **"✅ Publicar en canal"**: hasta que no lo
   pulsas, nada se envía al canal — al pulsarlo, el bot publica esa misma
   foto y texto directamente en tu canal (sin la marca de "Reenviado
