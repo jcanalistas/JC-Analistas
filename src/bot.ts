@@ -288,8 +288,19 @@ interface PendingPublish {
   fileId: string;
   caption?: string;
   summary?: string;
+  summaryMessageId?: number;
 }
 const pendingPublish = new Map<number, PendingPublish>();
+
+// El mensaje-resumen ("✅ ... ✅ / Sumamos...") también se puede publicar
+// de forma independiente del montaje, indexado por su propio message_id.
+// Guarda también el message_id de la foto, para poder evitar publicar el
+// resumen dos veces si se usan ambos botones.
+interface PendingSummaryPublish {
+  text: string;
+  photoMessageId: number;
+}
+const pendingSummaryPublish = new Map<number, PendingSummaryPublish>();
 
 async function startTicketFlow(ctx: Context) {
   montageState.set(ctx.from!.id, { step: "esperando_ticket" });
@@ -353,19 +364,32 @@ bot.on("photo", async (ctx) => {
       { source: result },
       caption ? { caption, parse_mode: "HTML" } : undefined
     );
+
+    let summaryMessageId: number | undefined;
     if (summary) {
-      await ctx.reply(summary, { parse_mode: "HTML" });
+      const summaryMsg = await ctx.reply(summary, { parse_mode: "HTML" });
+      summaryMessageId = summaryMsg.message_id;
+      pendingSummaryPublish.set(summaryMsg.message_id, { text: summary, photoMessageId: sentMsg.message_id });
+      await ctx.telegram.editMessageReplyMarkup(
+        summaryMsg.chat.id,
+        summaryMsg.message_id,
+        undefined,
+        Markup.inlineKeyboard([
+          Markup.button.callback("✅ Publicar", `publishsummary:${summaryMsg.message_id}`),
+        ]).reply_markup
+      );
     }
+
     const largestPhoto = sentMsg.photo?.at(-1);
     if (largestPhoto) {
-      pendingPublish.set(sentMsg.message_id, { fileId: largestPhoto.file_id, caption, summary });
+      pendingPublish.set(sentMsg.message_id, { fileId: largestPhoto.file_id, caption, summary, summaryMessageId });
       await ctx.telegram.editMessageReplyMarkup(
         sentMsg.chat.id,
         sentMsg.message_id,
         undefined,
         Markup.inlineKeyboard([
-          [Markup.button.callback("✅ Publicar en canal", `publish:${sentMsg.message_id}`)],
-          [Markup.button.callback("✏️ Editar texto", `editcap:${sentMsg.message_id}`)],
+          [Markup.button.callback("✅ Publicar", `publish:${sentMsg.message_id}`)],
+          [Markup.button.callback("✏️ Editar", `editcap:${sentMsg.message_id}`)],
         ]).reply_markup
       );
     }
@@ -399,10 +423,43 @@ bot.action(/^publish:(\d+)$/, async (ctx) => {
       });
     }
     pendingPublish.delete(messageId);
+    if (pending.summaryMessageId !== undefined) {
+      // Ya se publicó junto con la foto: se invalida el botón propio del
+      // resumen para que no se pueda volver a publicar por separado.
+      const summaryPending = pendingSummaryPublish.get(pending.summaryMessageId);
+      if (summaryPending) {
+        pendingSummaryPublish.delete(pending.summaryMessageId);
+        await ctx.telegram
+          .editMessageReplyMarkup(ctx.chat!.id, pending.summaryMessageId, undefined, undefined)
+          .catch(() => {});
+      }
+    }
     await ctx.answerCbQuery("Publicado en el canal ✅");
     await ctx.editMessageReplyMarkup(undefined);
   } catch (err) {
     console.error("No se pudo publicar en el canal:", err);
+    await ctx.answerCbQuery("⚠️ No se pudo publicar. ¿Es el bot admin del canal?", { show_alert: true });
+  }
+});
+
+bot.action(/^publishsummary:(\d+)$/, async (ctx) => {
+  const messageId = Number(ctx.match[1]);
+  const pending = pendingSummaryPublish.get(messageId);
+  if (!pending) {
+    await ctx.answerCbQuery("Este mensaje ya se publicó o ha caducado.");
+    return;
+  }
+
+  try {
+    await ctx.telegram.sendMessage(env.telegramChannelId, pending.text, { parse_mode: "HTML" });
+    pendingSummaryPublish.delete(messageId);
+    // Evita que el botón "Publicar" de la foto lo vuelva a mandar también.
+    const photoPending = pendingPublish.get(pending.photoMessageId);
+    if (photoPending) photoPending.summary = undefined;
+    await ctx.answerCbQuery("Publicado en el canal ✅");
+    await ctx.editMessageReplyMarkup(undefined);
+  } catch (err) {
+    console.error("No se pudo publicar el resumen en el canal:", err);
     await ctx.answerCbQuery("⚠️ No se pudo publicar. ¿Es el bot admin del canal?", { show_alert: true });
   }
 });
@@ -444,7 +501,7 @@ bot.on("text", async (ctx) => {
   } catch (err) {
     console.error("No se pudo actualizar el texto del montaje:", err);
     await ctx.reply(
-      "⚠️ No pude actualizar el texto (¿formato HTML inválido?). Pulsa 'Editar texto' de nuevo para reintentar."
+      "⚠️ No pude actualizar el texto (¿formato HTML inválido?). Pulsa 'Editar' de nuevo para reintentar."
     );
   }
 });

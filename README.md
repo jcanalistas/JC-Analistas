@@ -59,7 +59,7 @@ Rellena `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_ID`,
 `TELEGRAM_CHANNEL_ID` es el ID de tu canal (consíguelo reenviando un
 mensaje del canal a [@userinfobot](https://t.me/userinfobot)); el bot
 debe ser **administrador del canal con permiso de publicar mensajes**
-para poder usar el botón "Publicar en canal" de `/ticket`.
+para poder usar el botón "Publicar" de `/ticket`.
 
 ## 4. Instalar dependencias
 
@@ -195,13 +195,15 @@ mismo que su comando equivalente:
      stake fijo de 50€ (25€ = 1ud, redondeado hacia arriba desde ",50"):
      `Sumamos +46€ / +1,8ud. 🫡`.
 
-  El mensaje del montaje trae dos botones: **"✅ Publicar en canal"**
-  (publica la foto+texto en tu canal y, si lo hay, el segundo mensaje del
-  resumen respondiendo al de la foto — para tener trazabilidad de qué
-  ticket es cada resumen — sin marca de "Reenviado desde", porque son
-  mensajes nuevos del bot, no un reenvío — y no se envía nada hasta que lo
-  pulsas) y **"✏️ Editar texto"** (te pide un texto nuevo y sustituye el
-  de la foto, por si hay que corregir algo antes de publicar).
+  El mensaje del montaje trae dos botones: **"✅ Publicar"** (publica la
+  foto+texto en tu canal y, si lo hay, el segundo mensaje del resumen
+  respondiendo al de la foto — para tener trazabilidad de qué ticket es
+  cada resumen — sin marca de "Reenviado desde", porque son mensajes
+  nuevos del bot, no un reenvío — y no se envía nada hasta que lo pulsas)
+  y **"✏️ Editar"** (te pide un texto nuevo y sustituye el de la foto, por
+  si hay que corregir algo antes de publicar). El segundo mensaje (el del
+  resumen) trae también su propio botón **"✅ Publicar"**, por si quieres
+  publicarlo suelto sin la foto.
 
 ## Limitaciones conocidas de esta primera versión
 
