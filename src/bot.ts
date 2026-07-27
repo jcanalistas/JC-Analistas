@@ -126,6 +126,14 @@ interface MontageState {
 }
 const montageState = new Map<number, MontageState>();
 
+// Montajes pendientes de publicar en el canal, indexados por el message_id
+// del mensaje que el bot le mandó al usuario para revisar.
+interface PendingPublish {
+  fileId: string;
+  caption?: string;
+}
+const pendingPublish = new Map<number, PendingPublish>();
+
 async function startTicketFlow(ctx: Context) {
   montageState.set(ctx.from!.id, { step: "esperando_ticket" });
   await ctx.reply(
@@ -182,11 +190,49 @@ bot.on("photo", async (ctx) => {
       await ctx.reply("⚠️ No pude leer los datos del ticket, te mando la imagen sin el texto.");
     }
 
-    await ctx.replyWithPhoto({ source: result }, caption ? { caption, parse_mode: "HTML" } : undefined);
+    const sentMsg = await ctx.replyWithPhoto(
+      { source: result },
+      caption ? { caption, parse_mode: "HTML" } : undefined
+    );
+    const largestPhoto = sentMsg.photo?.at(-1);
+    if (largestPhoto) {
+      pendingPublish.set(sentMsg.message_id, { fileId: largestPhoto.file_id, caption });
+      await ctx.telegram.editMessageReplyMarkup(
+        sentMsg.chat.id,
+        sentMsg.message_id,
+        undefined,
+        Markup.inlineKeyboard([
+          Markup.button.callback("✅ Publicar en canal", `publish:${sentMsg.message_id}`),
+        ]).reply_markup
+      );
+    }
   } catch (err) {
     console.error(err);
     await ctx.reply("⚠️ No se pudo generar el montaje. Revisa que ambas fotos sean válidas e inténtalo de nuevo con /ticket.");
   } finally {
     montageState.delete(ctx.from.id);
+  }
+});
+
+bot.action(/^publish:(\d+)$/, async (ctx) => {
+  const messageId = Number(ctx.match[1]);
+  const pending = pendingPublish.get(messageId);
+  if (!pending) {
+    await ctx.answerCbQuery("Este montaje ya se publicó o ha caducado.");
+    return;
+  }
+
+  try {
+    await ctx.telegram.sendPhoto(
+      env.telegramChannelId,
+      pending.fileId,
+      pending.caption ? { caption: pending.caption, parse_mode: "HTML" } : undefined
+    );
+    pendingPublish.delete(messageId);
+    await ctx.answerCbQuery("Publicado en el canal ✅");
+    await ctx.editMessageReplyMarkup(undefined);
+  } catch (err) {
+    console.error("No se pudo publicar en el canal:", err);
+    await ctx.answerCbQuery("⚠️ No se pudo publicar. ¿Es el bot admin del canal?", { show_alert: true });
   }
 });

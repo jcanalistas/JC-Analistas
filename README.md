@@ -52,9 +52,14 @@ Telegram según va terminando cada uno.
 cp .env.example .env
 ```
 
-Rellena `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_ID` y
-`GEMINI_API_KEY`. El resto (`PUBLIC_URL`, `WEBHOOK_SECRET_PATH`) se
-completan al desplegar (paso 6).
+Rellena `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_ID`,
+`TELEGRAM_CHANNEL_ID` y `GEMINI_API_KEY`. El resto (`PUBLIC_URL`,
+`WEBHOOK_SECRET_PATH`) se completan al desplegar (paso 6).
+
+`TELEGRAM_CHANNEL_ID` es el ID de tu canal (consíguelo reenviando un
+mensaje del canal a [@userinfobot](https://t.me/userinfobot)); el bot
+debe ser **administrador del canal con permiso de publicar mensajes**
+para poder usar el botón "Publicar en canal" de `/ticket`.
 
 ## 4. Instalar dependencias
 
@@ -111,7 +116,7 @@ gcloud run deploy jc-analistas-bot \
   --source . \
   --region europe-southwest1 \
   --allow-unauthenticated \
-  --set-env-vars TELEGRAM_ALLOWED_USER_ID=TU_ID_DE_TELEGRAM,WEBHOOK_SECRET_PATH=UNA_CADENA_ALEATORIA,DEEP_RESEARCH_TIMEOUT_MINUTES=20 \
+  --set-env-vars TELEGRAM_ALLOWED_USER_ID=TU_ID_DE_TELEGRAM,TELEGRAM_CHANNEL_ID=TU_ID_DE_CANAL,WEBHOOK_SECRET_PATH=UNA_CADENA_ALEATORIA,DEEP_RESEARCH_TIMEOUT_MINUTES=20 \
   --set-secrets TELEGRAM_BOT_TOKEN=telegram-bot-token:latest,GEMINI_API_KEY=gemini-api-key:latest \
   --timeout=3600
 ```
@@ -168,6 +173,10 @@ mismo que su comando equivalente:
   confirmar el torneo real en vez de adivinarlo solo por la imagen): icono
   del deporte + competición subrayada, selecciones en negrita, "📊 Stake 2"
   fijo, y una última línea fija en cursiva "🔞 Misma cuota aquí" enlazada.
+  El mensaje incluye un botón **"✅ Publicar en canal"**: hasta que no lo
+  pulsas, nada se envía al canal — al pulsarlo, el bot publica esa misma
+  foto y texto directamente en tu canal (sin la marca de "Reenviado
+  desde", porque es un mensaje nuevo del bot, no un reenvío).
 
 ## Limitaciones conocidas de esta primera versión
 
