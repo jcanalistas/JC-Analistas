@@ -30,7 +30,6 @@ export interface PromptDefinition {
  * fútbol, ya que en tenis los prompts ya están acotados a ATP/Challenger).
  */
 export const FOOTBALL_COMPETITIONS: Array<{ id: string; label: string; flag: string }> = [
-  { id: "mls", label: "MLS", flag: "🇺🇸" },
   { id: "laliga1", label: "LaLiga 1ª", flag: "🇪🇸" },
   { id: "laliga2", label: "LaLiga 2ª", flag: "🇪🇸" },
   { id: "rfef1", label: "1ª RFEF", flag: "🇪🇸" },
@@ -38,6 +37,7 @@ export const FOOTBALL_COMPETITIONS: Array<{ id: string; label: string; flag: str
   { id: "portugal", label: "Liga Portugal", flag: "🇵🇹" },
   { id: "premier", label: "Premier League", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
   { id: "bundesliga", label: "Bundesliga", flag: "🇩🇪" },
+  { id: "mls", label: "MLS", flag: "🇺🇸" },
   { id: "brasileirao", label: "Brasileirão", flag: "🇧🇷" },
   // Competiciones de la UEFA: se usa la bandera de la UE como referencia visual.
   { id: "champions", label: "Champions League", flag: "🇪🇺" },
