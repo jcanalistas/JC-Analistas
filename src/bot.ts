@@ -150,16 +150,16 @@ async function showFootbolModeStep(ctx: Context) {
 }
 
 function tennisCategoryLabel(category: TennisCategory): string {
-  if (category === "atp") return "Solo ATP";
-  if (category === "challenger") return "Solo Challenger";
-  return "ATP + Challenger";
+  if (category === "atp") return "ATP";
+  if (category === "challenger") return "Challenger";
+  return "Todo";
 }
 
 function tennisCategoryKeyboard() {
   return Markup.inlineKeyboard([
-    [Markup.button.callback("🎾 Solo ATP", "tenniscat:atp")],
-    [Markup.button.callback("🏆 Solo Challenger", "tenniscat:challenger")],
-    [Markup.button.callback("✅ ATP + Challenger", "tenniscat:ambos")],
+    [Markup.button.callback("🎾 ATP", "tenniscat:atp")],
+    [Markup.button.callback("🏆 Challenger", "tenniscat:challenger")],
+    [Markup.button.callback("✅ Todo", "tenniscat:ambos")],
     [Markup.button.callback("⬅️ Atrás", "back:date:tenis")],
   ]);
 }

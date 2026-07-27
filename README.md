@@ -195,7 +195,7 @@ mismo que su comando equivalente:
   país de cada una, o de la UEFA en las 3 europeas): LaLiga 1ª/2ª, 1ª/2ª
   RFEF, Liga Portugal, Premier League, Bundesliga, MLS, Brasileirão,
   Champions/Europa/Conference League. Si eliges Tenis 🎾, pregunta si
-  quieres **Solo ATP**, **Solo Challenger**, o **ATP + Challenger**
+  quieres **ATP**, **Challenger**, o **Todo**
   (siempre individuales masculinos). Cada paso tiene un botón "⬅️ Atrás"
   para volver al anterior (p. ej. desde la lista de competiciones puedes
   volver a elegir Tenis en vez de Fútbol). El tenis además se lanza solo,
