@@ -1,4 +1,5 @@
 import type { MatchupGroup, Selection, SelectionGroup } from "../matching/matchSelections";
+import type { CombinadaSuggestion } from "../matching/suggestCombinada";
 
 const TELEGRAM_MAX_LEN = 4096;
 
@@ -107,6 +108,32 @@ export function formatMixedMarketMatchups(groups: MatchupGroup[]): string[] {
   });
 
   return chunkMessage(lines.join("\n"));
+}
+
+/**
+ * Mensaje 4 (opcional): combinada de 2 "victorias claras" (cuota
+ * individual baja) de partidos distintos cuya cuota combinada llega a
+ * 1.80+ — un complemento a las selecciones simples de cuota alta. Vacío
+ * si no hay ninguna combinación válida ese día.
+ */
+export function formatCombinadaSuggestion(combinada: CombinadaSuggestion | null): string[] {
+  if (!combinada) return [];
+
+  const { legA, legB, oddsA, oddsB, combinedOdds } = combinada;
+  const lines = [
+    "🎰 *Combinada sugerida* (2 victorias claras)\n",
+    `1. *${legA.matchup}* — ${legA.market} (💰 ${formatOdds(oddsA)})`,
+    legA.tournament ? `🏟️ ${legA.tournament}` : null,
+    `\n2. *${legB.matchup}* — ${legB.market} (💰 ${formatOdds(oddsB)})`,
+    legB.tournament ? `🏟️ ${legB.tournament}` : null,
+    `\n💰 Cuota combinada: *${formatOdds(combinedOdds)}*`,
+  ].filter((line): line is string => line !== null);
+
+  return chunkMessage(lines.join("\n"));
+}
+
+function formatOdds(n: number): string {
+  return n.toFixed(2).replace(/0+$/, "").replace(/\.$/, "").replace(".", ",");
 }
 
 /** Junta valores únicos (no vacíos) con " / ", con un icono delante (p.ej. "💰 1.85 / 1.90"). */

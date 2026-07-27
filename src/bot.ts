@@ -16,10 +16,12 @@ import {
   findRepeatedMatchupsWithDifferentMarkets,
   type Selection,
 } from "./matching/matchSelections";
+import { suggestCombinada } from "./matching/suggestCombinada";
 import {
   formatIndividualSelections,
   formatRepeatedSelections,
   formatMixedMarketMatchups,
+  formatCombinadaSuggestion,
 } from "./format/telegramFormat";
 import { composeMontage } from "./montage/composeMontage";
 import { analyzeTicket } from "./montage/analyzeTicket";
@@ -373,6 +375,11 @@ async function runResearch(
 
     const mixedMarketGroups = findRepeatedMatchupsWithDifferentMarkets(allSelections);
     for (const chunk of formatMixedMarketMatchups(mixedMarketGroups)) {
+      await reply(chunk, { parse_mode: "Markdown" });
+    }
+
+    const combinada = suggestCombinada(allSelections);
+    for (const chunk of formatCombinadaSuggestion(combinada)) {
       await reply(chunk, { parse_mode: "Markdown" });
     }
   } catch (err) {

@@ -127,7 +127,7 @@ Compara tus probabilidades con las cuotas reales del mercado proporcionadas. Sel
   {
     label: "Analista cuantitativo",
     prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en fútbol (MLS, LaLiga 1ª y 2ª división española, 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga, Brasileirão y competiciones europeas: Champions League, Europa League y Conference League). Tu objetivo es realizar un análisis probabilístico y estadístico exhaustivo para las próximas 24h (analiza la hora actual para restringir los partidos a las próximas 24h desde ahora).
-Quiero determinar si existe valor esperado positivo (EV+) en algún mercado para cada partido, priorizando selecciones de cuota superior a 1.70 y con una probabilidad de éxito superior al 60%.
+Quiero determinar si existe valor esperado positivo (EV+) en algún mercado para cada partido, priorizando selecciones de cuota superior a 1.60 y con una probabilidad de éxito superior al 60%.
 Sigue estrictamente los siguientes pasos de análisis detallados:
 
 CONTEXTO Y ENTORNO DEL PARTIDO
@@ -250,7 +250,7 @@ Compara tus probabilidades con las cuotas reales del mercado proporcionadas. Sel
   {
     label: "Analista cuantitativo",
     prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en tenis ATP y Challenger (Singles Masculinos). Tu objetivo es realizar un análisis probabilístico y estadístico exhaustivo para las próximas 24h (analiza la hora actual para restringir los partidos a las próximas 24h desde ahora) en los atp y challenger single masculino.
-Quiero determinar si existe valor esperado positivo (EV+) en algún mercado para este partido, priorizando selecciones de cuota superior a 1.70 y con una probabilidad de éxito superior al 60%.
+Quiero determinar si existe valor esperado positivo (EV+) en algún mercado para este partido, priorizando selecciones de cuota superior a 1.60 y con una probabilidad de éxito superior al 60%.
 Sigue estrictamente los siguientes pasos de análisis detallados:
 
 CONTEXTO Y ENTORNO DEL PARTIDO
