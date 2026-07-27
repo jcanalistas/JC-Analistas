@@ -157,7 +157,7 @@ Identifica si hay discrepancias donde la cuota de la casa pague más de lo que l
 RESTRICCIONES Y FORMATO DE ENTREGA:
 NO me ofrezcas bajo ninguna circunstancia pronósticos que incluyan combinadas.
 Entrega tu análisis dividido claramente en estas secciones.
-Concluye con un máximo de 8 recomendaciones de apuestas específicas que consideres de ALTA PROBABILIDAD DE ACIERTO, como resultado, hándicap, over/under de goles, córners, tarjetas, etc., y que tengan EV+ (indicando mercado, cuota estimada y la justificación matemática de por qué es EV+).`,
+Concluye con 8 recomendaciones de apuestas específicas, de 8 partidos distintos (nunca repitas un partido entre los 8 picks), que consideres de ALTA PROBABILIDAD DE ACIERTO, como resultado, hándicap, over/under de goles, córners, tarjetas, etc., y que tengan EV+ (indicando mercado, cuota estimada y la justificación matemática de por qué es EV+).`,
   },
 ];
 
@@ -281,7 +281,7 @@ ${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
 RESTRICCIONES Y FORMATO DE ENTREGA:
 NO me ofrezcas bajo ninguna circunstancia pronósticos que incluyan combinadas.
 Entrega tu análisis dividido claramente en estas secciones.
-Concluye con un máximo de 8 recomendaciones de apuestas específicas que consideres de ALTA PROBABILIDAD DE ACIERTO, como ganador, numero de juegos, aces, handicaps, etc y que tengan EV+ (indicando mercado, cuota estimada y la justificación matemática de por qué es EV+).`,
+Concluye con 8 recomendaciones de apuestas específicas, de 8 partidos distintos (nunca repitas un partido entre los 8 picks), que consideres de ALTA PROBABILIDAD DE ACIERTO, como ganador, numero de juegos, aces, handicaps, etc y que tengan EV+ (indicando mercado, cuota estimada y la justificación matemática de por qué es EV+).`,
   },
 ];
 
@@ -314,7 +314,13 @@ narrativa del informe, tiene que estar repetido/resumido en esta línea
 porque es la única parte que se le reenvía al usuario final.
 
 No uses negritas, encabezados adicionales ni texto extra dentro de esa
-sección: solo la lista numerada en ese formato exacto.`;
+sección: solo la lista numerada en ese formato exacto.
+
+Debes devolver EXACTAMENTE 8 selecciones, de 8 partidos/jugadores
+distintos — nunca repitas el mismo partido dos veces en la lista. Esto es
+obligatorio salvo que alguna restricción de competición, categoría o
+fecha de este mismo mensaje te autorice explícitamente a devolver menos
+por no haber suficientes partidos EV+ dentro de esa restricción.`;
 
 /** "martes, 28 de julio de 2026, 11:32" en hora de España, sin depender de ninguna librería externa. */
 function formatMadridNow(now: Date): string {
