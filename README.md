@@ -162,7 +162,10 @@ mismo que su comando equivalente:
      perfil que coincidió.
 - `/ticket` (o "📸 Ticket") — pide primero la foto del ticket (la tarjeta
   ya recortada, sin fondo blanco alrededor) y luego la foto de fondo, y
-  devuelve el montaje con el ticket centrado sobre el fondo.
+  devuelve el montaje con el ticket centrado sobre el fondo (esquinas
+  redondeadas), con un texto generado automáticamente a partir del propio
+  ticket (usando la visión de Gemini): icono del deporte + competición
+  subrayada, selecciones en negrita, y "📊 Stake 2" fijo.
 
 ## Limitaciones conocidas de esta primera versión
 

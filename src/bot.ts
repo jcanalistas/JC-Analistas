@@ -5,6 +5,8 @@ import { runDeepResearch, DeepResearchError, type DeepResearchResult } from "./g
 import { parseSelections, findRepeatedSelections, type Selection } from "./matching/matchSelections";
 import { formatIndividualSelections, formatRepeatedSelections } from "./format/telegramFormat";
 import { composeMontage } from "./montage/composeMontage";
+import { analyzeTicket } from "./montage/analyzeTicket";
+import { formatTicketCaption } from "./montage/formatTicketCaption";
 
 export const bot = new Telegraf(env.telegramBotToken);
 
@@ -170,7 +172,17 @@ bot.on("photo", async (ctx) => {
   await ctx.reply("🎨 Montando la imagen…");
   try {
     const result = await composeMontage(state.ticketBuffer!, photoBuffer);
-    await ctx.replyWithPhoto({ source: result });
+
+    let caption: string | undefined;
+    try {
+      const ticketInfo = await analyzeTicket(state.ticketBuffer!, env.geminiApiKey);
+      caption = formatTicketCaption(ticketInfo);
+    } catch (err) {
+      console.error("No se pudo analizar el ticket para generar el texto:", err);
+      await ctx.reply("⚠️ No pude leer los datos del ticket, te mando la imagen sin el texto.");
+    }
+
+    await ctx.replyWithPhoto({ source: result }, caption ? { caption, parse_mode: "HTML" } : undefined);
   } catch (err) {
     console.error(err);
     await ctx.reply("⚠️ No se pudo generar el montaje. Revisa que ambas fotos sean válidas e inténtalo de nuevo con /ticket.");
