@@ -35,6 +35,13 @@ const mainKeyboard = Markup.keyboard([
 ]).resize();
 
 bot.use(async (ctx, next) => {
+  // El bot es admin del canal (para poder publicar los montajes), así que
+  // también recibe como updates cualquier publicación/actividad del canal
+  // (channel_post, etc.) — esas no tienen ctx.from de un usuario normal.
+  // Se ignoran en silencio: el bot solo debe reaccionar en su chat privado
+  // con el usuario autorizado, nunca contestar dentro del canal.
+  if (ctx.chat?.type !== "private") return;
+
   const userId = ctx.from?.id?.toString();
   if (userId !== env.telegramAllowedUserId) {
     await ctx.reply("No tienes autorización para usar este bot.");
