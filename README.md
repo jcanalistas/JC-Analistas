@@ -215,12 +215,14 @@ mismo que su comando equivalente:
      analizaron 2 o 3 perfiles pero recomendando mercados distintos (p.
      ej. un perfil pide "Tiafoe 2-0" y otro "Tiafoe -2.5 juegos") —
      muestra todas las opciones para ese partido.
-  4. "Combinada sugerida" (si aplica): entre todas las selecciones de los
-     3 informes, busca 2 picks de cuota individual baja (de cualquier
-     mercado, no tienen por qué ser los dos ganador — puede ser "gana el
-     partido" + "gana un set") de partidos distintos cuya cuota combinada
-     caiga entre 1,70 y 2,20, y propone la más segura posible dentro de
-     ese rango — un complemento a las selecciones simples de cuota alta.
+  4. "Combinada sugerida" (si aplica): cada uno de los 3 informes busca
+     directamente 2 "bankers" (mercados de máxima seguridad — victoria
+     clara, gana un set, etc. — no tienen por qué salir entre sus 8
+     selecciones de valor) de partidos distintos cuya cuota combinada
+     caiga entre 1,70 y 2,20; se usa la primera propuesta válida que
+     encuentre (Tipster → Machine Learning → Analista cuantitativo). Si
+     ninguno encuentra una, el bot calcula una de red de seguridad
+     buscando entre las 24 selecciones de valor ya obtenidas.
 - `/ticket` (o "📸 Ticket") — pide primero la foto del ticket (la tarjeta
   ya recortada, sin fondo blanco alrededor). Para el fondo, si ya usaste
   uno antes te ofrece un botón "🔁 Usar el mismo fondo de la última vez"

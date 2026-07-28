@@ -1,12 +1,14 @@
-import type { Selection } from "./matchSelections";
+import type { CombinadaLegInfo, Selection } from "./matchSelections";
 import { normalizeMatchup } from "./normalize";
 
 export interface CombinadaSuggestion {
-  legA: Selection;
-  legB: Selection;
+  legA: CombinadaLegInfo;
+  legB: CombinadaLegInfo;
   oddsA: number;
   oddsB: number;
   combinedOdds: number;
+  /** Perfil que la propuso directamente, o undefined si la calculó el bot como red de seguridad. */
+  sourceLabel?: string;
 }
 
 const MIN_COMBINED_ODDS = 1.7;
@@ -20,19 +22,51 @@ function parseOddsNumber(raw: string): number | null {
   return Number.isFinite(value) && value > 1 ? value : null;
 }
 
+function toValidSuggestion(
+  legA: CombinadaLegInfo,
+  legB: CombinadaLegInfo,
+  sourceLabel?: string
+): CombinadaSuggestion | null {
+  const oddsA = parseOddsNumber(legA.odds);
+  const oddsB = parseOddsNumber(legB.odds);
+  if (oddsA === null || oddsB === null) return null;
+  if (normalizeMatchup(legA.matchup) === normalizeMatchup(legB.matchup)) return null;
+
+  const combinedOdds = oddsA * oddsB;
+  if (combinedOdds < MIN_COMBINED_ODDS || combinedOdds > MAX_COMBINED_ODDS) return null;
+
+  return { legA, legB, oddsA, oddsB, combinedOdds, sourceLabel };
+}
+
 /**
- * Sugiere una combinada de 2 picks de cuota individual baja, de partidos
- * distintos, cuya cuota combinada (producto) esté entre 1.70 y 2.20 — no
- * tienen por qué ser del mismo tipo de mercado (puede ser "gana el
- * partido" + "gana un set", por ejemplo). Complementa las selecciones
- * simples de cuota alta con una opción de cuota más ajustada por pick
- * pero atractiva combinada, ya que esos picks sueltos de cuota baja no
- * llegan solos al listón de las 8 selecciones (1.60/1.65). Entre todas
- * las combinaciones válidas dentro del rango, devuelve la de cuota
- * combinada más baja (la más "segura" posible dentro del rango) — o null
- * si ninguna combinación cae entre 1.70 y 2.20.
+ * Sugiere una combinada de 2 "bankers" (mercados de máxima seguridad, de
+ * cualquier tipo — no tienen por qué ser los dos ganador) de partidos
+ * distintos cuya cuota combinada esté entre 1.70 y 2.20.
+ *
+ * Prioridad:
+ * 1. La combinada que cada perfil propone directamente en su propia
+ *    sección "COMBINADA SUGERIDA" (busca bankers de forma específica,
+ *    no solo entre sus 8 picks de valor) — se valida igualmente aquí por
+ *    si la cuota combinada que calculó Gemini no cuadrara exactamente.
+ * 2. Si ningún perfil propuso una válida, se calcula como red de
+ *    seguridad entre las 24 selecciones de valor ya parseadas, buscando
+ *    la pareja de cuota combinada más baja que aún así caiga en el rango.
  */
-export function suggestCombinada(allSelections: Selection[]): CombinadaSuggestion | null {
+export function suggestCombinada(
+  allSelections: Selection[],
+  promptedCombinadas: Array<{ label: string; legs: [CombinadaLegInfo, CombinadaLegInfo] | null }>
+): CombinadaSuggestion | null {
+  for (const { label, legs } of promptedCombinadas) {
+    if (!legs) continue;
+    const suggestion = toValidSuggestion(legs[0], legs[1], label);
+    if (suggestion) return suggestion;
+  }
+
+  return suggestFromSelections(allSelections);
+}
+
+/** Red de seguridad: busca entre las selecciones de valor ya parseadas la pareja de cuota combinada más baja dentro del rango. */
+function suggestFromSelections(allSelections: Selection[]): CombinadaSuggestion | null {
   const candidates = allSelections
     .map((selection) => ({ selection, odds: parseOddsNumber(selection.odds) }))
     .filter((c): c is { selection: Selection; odds: number } => c.odds !== null)
@@ -44,13 +78,11 @@ export function suggestCombinada(allSelections: Selection[]): CombinadaSuggestio
     for (let j = i + 1; j < candidates.length; j++) {
       const a = candidates[i];
       const b = candidates[j];
-      if (normalizeMatchup(a.selection.matchup) === normalizeMatchup(b.selection.matchup)) continue;
+      const suggestion = toValidSuggestion(a.selection, b.selection);
+      if (!suggestion) continue;
 
-      const combinedOdds = a.odds * b.odds;
-      if (combinedOdds < MIN_COMBINED_ODDS || combinedOdds > MAX_COMBINED_ODDS) continue;
-
-      if (!best || combinedOdds < best.combinedOdds) {
-        best = { legA: a.selection, legB: b.selection, oddsA: a.odds, oddsB: b.odds, combinedOdds };
+      if (!best || suggestion.combinedOdds < best.combinedOdds) {
+        best = suggestion;
       }
     }
   }

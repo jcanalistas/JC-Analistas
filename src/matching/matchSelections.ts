@@ -22,6 +22,7 @@ export interface SelectionGroup {
 }
 
 const SECTION_TITLE_RE = /selecciones finales/i;
+const COMBINADA_TITLE_RE = /combinada sugerida/i;
 // N. Equipo local vs Equipo visitante | Torneo: X | Mercado: Y | Cuota: Z | EV: W | % Éxito: V | Explicación: U
 // El campo final admite "Explicación" o "Justificación" como etiqueta: los
 // prompts de Tipster y Analista cuantitativo usan "justificación" en su
@@ -75,7 +76,52 @@ function extractSection(reportText: string): string | null {
   const lines = reportText.split("\n");
   const startIdx = lines.findIndex((l) => SECTION_TITLE_RE.test(l));
   if (startIdx === -1) return null;
-  return lines.slice(startIdx + 1).join("\n");
+  const rest = lines.slice(startIdx + 1);
+  // Se corta antes de "COMBINADA SUGERIDA" (viene justo debajo en el mismo
+  // informe) para que sus 2 líneas no se cuelen como selecciones 9 y 10.
+  const combinadaIdx = rest.findIndex((l) => COMBINADA_TITLE_RE.test(l));
+  return (combinadaIdx === -1 ? rest : rest.slice(0, combinadaIdx)).join("\n");
+}
+
+export interface CombinadaLegInfo {
+  matchup: string;
+  tournament: string;
+  market: string;
+  odds: string;
+}
+
+// Mismo estilo de línea que SELECCIONES FINALES pero solo 4 campos, y la
+// cuota debe ser el último trozo de la línea (nada de texto después) para
+// no confundirla con una línea de SELECCIONES FINALES si algo saliera mal
+// con el corte de sección de arriba.
+const COMBINADA_LEG_RE =
+  /^\s*\d+[.)]\s*(.+?)\s*\|\s*torneo:\s*(.+?)\s*\|\s*mercado:\s*(.+?)\s*\|\s*cuota:\s*([\d.,]+)\s*$/i;
+
+/**
+ * Extrae las 2 patas de la sección "COMBINADA SUGERIDA" de un informe, si
+ * las hay (puede no haberlas si ese perfil no encontró bankers en el
+ * rango pedido). Ignora cualquier línea que no cuadre exactamente con el
+ * formato de 4 campos, incluida la línea fija "Ninguna disponible hoy."
+ */
+export function parseCombinadaLegs(reportText: string): [CombinadaLegInfo, CombinadaLegInfo] | null {
+  const lines = reportText.split("\n");
+  const startIdx = lines.findIndex((l) => COMBINADA_TITLE_RE.test(l));
+  if (startIdx === -1) return null;
+
+  const legs: CombinadaLegInfo[] = [];
+  for (const line of lines.slice(startIdx + 1)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    const match = COMBINADA_LEG_RE.exec(trimmed);
+    if (!match) continue;
+
+    const [, matchup, tournament, market, odds] = match;
+    legs.push({ matchup, tournament, market, odds });
+    if (legs.length === 2) break;
+  }
+
+  return legs.length === 2 ? [legs[0], legs[1]] : null;
 }
 
 function parseLoose(

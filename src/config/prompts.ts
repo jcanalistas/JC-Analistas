@@ -320,7 +320,26 @@ Debes devolver EXACTAMENTE 8 selecciones, de 8 partidos/jugadores
 distintos — nunca repitas el mismo partido dos veces en la lista. Esto es
 obligatorio salvo que alguna restricción de competición, categoría o
 fecha de este mismo mensaje te autorice explícitamente a devolver menos
-por no haber suficientes partidos EV+ dentro de esa restricción.`;
+por no haber suficientes partidos EV+ dentro de esa restricción.
+
+Justo debajo de las 8 selecciones, añade otra sección aparte titulada
+exactamente "COMBINADA SUGERIDA" (sin nada más en esa línea). Busca 2
+"bankers" — mercados de máxima seguridad posible (victoria clara o "gana
+al menos un set"/hándicap muy cómodo, nunca algo dudoso), de 2 partidos
+DISTINTOS entre sí. No tienen que ser parte de las 8 selecciones
+anteriores: búscalos específicamente por ser los más seguros del día,
+aunque su EV individual sea bajo — el objetivo aquí es seguridad, no
+valor. Su cuota combinada (cuota A × cuota B) debe caer, a ser posible,
+entre 1.70 y 2.20. Escribe esas 2 selecciones con el mismo formato de
+línea numerada que arriba pero solo estos 4 campos (sin EV, % Éxito ni
+Explicación):
+
+1. Partido/Jugador vs Jugador | Torneo: <torneo> | Mercado: <mercado> | Cuota: <cuota>
+2. Partido/Jugador vs Jugador | Torneo: <torneo> | Mercado: <mercado> | Cuota: <cuota>
+
+Si no encuentras ninguna pareja de bankers cuya cuota combinada caiga en
+ese rango, no escribas las 2 líneas: escribe únicamente esta línea en su
+lugar: "COMBINADA SUGERIDA: Ninguna disponible hoy."`;
 
 /** "martes, 28 de julio de 2026, 11:32" en hora de España, sin depender de ninguna librería externa. */
 function formatMadridNow(now: Date): string {

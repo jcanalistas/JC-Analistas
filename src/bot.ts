@@ -12,6 +12,7 @@ import {
 import { runDeepResearch, DeepResearchError, type DeepResearchResult } from "./gemini/deepResearch";
 import {
   parseSelections,
+  parseCombinadaLegs,
   findRepeatedSelections,
   findRepeatedMatchupsWithDifferentMarkets,
   type Selection,
@@ -378,7 +379,11 @@ async function runResearch(
       await reply(chunk, { parse_mode: "Markdown" });
     }
 
-    const combinada = suggestCombinada(allSelections);
+    const promptedCombinadas = successful.map((s) => ({
+      label: s.label,
+      legs: parseCombinadaLegs(s.result.reportText),
+    }));
+    const combinada = suggestCombinada(allSelections, promptedCombinadas);
     for (const chunk of formatCombinadaSuggestion(combinada)) {
       await reply(chunk, { parse_mode: "Markdown" });
     }

@@ -120,9 +120,10 @@ export function formatMixedMarketMatchups(groups: MatchupGroup[]): string[] {
 export function formatCombinadaSuggestion(combinada: CombinadaSuggestion | null): string[] {
   if (!combinada) return [];
 
-  const { legA, legB, oddsA, oddsB, combinedOdds } = combinada;
+  const { legA, legB, oddsA, oddsB, combinedOdds, sourceLabel } = combinada;
+  const origin = sourceLabel ? `según ${sourceLabel}` : "calculada";
   const lines = [
-    "🎰 *Combinada sugerida* (2 picks seguros)\n",
+    `🎰 *Combinada sugerida* (2 picks seguros, ${origin})\n`,
     `1. *${legA.matchup}* — ${legA.market} (💰 ${formatOdds(oddsA)})`,
     legA.tournament ? `🏟️ ${legA.tournament}` : null,
     `\n2. *${legB.matchup}* — ${legB.market} (💰 ${formatOdds(oddsB)})`,
