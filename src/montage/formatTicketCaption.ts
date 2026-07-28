@@ -20,7 +20,7 @@ export function formatTicketCaption(info: TicketInfo): string {
     `${emoji} <u>${escapeHtml(info.competition)}</u>\n` +
     `🏆 <b>${escapeHtml(info.selections)}</b>\n` +
     `📊 Stake 2\n` +
-    `<i><a href="${SAME_ODDS_LINK}">🔞 Misma cuota aquí</a></i>`
+    `🔞 <i><a href="${SAME_ODDS_LINK}">Misma cuota aquí</a></i>`
   );
 }
 
