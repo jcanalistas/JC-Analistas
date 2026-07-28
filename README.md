@@ -239,17 +239,15 @@ mismo que su comando equivalente:
      stake fijo de 50€ (25€ = 1ud, redondeado hacia arriba desde ",50"):
      `Sumamos +46€ / +1,8ud. 🫡`.
 
-  El mensaje del montaje trae dos botones: **"✅ Publicar"** (publica la
-  foto+texto en tu canal y, si lo hay, el segundo mensaje del resumen
-  respondiendo al de la foto — para tener trazabilidad de qué ticket es
-  cada resumen — sin marca de "Reenviado desde", porque son mensajes
-  nuevos del bot, no un reenvío — y no se envía nada hasta que lo pulsas)
-  y **"✏️ Editar"** (te pide un texto nuevo y sustituye el de la foto, por
-  si hay que corregir algo antes de publicar). El segundo mensaje (el del
-  resumen) trae sus propios botones **"✅ Publicar"** (por si quieres
-  publicarlo suelto sin la foto — aunque en ese caso no menciona el
-  ticket, ya que el enlace solo se puede crear cuando el bot publica la
-  foto en el mismo momento) y **"✏️ Editar"**.
+  El mensaje del montaje trae dos botones: **"✅ Publicar"** (publica solo
+  esa foto+texto en tu canal — sin marca de "Reenviado desde", porque es
+  un mensaje nuevo del bot, no un reenvío — y no se envía nada hasta que
+  lo pulsas) y **"✏️ Editar"** (te pide un texto nuevo y lo sustituye,
+  por si hay que corregir algo antes de publicar). El segundo mensaje (el
+  del resumen) es totalmente independiente y trae sus propios botones
+  **"✅ Publicar"** y **"✏️ Editar"**: pulsar uno no afecta al otro — si
+  quieres los dos en el canal, pulsa "Publicar" en cada mensaje por
+  separado.
 
 ## Limitaciones conocidas de esta primera versión
 

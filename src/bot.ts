@@ -418,18 +418,14 @@ const montageState = new Map<number, MontageState>();
 interface PendingPublish {
   fileId: string;
   caption?: string;
-  summary?: string;
-  summaryMessageId?: number;
 }
 const pendingPublish = new Map<number, PendingPublish>();
 
-// El mensaje-resumen ("✅ ... ✅ / Sumamos...") también se puede publicar
-// de forma independiente del montaje, indexado por su propio message_id.
-// Guarda también el message_id de la foto, para poder evitar publicar el
-// resumen dos veces si se usan ambos botones.
+// El mensaje-resumen ("✅ ... ✅ / Sumamos...") también se puede publicar,
+// de forma completamente independiente del montaje: cada botón "Publicar"
+// solo afecta a su propio mensaje. Indexado por su propio message_id.
 interface PendingSummaryPublish {
   text: string;
-  photoMessageId: number;
 }
 const pendingSummaryPublish = new Map<number, PendingSummaryPublish>();
 
@@ -481,11 +477,9 @@ async function finishTicketMontage(ctx: Context, userId: number, ticketBuffer: B
       caption ? { caption, parse_mode: "HTML" } : undefined
     );
 
-    let summaryMessageId: number | undefined;
     if (summary) {
       const summaryMsg = await ctx.reply(summary, { parse_mode: "HTML" });
-      summaryMessageId = summaryMsg.message_id;
-      pendingSummaryPublish.set(summaryMsg.message_id, { text: summary, photoMessageId: sentMsg.message_id });
+      pendingSummaryPublish.set(summaryMsg.message_id, { text: summary });
       await ctx.telegram.editMessageReplyMarkup(
         summaryMsg.chat.id,
         summaryMsg.message_id,
@@ -499,7 +493,7 @@ async function finishTicketMontage(ctx: Context, userId: number, ticketBuffer: B
 
     const largestPhoto = sentMsg.photo?.at(-1);
     if (largestPhoto) {
-      pendingPublish.set(sentMsg.message_id, { fileId: largestPhoto.file_id, caption, summary, summaryMessageId });
+      pendingPublish.set(sentMsg.message_id, { fileId: largestPhoto.file_id, caption });
       await ctx.telegram.editMessageReplyMarkup(
         sentMsg.chat.id,
         sentMsg.message_id,
@@ -571,30 +565,12 @@ bot.action(/^publish:(\d+)$/, async (ctx) => {
   }
 
   try {
-    const publishedPhoto = await ctx.telegram.sendPhoto(
+    await ctx.telegram.sendPhoto(
       env.telegramChannelId,
       pending.fileId,
       pending.caption ? { caption: pending.caption, parse_mode: "HTML" } : undefined
     );
-    if (pending.summary) {
-      // Responde al mensaje del ticket original, para trazabilidad.
-      await ctx.telegram.sendMessage(env.telegramChannelId, pending.summary, {
-        parse_mode: "HTML",
-        reply_parameters: { message_id: publishedPhoto.message_id },
-      });
-    }
     pendingPublish.delete(messageId);
-    if (pending.summaryMessageId !== undefined) {
-      // Ya se publicó junto con la foto: se invalida el botón propio del
-      // resumen para que no se pueda volver a publicar por separado.
-      const summaryPending = pendingSummaryPublish.get(pending.summaryMessageId);
-      if (summaryPending) {
-        pendingSummaryPublish.delete(pending.summaryMessageId);
-        await ctx.telegram
-          .editMessageReplyMarkup(ctx.chat!.id, pending.summaryMessageId, undefined, undefined)
-          .catch(() => {});
-      }
-    }
     await ctx.answerCbQuery("Publicado en el canal ✅");
     await ctx.editMessageReplyMarkup(undefined);
   } catch (err) {
@@ -614,9 +590,6 @@ bot.action(/^publishsummary:(\d+)$/, async (ctx) => {
   try {
     await ctx.telegram.sendMessage(env.telegramChannelId, pending.text, { parse_mode: "HTML" });
     pendingSummaryPublish.delete(messageId);
-    // Evita que el botón "Publicar" de la foto lo vuelva a mandar también.
-    const photoPending = pendingPublish.get(pending.photoMessageId);
-    if (photoPending) photoPending.summary = undefined;
     await ctx.answerCbQuery("Publicado en el canal ✅");
     await ctx.editMessageReplyMarkup(undefined);
   } catch (err) {
@@ -673,9 +646,6 @@ bot.on("text", async (ctx) => {
         parse_mode: "HTML",
       });
       pending.text = newText;
-      // Si luego publican desde el botón de la foto, que use el texto ya editado.
-      const photoPending = pendingPublish.get(pending.photoMessageId);
-      if (photoPending?.summary !== undefined) photoPending.summary = newText;
       await ctx.reply("✏️ Texto actualizado.");
     } catch (err) {
       console.error("No se pudo actualizar el resumen:", err);
