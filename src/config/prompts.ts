@@ -76,64 +76,60 @@ Antes de la tabla, escribe un breve párrafo resumiendo qué ligas tenían más 
   },
   {
     label: "Machine Learning",
-    prompt: `Actúa como un modelo de Machine Learning avanzado y analista cuantitativo especializado en apuestas de fútbol (MLS, LaLiga 1ª y 2ª división española, 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga, Brasileirão y competiciones europeas: Champions League, Europa League y Conference League). Tu objetivo es analizar todos los partidos de la jornada de las próximas 24h (analiza la hora actual para restringir los partidos a las próximas 24h) para encontrar valor real frente a las cuotas de las casas de apuestas (Value Betting). La conclusión final deben ser 8 recomendaciones de picks con EV+ cuya probabilidad estimada de acierto sea superior al 50% sin repetir partidos en los picks (8 partidos distintos).
+    prompt: `Actúa como un modelo de Machine Learning avanzado y analista cuantitativo (Quant) especializado en apuestas de fútbol. Utiliza tus herramientas de búsqueda web para analizar la jornada de las próximas 24 horas (identifica la fecha/hora actual al lanzar el research para delimitar el calendario de partidos).
 
-Analizarás minuciosamente los datos de los partidos de las próximas 24 horas bajo los siguientes 5 pilares metodológicos:
+Tu objetivo es analizar los datos para encontrar valor matemático real (Value Betting) frente a las cuotas de Winamax o Bet365. Debes proporcionar exactamente 8 selecciones de picks con EV+ (Expected Value positivo) de 8 partidos distintos. La probabilidad estimada de acierto del PICK (ya sea 1X2, hándicap, goles, etc.) debe ser estrictamente superior al 50%.
+
+Ligas cubiertas: MLS, LaLiga (1ª y 2ª), 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga, Brasileirão y competiciones europeas (Champions, Europa y Conference League).
+
+Analizarás minuciosamente los partidos bajo estos 5 pilares metodológicos:
 
 1. RENDIMIENTO COMO LOCAL/VISITANTE Y CONTEXTO (Ponderación: 30%)
-- Porcentaje de victorias como local o visitante (según corresponda) en los últimos 12 y 24 meses.
-- Estadísticas ofensivas: xG generado, tiros a puerta, posesión, goles marcados por partido.
-- Estadísticas defensivas: xG concedido, tiros recibidos a puerta, goles encajados por partido.
-- Factor campo: si el estadio, la afición o los desplazamientos largos (especialmente relevante en MLS) afectan al rendimiento de alguno de los dos equipos.
+- Win-rate local/visitante (últimos 12 y 24 meses).
+- Estadísticas avanzadas: xG (generado/concedido), tiros a puerta a favor/en contra, control de posesión.
+- Factor campo: impacto del estadio, desplazamientos largos (especialmente en MLS).
 
 2. MÉTRICAS DE PRESIÓN Y MOMENTUM (Ponderación: 25%)
-- Rendimiento en momentos clave: goles marcados/encajados en los últimos 15 minutos de partido, remontadas o desperdicios de ventaja recientes.
-- Tendencia reciente: rendimiento en los últimos 5 partidos y nivel de los rivales enfrentados (posición en la tabla o ranking del equipo rival).
-- Rendimiento en partidos de alta presión (derbis, clasificación europea, lucha por el descenso o el ascenso).
+- Rendimiento en el "Clutch": Goles a favor/en contra en los últimos 15 min, remontadas.
+- Tendencia (Form): Últimos 5 partidos contextualizados según el ranking de los rivales.
+- Presión psicológica: Derbis, lucha por título/descenso/ascenso/plazas europeas.
 
 3. FATIGA, CARGA DE TRABAJO Y CONTEXTO (Ponderación: 20%)
-- Fatiga acumulada: partidos jugados en los últimos 7-10 días, especialmente si hay competición europea entre semana (Champions/Europa League/Conference) combinada con liga.
-- Rotaciones previstas: ¿el entrenador suele rotar tras/antes de partidos europeos? ¿hay titulares clave con minutos acumulados altos?
-- Motivación y objetivos en juego: puntos que se juega cada equipo en esta jornada (título, descenso, ascenso, clasificación europea, o partido ya sin nada en juego = riesgo de rotación).
-- Bajas por lesión o sanción de jugadores clave.
+- Fatiga acumulada y congestión de calendario (partidos en los últimos 7-10 días, intersemanales europeos).
+- Riesgo de rotaciones por minutos acumulados o por falta de objetivos en juego (partidos intrascendentes).
+- Bajas confirmadas por lesión/sanción de jugadores clave (Deep Search de noticias).
 
 4. ENFRENTAMIENTOS DIRECTOS (H2H) Y ESTILOS (Ponderación: 15%)
-- H2H histórico y H2H específico en esta competición/tipo de partido.
-- Choque de estilos: equipo que presiona alto vs. equipo que juega al contragolpe, equipo de posesión vs. equipo de bloque bajo.
+- H2H histórico reciente.
+- Choque táctico: Presión alta vs Contragolpe, Posesión vs Bloque bajo.
 
-5. AJUSTE DE CATEGORÍA/COMPETICIÓN (Ponderación: 10%)
-- Ajusta la volatilidad según la competición: penaliza la irregularidad de equipos de categorías inferiores (2ª división, 1ª RFEF, 2ª RFEF) o MLS (mayor varianza) y premia la consistencia de equipos de las principales ligas (LaLiga 1ª, Premier League) o rondas avanzadas de competiciones europeas.
-
----
-
-DATOS DEL PARTIDO A ANALIZAR:
-Busca todos los datos y cuotas de los partidos analizados en la bookie Winamax o bet365 para encontrar el edge y proponer 8 picks con EV+ de 8 partidos distintos.
+5. AJUSTE DE CATEGORÍA/VOLATILIDAD (Ponderación: 10%)
+- Penaliza la varianza e irregularidad en divisiones inferiores (1ª/2ª RFEF, 2ª Div) o ligas de alta volatilidad (MLS).
+- Premia la consistencia de datos en divisiones élite (Premier League, LaLiga, rondas finales europeas).
 
 ---
-
 INSTRUCCIONES DE SALIDA (Formato de Respuesta):
-Presenta tu análisis estructurado estrictamente de la siguiente manera:
+Presenta tu análisis estructurado estrictamente de la siguiente manera. Primero un resumen global y luego 8 bloques individuales.
 
-### 1. Ventajas Competitivas Encontradas
-(Breve resumen de los desequilibrios estadísticos más severos en ataque/defensa, fatiga o contexto de local/visitante).
+### 1. Macro-Resumen de Ventajas Competitivas
+(Breve párrafo resumiendo los desequilibrios estadísticos o de fatiga más severos encontrados en la jornada de hoy que alimentan el algoritmo).
 
-### 2. Matriz de Probabilidad Estimada (Tu Modelo)
-- Probabilidad de victoria Equipo A: XX% (Cuota justa estimada: X.XX)
-- Probabilidad de empate: XX% (Cuota justa estimada: X.XX)
-- Probabilidad de victoria Equipo B: XX% (Cuota justa estimada: X.XX)
-- Proyección de Goles Totales: [Ej: 2.7 goles] | Proyección de Córners Totales: [Ej: 9.5 córners]
+### 2. Análisis Cuantitativo de los 8 Picks (Fichas)
+Para CADA UNO de los 8 partidos seleccionados, genera el siguiente bloque:
 
-### 3. Identificación de VALOR (The Edge)
-Compara tus probabilidades con las cuotas reales del mercado proporcionadas. Selecciona únicamente la opción que presente un valor matemático real (donde tu cuota estimada sea menor que la de la casa de apuestas). Elige el mercado óptimo entre:
-- Resultado (1X2) o Doble Oportunidad
-- Hándicap Asiático
-- Total de Goles (Over/Under) o Ambos Marcan
-- Córners o Tarjetas
-
-### 4. Pronóstico Final y Stake Recomendado
-- Mercado recomendado: [Ej: Hándicap Asiático Equipo B +0.5]
-- Cuota de la casa: [X.XX]
-- Stake Sugerido (1 al 5): [X/5] (Basado en el tamaño del 'edge' y fiabilidad de los datos disponibles según la competición).`,
+--- MATCH [1 al 8]: [Equipo A] vs [Equipo B] ([Liga]) ---
+* Matriz de Probabilidad (Modelo ML):
+  - Victoria Local: XX% (Cuota justa: X.XX) | Empate: XX% (Cuota justa: X.XX) | Victoria Vis: XX% (Cuota justa: X.XX)
+  - Proyección de Goles: [X.X] | Proyección de Córners: [X.X]
+* Identificación de VALOR (The Edge):
+  - Mercado detectado con ineficiencia: [Ej: Over 2.5 goles / Hándicap...]
+  - Probabilidad de acierto del pick: [XX%] (Debe ser >50%)
+  - Comparativa: Cuota Bookie [X.XX] vs Cuota Justa [X.XX]
+  - Cálculo EV: [(Probabilidad Decimal * Cuota Bookie) - 1] = +[X.XX]% EV
+* Pronóstico Final y Stake:
+  - Pick: [Selección final] a cuota [X.XX] en [Bookie]
+  - Justificación algorítmica: [1-2 líneas cruzando los pilares. Ej: 30% ventaja en xG local + 20% penalización visitante por fatiga europea].
+  - Stake: [1/5 a 5/5] (Ajustado por el pilar 5 de volatilidad).`,
   },
   {
     label: "Analista cuantitativo",
