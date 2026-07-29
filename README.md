@@ -177,6 +177,31 @@ Para desactivarlo sin borrar el job: `gcloud scheduler jobs pause
 auto-analizar-tenis`. Para lanzarlo ya mismo y probarlo: `gcloud
 scheduler jobs run auto-analizar-tenis`.
 
+### 7.6 Activar Firestore (para la funcionalidad Stats)
+
+La función "Registrar apuesta" / `/pendientes` / `/stats` guarda los datos
+en Firestore (la primera vez que este proyecto usa una base de datos
+persistente: todo lo demás vive en memoria del proceso). Hace falta
+crearla una sola vez y darle permiso a la cuenta de servicio del propio
+Cloud Run:
+
+```bash
+gcloud services enable firestore.googleapis.com
+
+gcloud firestore databases create --location=eur3
+
+PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)")
+gcloud projects add-iam-policy-binding $(gcloud config get-value project) \
+  --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+  --role="roles/datastore.user"
+```
+
+`--location=eur3` es una región multi-región de Europa; si tu proyecto ya
+tiene una base de datos Firestore creada en otra región para otra cosa, no
+hace falta repetir el `create`. No hace falta ninguna variable de entorno
+nueva: la autenticación es automática vía la cuenta de servicio del propio
+servicio (Application Default Credentials).
+
 ## Uso
 
 En Telegram, háblale al bot:
@@ -223,6 +248,23 @@ mismo que su comando equivalente:
      encuentre (Tipster → Machine Learning → Analista cuantitativo). Si
      ninguno encuentra una, el bot calcula una de red de seguridad
      buscando entre las 24 selecciones de valor ya obtenidas.
+
+  Cada "Recomendación", cada "Mismo partido, distinto mercado" y la
+  "Combinada sugerida" se mandan como su **propio mensaje** (no todo junto),
+  con un botón **"📝 Registrar apuesta"**: la registra como pendiente en
+  Firestore (partido, torneo, mercado y de qué perfil(es) viene) sin
+  pedir la cuota todavía. En "Mismo partido, distinto mercado" el botón es
+  uno solo por partido aunque haya varias opciones de mercado — memoriza tú
+  cuál elegiste, para marcarla luego con el mercado correcto en mente.
+- `/pendientes` — lista las apuestas registradas que aún no se han
+  marcado, cada una con botones **"✅ Ganada"** / **"❌ Perdida"**.
+  "❌ Perdida" se resuelve al momento (-50€, no hace falta cuota). "✅
+  Ganada" te pide que le mandes la cuota REAL que conseguiste en la casa de
+  apuestas (no la que estimó el informe, que puede no coincidir exactamente)
+  y calcula el beneficio como 50€ × (cuota − 1).
+- `/stats` — total de apuestas registradas, pendientes, ganadas/perdidas,
+  % de acierto y beneficio neto acumulado, siempre asumiendo el stake fijo
+  de 50€ por apuesta.
 - `/ticket` (o "📸 Ticket") — pide primero la foto del ticket (la tarjeta
   ya recortada, sin fondo blanco alrededor). Para el fondo, si ya usaste
   uno antes te ofrece un botón "🔁 Usar el mismo fondo de la última vez"
@@ -264,6 +306,12 @@ mismo que su comando equivalente:
   publicar/editar viven en memoria del proceso: si Cloud Run apaga el
   contenedor por inactividad entre medias, se pierden (el botón de
   reutilizar fondo deja de ofrecerse, y los de publicar/editar caducan).
+- Los botones "📝 Registrar apuesta" de un `/analizar` también viven en
+  memoria hasta que se pulsan: si el contenedor se reinicia entre medias,
+  esos botones concretos caducan (aunque las apuestas ya registradas en
+  Firestore no se ven afectadas — solo las que aún no se habían pulsado).
+- Las cuotas reales que se guardan en Firestore se registran a mano al
+  marcar "✅ Ganada"; no hay ninguna integración con casas de apuestas.
 
 ## Estructura del proyecto
 
@@ -281,4 +329,7 @@ src/
     matchSelections.ts        Parseo del bloque "SELECCIONES FINALES" + matching
   format/
     telegramFormat.ts         Construcción de los mensajes de Telegram
+  stats/
+    firestore.ts              Cliente de Firestore (vía ADC)
+    betsStore.ts               Modelo de apuesta + CRUD (pendiente/ganada/perdida) y estadísticas
 ```

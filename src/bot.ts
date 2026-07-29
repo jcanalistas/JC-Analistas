@@ -23,10 +23,21 @@ import {
   formatRepeatedSelections,
   formatMixedMarketMatchups,
   formatCombinadaSuggestion,
+  type FormattedBetEntry,
 } from "./format/telegramFormat";
 import { composeMontage } from "./montage/composeMontage";
 import { analyzeTicket } from "./montage/analyzeTicket";
 import { formatTicketCaption, formatSelectionsSummary } from "./montage/formatTicketCaption";
+import {
+  createPendingBet,
+  getPendingBets,
+  markBetLost,
+  markBetWon,
+  getStatsSummary,
+  formatMoney,
+  type BetCandidate,
+} from "./stats/betsStore";
+import { randomUUID } from "node:crypto";
 
 // Por defecto Telegraf corta el procesamiento de cada update a los 90s
 // (handlerTimeout), lo que interrumpía /ticket (búsqueda en Google) y
@@ -65,7 +76,9 @@ async function sendWelcome(ctx: Context) {
   await ctx.reply(
     "Bot de JC Analistas listo.\n\n" +
       "🔍 Analizar — lanza los 3 Deep Research en Gemini y compara las selecciones.\n" +
-      "📸 Ticket — te pide la foto del ticket y una foto de fondo, y te devuelve el montaje.",
+      "📸 Ticket — te pide la foto del ticket y una foto de fondo, y te devuelve el montaje.\n" +
+      "📝 /pendientes — apuestas registradas a la espera de marcarse ganada/perdida.\n" +
+      "📊 /stats — aciertos y beneficio acumulado (stake fijo 50€).",
     mainKeyboard
   );
 }
@@ -369,24 +382,17 @@ async function runResearch(
 
     const allSelections = selectionsBySource.flat();
     const repeatedGroups = findRepeatedSelections(allSelections);
-
-    for (const chunk of formatRepeatedSelections(repeatedGroups)) {
-      await reply(chunk, { parse_mode: "Markdown" });
-    }
+    await sendBetEntries(reply, formatRepeatedSelections(repeatedGroups));
 
     const mixedMarketGroups = findRepeatedMatchupsWithDifferentMarkets(allSelections);
-    for (const chunk of formatMixedMarketMatchups(mixedMarketGroups)) {
-      await reply(chunk, { parse_mode: "Markdown" });
-    }
+    await sendBetEntries(reply, formatMixedMarketMatchups(mixedMarketGroups));
 
     const promptedCombinadas = successful.map((s) => ({
       label: s.label,
       legs: parseCombinadaLegs(s.result.reportText),
     }));
     const combinada = suggestCombinada(allSelections, promptedCombinadas);
-    for (const chunk of formatCombinadaSuggestion(combinada)) {
-      await reply(chunk, { parse_mode: "Markdown" });
-    }
+    await sendBetEntries(reply, formatCombinadaSuggestion(combinada));
   } catch (err) {
     if (err instanceof DeepResearchError) {
       await reply(`⚠️ Error ejecutando Deep Research: ${err.message}`);
@@ -402,6 +408,141 @@ async function runResearch(
 function describeError(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
+
+// Candidatos a apuesta pendientes de que el usuario pulse "📝 Registrar
+// apuesta" en su propio mensaje, indexados por un token aleatorio (no por
+// message_id: así el mismo helper vale tanto para ctx.reply como para el
+// envío programado, que no comparten el mismo tipo de mensaje).
+const pendingBetRegistration = new Map<string, BetCandidate>();
+
+/** Manda cada entrada como su PROPIO mensaje, con botón de registrar apuesta si trae datos de apuesta. */
+async function sendBetEntries(reply: ReplyFn, entries: FormattedBetEntry[]): Promise<void> {
+  for (const entry of entries) {
+    if (!entry.bet) {
+      await reply(entry.text, { parse_mode: "Markdown" });
+      continue;
+    }
+    const token = randomUUID();
+    pendingBetRegistration.set(token, entry.bet);
+    await reply(entry.text, {
+      parse_mode: "Markdown",
+      reply_markup: Markup.inlineKeyboard([
+        [Markup.button.callback("📝 Registrar apuesta", `regbet:${token}`)],
+      ]).reply_markup,
+    });
+  }
+}
+
+bot.action(/^regbet:(.+)$/, async (ctx) => {
+  const token = ctx.match[1];
+  const candidate = pendingBetRegistration.get(token);
+  if (!candidate) {
+    await ctx.answerCbQuery("Esta apuesta ya se registró o el botón ha caducado.");
+    return;
+  }
+  pendingBetRegistration.delete(token);
+
+  try {
+    await createPendingBet(candidate);
+    await ctx.answerCbQuery("Apuesta registrada ✅");
+    await ctx.editMessageReplyMarkup(undefined);
+    await ctx.reply("📝 Apuesta registrada como pendiente. Usa /pendientes para marcarla como ganada o perdida.");
+  } catch (err) {
+    console.error("No se pudo registrar la apuesta:", err);
+    await ctx.answerCbQuery("⚠️ No se pudo registrar la apuesta. Revisa los logs.", { show_alert: true });
+  }
+});
+
+// userId -> id de la apuesta esperando que el usuario escriba la cuota REAL
+// obtenida (no la del informe) tras pulsar "✅ Ganada" en /pendientes.
+const awaitingRealOdds = new Map<number, string>();
+
+bot.command("pendientes", async (ctx) => {
+  let bets;
+  try {
+    bets = await getPendingBets();
+  } catch (err) {
+    console.error("No se pudieron obtener las apuestas pendientes:", err);
+    await ctx.reply("⚠️ No se pudieron obtener las apuestas pendientes. Revisa los logs.");
+    return;
+  }
+
+  if (bets.length === 0) {
+    await ctx.reply("No hay apuestas pendientes de resolver.");
+    return;
+  }
+
+  for (const bet of bets) {
+    const lines = [
+      `📌 *${bet.matchup}*`,
+      bet.tournament ? `🏟️ ${bet.tournament}` : null,
+      `🎯 ${bet.market}`,
+      `_${bet.sourceLabel}_`,
+    ].filter((l): l is string => l !== null);
+
+    await ctx.reply(lines.join("\n"), {
+      parse_mode: "Markdown",
+      reply_markup: Markup.inlineKeyboard([
+        [
+          Markup.button.callback("✅ Ganada", `betwon:${bet.id}`),
+          Markup.button.callback("❌ Perdida", `betlost:${bet.id}`),
+        ],
+      ]).reply_markup,
+    });
+  }
+});
+
+bot.action(/^betlost:(.+)$/, async (ctx) => {
+  const betId = ctx.match[1];
+  try {
+    await markBetLost(betId);
+    await ctx.answerCbQuery("Marcada como perdida ❌");
+    await ctx.editMessageReplyMarkup(undefined);
+    await ctx.reply("❌ Apuesta marcada como perdida (-50€).");
+  } catch (err) {
+    console.error("No se pudo marcar la apuesta como perdida:", err);
+    await ctx.answerCbQuery("⚠️ No se pudo actualizar. Revisa los logs.", { show_alert: true });
+  }
+});
+
+bot.action(/^betwon:(.+)$/, async (ctx) => {
+  const betId = ctx.match[1];
+  awaitingRealOdds.set(ctx.from!.id, betId);
+  await ctx.answerCbQuery();
+  await ctx.editMessageReplyMarkup(undefined);
+  await ctx.reply(
+    "✅ Marcada como ganada. Mándame la cuota REAL que conseguiste en la casa de apuestas (no la del informe), p.ej. 1,91."
+  );
+});
+
+function parseOddsInput(text: string): number | null {
+  const value = Number(text.replace(",", ".").trim());
+  return Number.isFinite(value) && value > 1 ? value : null;
+}
+
+bot.command("stats", async (ctx) => {
+  let summary;
+  try {
+    summary = await getStatsSummary();
+  } catch (err) {
+    console.error("No se pudieron obtener las estadísticas:", err);
+    await ctx.reply("⚠️ No se pudieron obtener las estadísticas. Revisa los logs.");
+    return;
+  }
+
+  const resolved = summary.won + summary.lost;
+  const lines = [
+    "📊 *Estadísticas* (stake fijo 50€)",
+    "",
+    `Apuestas registradas: ${summary.total}`,
+    `Pendientes: ${summary.pending}`,
+    `Resueltas: ${resolved} (${summary.won} ganadas, ${summary.lost} perdidas)`,
+    resolved > 0 ? `Acierto: ${formatMoney(summary.hitRate)}%` : "Acierto: —",
+    `Beneficio neto: ${summary.netProfit >= 0 ? "+" : ""}${formatMoney(summary.netProfit)}€`,
+  ];
+
+  await ctx.reply(lines.join("\n"), { parse_mode: "Markdown" });
+});
 
 /** Lanzado desde fuera de Telegram (ver server.ts): /analizar de tenis automático a las 7:00. */
 export async function runScheduledTennisAnalysis(): Promise<void> {
@@ -635,6 +776,28 @@ bot.action(/^editsum:(\d+)$/, async (ctx) => {
 });
 
 bot.on("text", async (ctx) => {
+  const betIdAwaitingOdds = awaitingRealOdds.get(ctx.from.id);
+  if (betIdAwaitingOdds !== undefined) {
+    awaitingRealOdds.delete(ctx.from.id);
+
+    const oddsValue = parseOddsInput(ctx.message.text);
+    if (oddsValue === null) {
+      await ctx.reply(
+        "⚠️ No entendí esa cuota. Vuelve a pulsar '✅ Ganada' en /pendientes e inténtalo de nuevo, p.ej. 1,91."
+      );
+      return;
+    }
+
+    try {
+      const profit = await markBetWon(betIdAwaitingOdds, oddsValue);
+      await ctx.reply(`✅ Apuesta ganada @${ctx.message.text.trim()}. Beneficio: +${formatMoney(profit)}€.`);
+    } catch (err) {
+      console.error("No se pudo marcar la apuesta como ganada:", err);
+      await ctx.reply("⚠️ No se pudo actualizar la apuesta. Revisa los logs.");
+    }
+    return;
+  }
+
   const summaryMessageId = editingSummary.get(ctx.from.id);
   if (summaryMessageId !== undefined) {
     editingSummary.delete(ctx.from.id);

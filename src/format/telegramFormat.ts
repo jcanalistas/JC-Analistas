@@ -1,7 +1,14 @@
 import type { MatchupGroup, Selection, SelectionGroup } from "../matching/matchSelections";
 import type { CombinadaSuggestion } from "../matching/suggestCombinada";
+import type { BetCandidate } from "../stats/betsStore";
 
 const TELEGRAM_MAX_LEN = 4096;
+
+/** Un mensaje ya formateado, con los datos de apuesta a registrar si aplica (para adjuntarle el botón "📝 Registrar apuesta"). */
+export interface FormattedBetEntry {
+  text: string;
+  bet?: BetCandidate;
+}
 
 /**
  * Mensaje 1: selecciones finales de cada Deep Research, agrupadas por
@@ -40,21 +47,21 @@ export function formatIndividualSelections(
 }
 
 /**
- * Mensaje 2: selecciones que se repiten en 2 o 3 de los perfiles
+ * Recomendaciones: selecciones que se repiten en 2 o 3 de los perfiles
  * analizados, combinadas en una sola entrada por pick (cuota/EV/% éxito
- * de cada informe que coincidió + explicación combinada de todos).
+ * de cada informe que coincidió + explicación combinada de todos). Cada
+ * una es su PROPIO mensaje (no un bloque único) para poder adjuntarle un
+ * botón "📝 Registrar apuesta" que mapee sin ambigüedad a esa recomendación.
  */
-export function formatRepeatedSelections(groups: SelectionGroup[]): string[] {
+export function formatRepeatedSelections(groups: SelectionGroup[]): FormattedBetEntry[] {
   if (groups.length === 0) {
-    return ["🔁 *Recomendaciones*\n\nNinguna selección se repitió en 2 o más informes."];
+    return [{ text: "🔁 *Recomendaciones*\n\nNinguna selección se repitió en 2 o más informes." }];
   }
 
-  const lines: string[] = ["🔁 *Recomendaciones*\n"];
-
-  groups.forEach((group, idx) => {
+  return groups.map((group) => {
     const sorted = [...group.selections].sort((a, b) => a.sourceIndex - b.sourceIndex);
 
-    lines.push(`\n*${idx + 1}. ${group.matchup} — ${group.market}*`);
+    const lines: string[] = [`🔁 *Recomendación* — *${group.matchup}* — ${group.market}`];
     if (group.tournament) lines.push(`🏟️ ${group.tournament}`);
     lines.push(`Coincide en ${group.count} de 3 informes (${sorted.map((s) => s.sourceLabel).join(", ")})`);
 
@@ -72,25 +79,33 @@ export function formatRepeatedSelections(groups: SelectionGroup[]): string[] {
       .map((s) => `*${s.sourceLabel}:* ${s.explanation}`)
       .join(" ");
     lines.push(`_${combinedExplanation || "Sin explicación detallada."}_`);
-  });
 
-  return chunkMessage(lines.join("\n"));
+    return {
+      text: lines.join("\n"),
+      bet: {
+        matchup: group.matchup,
+        tournament: group.tournament,
+        market: group.market,
+        section: "recomendacion",
+        sourceLabel: sorted.map((s) => s.sourceLabel).join(", "),
+      },
+    };
+  });
 }
 
 /**
- * Mensaje 3 (opcional): partidos que analizaron 2 o 3 perfiles pero con
- * mercados distintos entre sí (p. ej. un perfil recomienda "Tiafoe 2-0" y
- * otro "Tiafoe -2.5 juegos") — mismo partido visto como valor, aunque no
- * coincidan en la apuesta exacta. Se muestran todas las opciones.
+ * Mismo partido, distinto mercado (opcional): partidos que analizaron 2 o 3
+ * perfiles pero con mercados distintos entre sí (p. ej. un perfil recomienda
+ * "Tiafoe 2-0" y otro "Tiafoe -2.5 juegos") — mismo partido visto como
+ * valor, aunque no coincidan en la apuesta exacta. Se muestran todas las
+ * opciones, pero el botón "📝 Registrar apuesta" es UNO por partido (no por
+ * mercado): el usuario memoriza cuál de las opciones eligió al marcarla.
  */
-export function formatMixedMarketMatchups(groups: MatchupGroup[]): string[] {
-  if (groups.length === 0) return [];
-
-  const lines: string[] = ["🔀 *Mismo partido, distinto mercado*\n"];
-
-  groups.forEach((group, idx) => {
+export function formatMixedMarketMatchups(groups: MatchupGroup[]): FormattedBetEntry[] {
+  return groups.map((group) => {
     const sorted = [...group.selections].sort((a, b) => a.sourceIndex - b.sourceIndex);
-    lines.push(`\n*${idx + 1}. ${group.matchup}*`);
+
+    const lines: string[] = ["🔀 *Mismo partido, distinto mercado*", `*${group.matchup}*`];
     if (group.tournament) lines.push(`🏟️ ${group.tournament}`);
 
     sorted.forEach((s) => {
@@ -105,33 +120,57 @@ export function formatMixedMarketMatchups(groups: MatchupGroup[]): string[] {
       if (details) lines.push(details);
       lines.push(`_${s.explanation || "Sin explicación detallada."}_`);
     });
-  });
 
-  return chunkMessage(lines.join("\n"));
+    const markets = [...new Set(sorted.map((s) => s.market.trim()).filter(Boolean))].join(" / ");
+
+    return {
+      text: lines.join("\n"),
+      bet: {
+        matchup: group.matchup,
+        tournament: group.tournament,
+        market: markets,
+        section: "mismo_partido",
+        sourceLabel: sorted.map((s) => s.sourceLabel).join(", "),
+      },
+    };
+  });
 }
 
 /**
- * Mensaje 4 (opcional): combinada de 2 picks de cuota individual baja
+ * Combinada sugerida (opcional): 2 picks de cuota individual baja
  * (cualquier mercado, no necesariamente ganador — puede ser "gana el
  * partido" + "gana un set", etc.) de partidos distintos cuya cuota
- * combinada llega a 1.80+ — un complemento a las selecciones simples de
- * cuota alta. Vacío si no hay ninguna combinación válida ese día.
+ * combinada cae entre 1.70 y 2.20 — un complemento a las selecciones
+ * simples de cuota alta. Vacío si no hay ninguna combinación válida ese día.
  */
-export function formatCombinadaSuggestion(combinada: CombinadaSuggestion | null): string[] {
+export function formatCombinadaSuggestion(combinada: CombinadaSuggestion | null): FormattedBetEntry[] {
   if (!combinada) return [];
 
   const { legA, legB, oddsA, oddsB, combinedOdds, sourceLabel } = combinada;
   const origin = sourceLabel ? `según ${sourceLabel}` : "calculada";
   const lines = [
-    `🎰 *Combinada sugerida* (2 picks seguros, ${origin})\n`,
-    `1. *${legA.matchup}* — ${legA.market} (💰 ${formatOdds(oddsA)})`,
+    `🎰 *Combinada sugerida* (2 picks seguros, ${origin})`,
+    `\n1. *${legA.matchup}* — ${legA.market} (💰 ${formatOdds(oddsA)})`,
     legA.tournament ? `🏟️ ${legA.tournament}` : null,
     `\n2. *${legB.matchup}* — ${legB.market} (💰 ${formatOdds(oddsB)})`,
     legB.tournament ? `🏟️ ${legB.tournament}` : null,
     `\n💰 Cuota combinada: *${formatOdds(combinedOdds)}*`,
   ].filter((line): line is string => line !== null);
 
-  return chunkMessage(lines.join("\n"));
+  const tournament = [legA.tournament, legB.tournament].filter(Boolean).join(" / ");
+
+  return [
+    {
+      text: lines.join("\n"),
+      bet: {
+        matchup: `${legA.matchup} + ${legB.matchup}`,
+        tournament,
+        market: `${legA.market} + ${legB.market}`,
+        section: "combinada",
+        sourceLabel: sourceLabel ?? "Calculada",
+      },
+    },
+  ];
 }
 
 function formatOdds(n: number): string {
