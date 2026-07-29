@@ -52,8 +52,11 @@ let researchInProgress = false;
 const START_BUTTON_TEXT = "🏠 Empezar";
 const RESEARCH_BUTTON_TEXT = "🔍 Analizar";
 const TICKET_BUTTON_TEXT = "📸 Ticket";
+const PENDIENTES_BUTTON_TEXT = "📝 Pendientes";
+const STATS_BUTTON_TEXT = "📊 Stats";
 const mainKeyboard = Markup.keyboard([
   [START_BUTTON_TEXT, RESEARCH_BUTTON_TEXT, TICKET_BUTTON_TEXT],
+  [PENDIENTES_BUTTON_TEXT, STATS_BUTTON_TEXT],
 ]).resize();
 
 bot.use(async (ctx, next) => {
@@ -77,8 +80,8 @@ async function sendWelcome(ctx: Context) {
     "Bot de JC Analistas listo.\n\n" +
       "🔍 Analizar — lanza los 3 Deep Research en Gemini y compara las selecciones.\n" +
       "📸 Ticket — te pide la foto del ticket y una foto de fondo, y te devuelve el montaje.\n" +
-      "📝 /pendientes — apuestas registradas a la espera de marcarse ganada/perdida.\n" +
-      "📊 /stats — aciertos y beneficio acumulado (stake fijo 50€).",
+      "📝 Pendientes — apuestas registradas a la espera de marcarse ganada/perdida.\n" +
+      "📊 Stats — aciertos y beneficio acumulado (stake fijo 50€).",
     mainKeyboard
   );
 }
@@ -457,7 +460,7 @@ bot.action(/^regbet:(.+)$/, async (ctx) => {
 // obtenida (no la del informe) tras pulsar "✅ Ganada" en /pendientes.
 const awaitingRealOdds = new Map<number, string>();
 
-bot.command("pendientes", async (ctx) => {
+async function showPendingBets(ctx: Context) {
   let bets;
   try {
     bets = await getPendingBets();
@@ -490,7 +493,10 @@ bot.command("pendientes", async (ctx) => {
       ]).reply_markup,
     });
   }
-});
+}
+
+bot.command("pendientes", showPendingBets);
+bot.hears(PENDIENTES_BUTTON_TEXT, showPendingBets);
 
 bot.action(/^betlost:(.+)$/, async (ctx) => {
   const betId = ctx.match[1];
@@ -520,7 +526,7 @@ function parseOddsInput(text: string): number | null {
   return Number.isFinite(value) && value > 1 ? value : null;
 }
 
-bot.command("stats", async (ctx) => {
+async function showStats(ctx: Context) {
   let summary;
   try {
     summary = await getStatsSummary();
@@ -542,7 +548,10 @@ bot.command("stats", async (ctx) => {
   ];
 
   await ctx.reply(lines.join("\n"), { parse_mode: "Markdown" });
-});
+}
+
+bot.command("stats", showStats);
+bot.hears(STATS_BUTTON_TEXT, showStats);
 
 /** Lanzado desde fuera de Telegram (ver server.ts): /analizar de tenis automático a las 7:00. */
 export async function runScheduledTennisAnalysis(): Promise<void> {

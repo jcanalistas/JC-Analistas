@@ -207,8 +207,8 @@ servicio (Application Default Credentials).
 En Telegram, háblale al bot:
 
 El bot deja fijos, siempre debajo del cuadro de texto, los botones
-"🏠 Empezar", "🔍 Analizar" y "📸 Ticket" (en ese orden). Cada uno hace lo
-mismo que su comando equivalente:
+"🏠 Empezar", "🔍 Analizar", "📸 Ticket", "📝 Pendientes" y "📊 Stats" (en ese
+orden, en dos filas). Cada uno hace lo mismo que su comando equivalente:
 
 - `/start` (o "🏠 Empezar") — mensaje de bienvenida.
 - `/analizar` (o "🔍 Analizar") — pregunta el deporte y, después, qué
@@ -256,15 +256,15 @@ mismo que su comando equivalente:
   pedir la cuota todavía. En "Mismo partido, distinto mercado" el botón es
   uno solo por partido aunque haya varias opciones de mercado — memoriza tú
   cuál elegiste, para marcarla luego con el mercado correcto en mente.
-- `/pendientes` — lista las apuestas registradas que aún no se han
-  marcado, cada una con botones **"✅ Ganada"** / **"❌ Perdida"**.
-  "❌ Perdida" se resuelve al momento (-50€, no hace falta cuota). "✅
-  Ganada" te pide que le mandes la cuota REAL que conseguiste en la casa de
-  apuestas (no la que estimó el informe, que puede no coincidir exactamente)
-  y calcula el beneficio como 50€ × (cuota − 1).
-- `/stats` — total de apuestas registradas, pendientes, ganadas/perdidas,
-  % de acierto y beneficio neto acumulado, siempre asumiendo el stake fijo
-  de 50€ por apuesta.
+- `/pendientes` (o "📝 Pendientes") — lista las apuestas registradas que
+  aún no se han marcado, cada una con botones **"✅ Ganada"** / **"❌
+  Perdida"**. "❌ Perdida" se resuelve al momento (-50€, no hace falta
+  cuota). "✅ Ganada" te pide que le mandes la cuota REAL que conseguiste
+  en la casa de apuestas (no la que estimó el informe, que puede no
+  coincidir exactamente) y calcula el beneficio como 50€ × (cuota − 1).
+- `/stats` (o "📊 Stats") — total de apuestas registradas, pendientes,
+  ganadas/perdidas, % de acierto y beneficio neto acumulado, siempre
+  asumiendo el stake fijo de 50€ por apuesta.
 - `/ticket` (o "📸 Ticket") — pide primero la foto del ticket (la tarjeta
   ya recortada, sin fondo blanco alrededor). Para el fondo, si ya usaste
   uno antes te ofrece un botón "🔁 Usar el mismo fondo de la última vez"
