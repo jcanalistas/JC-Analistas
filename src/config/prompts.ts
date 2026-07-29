@@ -167,6 +167,23 @@ Concluye con 8 recomendaciones de apuestas específicas, de 8 partidos distintos
 // por alto si no se le pide explícitamente que las busque.
 const TENNIS_RETIREMENT_LUCKY_LOSER_CHECK = `IMPORTANTE - Retiradas, walkovers, Time Out Médico y Lucky Loser: antes de dar por buena una selección, comprueba si alguno de los dos jugadores se retiró (RET), tuvo un walkover (WO) o pidió un Time Out Médico (MTO) en su partido más reciente. Si es así, investiga el motivo exacto (golpe de calor, calambres, lesión muscular/articular, etc.) y si es un problema puntual/ambiental (normalmente resuelto en 24-48h) o una lesión estructural con riesgo real de recaída — no penalices automáticamente a un jugador por una retirada de un solo día por calor si hoy las condiciones son mejores y no hay lesión estructural reportada; si crees que el mercado ha inflado su cuota por miedo injustificado, señálalo como posible valor (EV+). Comprueba también si alguno de los dos entró en el cuadro principal como Lucky Loser (promovido desde la fase de clasificación por la baja de otro jugador) y qué implica eso en su carga de partidos reciente. Si detectas cualquiera de estas circunstancias en un partido que recomiendes, menciónalo expresamente en la Explicación de ese pick para que se pueda revisar a mano.`;
 
+// Ejemplo real que motivó este bloque: Olivieri vs Taberner, donde Taberner
+// volvía de 6 meses de baja por lesión sin competir a nivel profesional —
+// ningún perfil lo detectó porque un análisis basado solo en estadísticas
+// recientes no tiene datos (o tiene datos "viejos", de antes de la lesión)
+// del jugador que vuelve, así que el desequilibrio real pasa desapercibido
+// si no se busca activamente. Un hándicap de juegos/sets amplio a favor del
+// rival en forma fue una selección fácil a cuota alta.
+const TENNIS_INJURY_COMEBACK_CHECK = `IMPORTANTE - Regalos por vuelta de una baja larga confirmada: además de los picks que salgan de tu análisis estadístico normal, busca ACTIVAMENTE en cada partido si alguno de los dos jugadores vuelve de una baja larga confirmada (orientativamente 1 mes o más sin competir a nivel profesional) por lesión, operación, sanción u otro motivo — verifícalo con una fuente fiable (web oficial ATP/ITF, comunicado del torneo, prensa especializada de tenis), nunca lo asumas solo por no verlo en el ranking o el calendario reciente. Este tipo de partido es fácil de pasar por alto en un análisis puramente estadístico: el jugador que vuelve no tiene datos recientes, o tiene datos "viejos" de antes de la baja que ya no reflejan su nivel real, así que un modelo centrado solo en el rendimiento de los últimos partidos puede infravalorar el desequilibrio real que hay sobre la pista.
+
+Si confirmas un caso así:
+- Anota cuánto tiempo ha estado de baja el jugador y el motivo exacto.
+- Ten en cuenta que un jugador recién vuelto de una baja larga suele arrastrar falta de ritmo de competición, menos resistencia física y riesgo de recaída, sobre todo cuanto más largo sea el partido (mejor de 3 o 5 sets).
+- Si el rival llega en buena forma y el desequilibrio de nivel/ranking ya era favorable de por sí, valora mercados de hándicap de juegos o de sets (no solo el ganador del partido): a veces dan más valor que la victoria simple porque el mercado no ha terminado de ajustar la cuota a esta circunstancia.
+- Menciona expresamente en la Explicación de ese pick que el jugador vuelve de una baja larga confirmada y desde cuándo, para que se entienda por qué es una selección de valor aunque las estadísticas recientes del rival por sí solas no lo justifiquen del todo.
+
+No trates una ausencia del calendario como un "regalo" si no puedes confirmar el motivo con una fuente: sin confirmación, ignóralo y sigue con el resto del análisis.`;
+
 const TENNIS_PROMPT_DEFS: PromptDefinition[] = [
   {
     label: "Tipster",
@@ -181,6 +198,8 @@ const TENNIS_PROMPT_DEFS: PromptDefinition[] = [
  * Para cada pick, verifica si la cuota ha bajado recientemente (indicador de dinero profesional) o si hay noticias de última hora como lesiones, desgaste físico por exceso de partidos los días previos, etc. valora la importancia de cada cosa para darle valor o no
 
 ${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
+
+${TENNIS_INJURY_COMEBACK_CHECK}
 
 Formato de Salida (Tabla):
 | Deporte | Evento | Mercado | Cuota | Justificación Técnica (Valor) |
@@ -217,6 +236,8 @@ Analizarás minuciosamente los datos de los partidos single masculino ATP y Chal
 - Si el partido es Challenger, ajusta la volatilidad: penaliza la irregularidad en el servicio y premia el % de puntos ganados al segundo saque y la resiliencia mental.
 
 ${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
+
+${TENNIS_INJURY_COMEBACK_CHECK}
 
 ---
 
@@ -277,6 +298,8 @@ Compara tu probabilidad calculada con la probabilidad implícita de las cuotas d
 Identifica si hay discrepancias donde la cuota de la casa pague más de lo que la probabilidad real sugiere (Valor Esperado Positivo).
 
 ${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
+
+${TENNIS_INJURY_COMEBACK_CHECK}
 
 RESTRICCIONES Y FORMATO DE ENTREGA:
 NO me ofrezcas bajo ninguna circunstancia pronósticos que incluyan combinadas.
