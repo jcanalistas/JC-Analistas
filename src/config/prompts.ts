@@ -48,20 +48,31 @@ export const FOOTBALL_COMPETITIONS: Array<{ id: string; label: string; flag: str
 const FOOTBALL_PROMPT_DEFS: PromptDefinition[] = [
   {
     label: "Tipster",
-    prompt: `Actúa como un analista profesional de 'Sports Betting' especializado en mercados de valor. Realiza una búsqueda profunda (Deep Search) de eventos de fútbol para las próximas 24 horas (identifica que hora es al lanzar el research e identifica las próximas 24h para discriminar los partidos que entren en el rango) siguiendo estas reglas estrictas:
-1. Mercados y Cuotas:
- * Busca selecciones en la bookie WINAMAX con cuotas superiores a 1,65, ya sea de resultado (1X2), hándicap asiático, más/menos de goles, ambos marcan, córners o tarjetas.
- * Restricción de volumen: Devuelve 8 selecciones de fútbol simples, No repitas partidos en los picks. Ordénalos de mayor confianza de éxito a menos dándole un % de acierto.
-2. Cobertura de Fútbol:
- * Analiza partidos de MLS, LaLiga (1ª y 2ª división española), 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga (Alemania), Brasileirão (Brasil), y competiciones europeas (Champions League, Europa League, Conference League).
- * Busca equipos con un rendimiento como local o visitante (según corresponda) superior al 65% que se enfrenten a rivales con H2H muy desfavorable o con un rendimiento modesto fuera/en casa. Analiza cualquier aspecto adicional que consideres, como noticias o rumores, rotaciones previstas por calendario congestionado (competición europea entre semana) o bajas importantes. Analiza si han vencido a rivales de mayor nivel en partidos recientes para darles más % de victoria. Analiza el xG generado y concedido, tiros a puerta, posesión, etc. Procura que la selección tenga EV+.
-3. Análisis de Valor:
- * Para cada pick, verifica si la cuota ha bajado recientemente (indicador de dinero profesional) o si hay noticias de última hora como lesiones, sanciones, rotaciones por acumulación de partidos, o motivación especial (derbis, pelea por título/descenso/clasificación europea). Valora la importancia de cada cosa para darle valor o no.
+    prompt: `Actúa como un analista profesional de 'Sports Betting' especializado en mercados de valor (EV+). Utiliza tus herramientas de búsqueda web para realizar una investigación profunda (Deep Search) de eventos de fútbol para las próximas 24 horas. (Identifica la fecha y hora actual al lanzar el research para discriminar los partidos que entren en el rango temporal).
 
-Formato de Salida (Tabla):
-| Deporte | Evento | Mercado | Cuota | Justificación Técnica (Valor) |
+Sigue estas reglas estrictas:
+
+1. Mercados y Cuotas:
+ * Busca selecciones en la casa de apuestas WINAMAX con cuotas superiores a 1.65. Mercados permitidos: resultado (1X2), hándicap asiático, más/menos de goles, ambos marcan, córners o tarjetas.
+ * Restricción de volumen: Devuelve exactamente 8 selecciones simples. NO repitas partidos.
+ * Ordénalos obligatoriamente de mayor a menor confianza de éxito (asignando un % de probabilidad de acierto a cada uno).
+
+2. Cobertura y Filtros Estadísticos:
+ * Ligas permitidas: MLS, LaLiga (1ª y 2ª), 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga, Brasileirão y competiciones europeas (Champions, Europa, Conference).
+ * Criterio de selección: Busca equipos con un win-rate local/visitante > 65% frente a rivales con H2H desfavorable o rendimiento modesto en esa condición.
+ * Métricas avanzadas: Apoya tu decisión en datos como el xG (generado/concedido), tiros a puerta y posesión. Revisa si han vencido a rivales de la parte alta de la tabla recientemente.
+
+3. Análisis de Valor (EV+) y Mercado:
+ * Para que un pick sea válido, su Probabilidad Real Estimada debe ser mayor que la Probabilidad Implícita de la cuota.
+ * Market Drop: Verifica si la cuota ha bajado recientemente (indicador de dinero profesional/sharp money).
+ * Contexto: Busca noticias de última hora (lesiones, sanciones, rotaciones por calendario congestionado) y factores motivacionales (derbis, necesidad de puntos por título/descenso). Pondera esto en tu decisión final.
+
+Formato de Salida:
+Antes de la tabla, escribe un breve párrafo resumiendo qué ligas tenían más valor hoy y qué partido descartaste en el último momento y por qué. Luego, presenta los resultados estrictamente en esta tabla:
+
+| Confianza | Evento (Liga) | Mercado y Pick | Cuota | EV+ y Justificación (Estadística + Contexto) |
 |---|---|---|---|---|
-| Fútbol | [Equipo A vs Equipo B] | [Pick] | [1,6x] | [Motivo estadístico/noticia] |`,
+| [XX%] | [Equipo A vs Equipo B] ([Liga]) | [Pick] | [1.6x] | [Ej: Cuota bajó de 1.80 a 1.68. Equipo A promedia 2.1 xG en casa. Rival con 3 bajas en defensa...] |`,
   },
   {
     label: "Machine Learning",
