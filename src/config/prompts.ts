@@ -45,6 +45,15 @@ export const FOOTBALL_COMPETITIONS: Array<{ id: string; label: string; flag: str
   { id: "conference", label: "Conference League", flag: "🇪🇺" },
 ];
 
+// Ejemplo real que motivó este bloque: la victoria del Copenhague a 1,58 no
+// tenía valor por sí sola, pero el partido de ida había terminado 3-3 (señal
+// de que ambos equipos conceden mucho) — combinar esa misma victoria con
+// "+1.5 goles" en el MISMO partido subía la cuota conjunta a 1,85 sin bajar
+// apenas la probabilidad de acierto real. Un análisis centrado solo en el
+// mercado principal (1X2/hándicap) descarta el partido entero por no tener
+// valor ahí, sin llegar a probar esta combinación.
+const FOOTBALL_SAME_MATCH_COMBO_CHECK = `IMPORTANTE - Mercados relacionados dentro del MISMO partido: antes de descartar un partido por no tener valor en su mercado principal (1X2, hándicap asiático, etc.), comprueba si combinar dos mercados relacionados del MISMO partido —nunca de partidos distintos, eso ya lo cubre la Combinada Sugerida al final del informe— puede convertirlo en una selección con valor real. Ejemplo: la victoria de un equipo a 1,58 no tiene valor por sí sola, pero si el contexto apunta también a un partido con muchos goles (p. ej. la ida de la eliminatoria terminó 3-3, ambos equipos conceden mucho, o el ritmo reciente de ambos es alto), añadir "+1.5 goles" a esa misma victoria puede subir la cuota conjunta a 1,85 manteniendo una probabilidad de acierto similar — eso sí tiene valor. Otras combinaciones habituales del mismo partido a valorar: Doble oportunidad + Ambos marcan, Victoria + Over de córners, Hándicap + Under de goles (si el partido pinta cerrado y con pocas ocasiones). Solo combina dos mercados si AMBOS están respaldados por el mismo análisis que ya has hecho — no los juntes solo para maquillar la cuota. Si encuentras una combinación así con valor, inclúyela como una de tus 8 selecciones normales, describiendo el mercado completo en el campo Mercado (p. ej. "Victoria Equipo A + Más de 1.5 goles") con su cuota conjunta, y explica en la Explicación por qué las dos partes de la combinación están justificadas.`;
+
 const FOOTBALL_PROMPT_DEFS: PromptDefinition[] = [
   {
     label: "Tipster",
@@ -66,6 +75,8 @@ Sigue estas reglas estrictas:
  * Para que un pick sea válido, su Probabilidad Real Estimada debe ser mayor que la Probabilidad Implícita de la cuota.
  * Market Drop: Verifica si la cuota ha bajado recientemente (indicador de dinero profesional/sharp money).
  * Contexto: Busca noticias de última hora (lesiones, sanciones, rotaciones por calendario congestionado) y factores motivacionales (derbis, necesidad de puntos por título/descenso). Pondera esto en tu decisión final.
+
+${FOOTBALL_SAME_MATCH_COMBO_CHECK}
 
 Formato de Salida:
 Antes de la tabla, escribe un breve párrafo resumiendo qué ligas tenían más valor hoy y qué partido descartaste en el último momento y por qué. Luego, presenta los resultados estrictamente en esta tabla:
@@ -107,6 +118,8 @@ Analizarás minuciosamente los partidos bajo estos 5 pilares metodológicos:
 - Penaliza la varianza e irregularidad en divisiones inferiores (1ª/2ª RFEF, 2ª Div) o ligas de alta volatilidad (MLS).
 - Premia la consistencia de datos en divisiones élite (Premier League, LaLiga, rondas finales europeas).
 
+${FOOTBALL_SAME_MATCH_COMBO_CHECK}
+
 ---
 INSTRUCCIONES DE SALIDA (Formato de Respuesta):
 Presenta tu análisis estructurado estrictamente de la siguiente manera. Primero un resumen global y luego 8 bloques individuales.
@@ -140,6 +153,8 @@ Tu objetivo es encontrar Valor Esperado Positivo (EV+) puro. Selecciona exactame
 REGLA MATEMÁTICA ESTRICTA PARA LOS 8 PICKS:
 - La probabilidad real de éxito calculada por tu modelo debe ser estrictamente SUPERIOR AL 60% (Cuota justa estimada < 1.66).
 - La cuota real ofrecida por la casa de apuestas (ej. Winamax) debe ser SUPERIOR A 1.60, y siempre mayor que tu cuota justa estimada, para garantizar el EV+.
+
+${FOOTBALL_SAME_MATCH_COMBO_CHECK}
 
 Selecciona los 8 picks y redacta tu informe presentando cada partido bajo esta estructura de 4 pasos analíticos:
 
