@@ -133,38 +133,40 @@ Para CADA UNO de los 8 partidos seleccionados, genera el siguiente bloque:
   },
   {
     label: "Analista cuantitativo",
-    prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en fútbol (MLS, LaLiga 1ª y 2ª división española, 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga, Brasileirão y competiciones europeas: Champions League, Europa League y Conference League). Tu objetivo es realizar un análisis probabilístico y estadístico exhaustivo para las próximas 24h (analiza la hora actual para restringir los partidos a las próximas 24h desde ahora).
-Quiero determinar si existe valor esperado positivo (EV+) en algún mercado para cada partido, priorizando selecciones de cuota superior a 1.60 y con una probabilidad de éxito superior al 60%.
-Sigue estrictamente los siguientes pasos de análisis detallados:
+    prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en fútbol. Utiliza tus herramientas de búsqueda para identificar la fecha y hora actual, y filtra los partidos que se disputarán en las próximas 24 horas en las siguientes competiciones: MLS, LaLiga (1ª y 2ª), 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga, Brasileirão y competiciones europeas (Champions, Europa y Conference League).
 
-CONTEXTO Y ENTORNO DEL PARTIDO
-Localía: ¿Quién juega en casa? Factor estadio/afición e impacto de desplazamientos largos (especialmente relevante en MLS).
-Condiciones: Clima (lluvia, viento, calor extremo) si es relevante para el estilo de juego, y estado del césped.
-Motivación y Calendario: Categoría de la competición (Champions League, Europa League, Conference League, Liga doméstica). ¿Se juega algo importante (título, descenso, ascenso, clasificación europea) o es un partido ya decidido de cara a la temporada? ¿Hay un partido importante entre semana (europeo) que pueda provocar rotaciones?
+Tu objetivo es encontrar Valor Esperado Positivo (EV+) puro. Selecciona exactamente 8 partidos distintos. NO se permiten apuestas combinadas.
 
-RENDIMIENTO ESTADÍSTICO RECIENTE (Últimos 10 partidos como local/visitante según corresponda)
-Analiza y compara detalladamente las siguientes métricas para ambos equipos:
-xG generado y xG concedido por partido.
-Tiros a puerta a favor y en contra.
-Posesión media y córners a favor/en contra.
-Índice ofensivo/defensivo: relación entre goles marcados esperados (xG a favor) y goles evitados (xG concedido invertido), equivalente futbolístico al Dominance Ratio.
-Rendimiento en rachas: partidos ganados/perdidos/empatados en los últimos 10.
+REGLA MATEMÁTICA ESTRICTA PARA LOS 8 PICKS:
+- La probabilidad real de éxito calculada por tu modelo debe ser estrictamente SUPERIOR AL 60% (Cuota justa estimada < 1.66).
+- La cuota real ofrecida por la casa de apuestas (ej. Winamax) debe ser SUPERIOR A 1.60, y siempre mayor que tu cuota justa estimada, para garantizar el EV+.
 
-MATCH-UP TÁCTICO Y FATIGA
-Historial Cara a Cara (Head-to-Head): resultados previos generales y específicos en esta competición. ¿Hay algún patrón táctico recurrente (ej. un equipo que presiona alto castigando la salida de balón del rival)?
-Estilos de juego: ¿cómo interactúan sus estilos? (ej: equipo de posesión contra equipo de contragolpe, presión alta contra bloque bajo).
-Estado físico y fatiga: minutos jugados por los titulares clave en los últimos partidos. ¿Vienen de un partido europeo entre semana o de prórroga? ¿Hay reportes de lesiones, sanciones o sobrecarga muscular recientes?
+Selecciona los 8 picks y redacta tu informe presentando cada partido bajo esta estructura de 4 pasos analíticos:
 
-ANÁLISIS DE MERCADO Y DETECCIÓN DE VALOR (EV+)
-Revisa las cuotas actuales en las principales casas de apuestas (como Winamax).
-Calcula tu propia probabilidad implícita para el resultado del partido basándote en los datos anteriores.
-Compara tu probabilidad calculada con la probabilidad implícita de las cuotas de la casa de apuestas (Fórmula: 1 / Cuota).
-Identifica si hay discrepancias donde la cuota de la casa pague más de lo que la probabilidad real sugiere (Valor Esperado Positivo).
+---
+FORMATO DE SALIDA (Repite esta estructura para cada uno de los 8 picks):
 
-RESTRICCIONES Y FORMATO DE ENTREGA:
-NO me ofrezcas bajo ninguna circunstancia pronósticos que incluyan combinadas.
-Entrega tu análisis dividido claramente en estas secciones.
-Concluye con 8 recomendaciones de apuestas específicas, de 8 partidos distintos (nunca repitas un partido entre los 8 picks), que consideres de ALTA PROBABILIDAD DE ACIERTO, como resultado, hándicap, over/under de goles, córners, tarjetas, etc., y que tengan EV+ (indicando mercado, cuota estimada y la justificación matemática de por qué es EV+).`,
+### 🎯 PICK [1-8]: [Equipo A] vs [Equipo B] | Competición
+* Mercado y Selección: [Ej: Hándicap Asiático -1 Local / Over 2.5...]
+* Comparativa Sharp: Cuota Bookie [X.XX] | Tu Cuota Justa [X.XX] | Probabilidad Real [XX%] (Debe ser >60%)
+* Cálculo EV+: [(Probabilidad Real Decimal * Cuota Bookie) - 1] = +[XX.X]% EV
+
+1. CONTEXTO Y ENTORNO
+* Localía y Condiciones: Impacto real del estadio, desplazamiento (especial foco en MLS/Europa) y factores climáticos si aplican.
+* Motivación y Calendario: Qué hay en juego (títulos, descenso, clasificación) y riesgo de rotaciones por partidos europeos intersemanales.
+
+2. RENDIMIENTO ESTADÍSTICO (Últimos 10 partidos L/V)
+* Métricas Clave: xG generado vs xG concedido, Tiros a puerta y control de balón.
+* Índice Ofensivo/Defensivo (Dominance Ratio): Relación entre generación y concesión de peligro.
+* Rachas: Contexto del rendimiento reciente (W-D-L).
+
+3. MATCH-UP TÁCTICO Y FATIGA
+* H2H y Choque de Estilos: ¿Cómo interactúan tácticamente? (Ej: Bloque bajo vs Posesión ineficiente, Presión alta castigando la salida del rival).
+* Fatiga y Bajas: Minutos acumulados por titulares, sobrecargas, lesiones clave o sanciones confirmadas mediante búsqueda web.
+
+4. JUSTIFICACIÓN DEL VALOR (El "Edge")
+* Explica en 2 líneas exactamente por qué la casa de apuestas se equivoca en el precio de esta cuota basándote en los 3 puntos anteriores (Ej: "El mercado sobrevalora al visitante por su nombre, ignorando que su Dominance Ratio cae un 40% fuera de casa y hoy juegan con el portero suplente").
+---`,
   },
 ];
 
