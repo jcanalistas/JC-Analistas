@@ -187,124 +187,149 @@ No trates una ausencia del calendario como un "regalo" si no puedes confirmar el
 const TENNIS_PROMPT_DEFS: PromptDefinition[] = [
   {
     label: "Tipster",
-    prompt: `Actúa como un analista profesional de 'Sports Betting' especializado en mercados de valor. Realiza una búsqueda profunda (Deep Search) de eventos deportivos para las próximas 24 horas (identifica que hora es al lanzar el research e identifica las próximas 24h para discriminar los partidos que entren en el rango) siguiendo estas reglas estrictas:
-1. Mercados y Cuotas:
- * Busca selecciones en la bookie WINAMAX con cuotas superiores a 1,65, ya sea de victoria simple, numero de juegos, handicap de set, handicap de juegos.
- * Restricción de volumen: Devuelve 8 selecciones de tenis simples, No repitas partidos en los picks. Ordénalos de mayor confianza de éxito a menos dándole un % de acierto.
-3. Cobertura de Tenis:
- * Analiza todos los torneos singles masculinos ATP y challenger (solo los cuadros de singles masculinos).
- * Busca jugadores con un rendimiento en superficie superior al >65% y que se enfrenten a rivales con H2H muy desfavorable o que tengan un win rate % Modesto en la superficie. Analiza cualquier aspecto adicional que consideres, como noticias o rumores. Analiza si han vencido a jugadores de mayor nivel en los partidos recientes del torneo para darles más % de victoria. Analiza las bolas de break que concedieron, puntos al primer servicio y al segundo, etc. Procura que la selección tenga EV+.
-4. Análisis de Valor:
- * Para cada pick, verifica si la cuota ha bajado recientemente (indicador de dinero profesional) o si hay noticias de última hora como lesiones, desgaste físico por exceso de partidos los días previos, etc. valora la importancia de cada cosa para darle valor o no
+    prompt: `Actúa como un cuantitativo especializado en Sports Betting y analista de valor (+EV) en tenis. Tu objetivo es identificar oportunidades de apuestas con valor esperado positivo en la casa de apuestas WINAMAX para la jornada de tenis indicada por la ventana de fechas que se detalla más abajo en este mismo mensaje.
+
+Aplica estrictamente las siguientes reglas metodológicas:
+
+1. FILTROS DE MERCADO Y COBERTURA:
+   * Cobertura: Exclusivamente cuadros individuales masculinos (Singles) de torneos ATP y Challenger activos hoy.
+   * Bookie principal: WINAMAX (Cuotas iguales o superiores a 1.70).
+   * Mercados permitidos: Victoria simple (Moneyline), Hándicap de Juegos, Hándicap de Sets y Total de Juegos.
+   * Volumen de salida: Devuelve exactamente 8 selecciones simples. Sin repetir partidos (máximo 1 pick por partido).
+
+2. CRITERIOS DE VALOR (+EV) Y RECOLECCIÓN DE DATOS:
+   * Benchmark Sharp: Compara la cuota de Winamax con la cuota actual en Pinnacle o Betfair Exchange. Solo considera selecciones donde la cuota de Winamax sea superior a la cuota fair/sharp estimada (Value Bet).
+   * Rendimiento Contextual: Prioriza jugadores con un win rate >60% en la superficie específica en los últimos 12 meses (no métricas históricas globales) o un rendimiento reciente destacado en partidos de la misma categoría.
+   * Métricas de Servidor/Restador: Analiza en sus últimos 3-5 partidos el % de puntos ganados con el 1º/2º servicio y el % de bolas de break salvadas/convertidas.
+   * Dinámica de Mercado y Noticias: Verifica si la cuota ha bajado recientemente en portales como Oddsportal (indicador de dinero profesional) y evalúa factores físicos críticos (acumulación de minutos/partidos en los últimos 3 días, molestias físicas o retiradas recientes).
+
+3. ORDENACIÓN Y MATEMÁTICA DEL PICK:
+   * Ordena las 8 selecciones de MAYOR a MENOR Valor Esperado (EV%).
+   * Calcula la probabilidad real estimada (% acierto) sin margen y contrástala con la probabilidad implícita de la cuota de Winamax.
 
 ${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
 
 ${TENNIS_INJURY_COMEBACK_CHECK}
 
-Formato de Salida (Tabla):
-| Deporte | Evento | Mercado | Cuota | Justificación Técnica (Valor) |
-|---|---|---|---|---|
-| Tenis | [Jugador A vs B] | [Pick] | [1,6x] | [Motivo superficie/H2H] |`,
-  },
-  {
-    label: "Machine Learning",
-    prompt: `Actúa como un modelo de Machine Learning avanzado y analista cuantitativo especializado en apuestas de tenis (ATP y ATP Challenger Tour). Tu objetivo es analizar todos los partido de la jornada de las próximas 24h (analiza la hora actual para restringir los partidos a las próximas 24h) para encontrar valor real frente a las cuotas de las casas de apuestas (Value Betting). La conclusión final deben ser 8 recomendaciones de picks con EV+ cuya probabilidad estimada de acierto sea superior al 50% sin repetir partidos en los picks (8 partidos distintos).
+FORMATO DE SALIDA (Responde exclusivamente con esta estructura):
 
-Analizarás minuciosamente los datos de los partidos single masculino ATP y Challenger de las próximas 24 horas bajo los siguientes 5 pilares metodológicos:
+### 📊 SELECCIONES +EV - WINAMAX
 
-1. RENDIMIENTO EN SUPERFICIE Y CONDICIONES (Ponderación: 30%)
-- Porcentaje de victorias en la superficie específica del torneo en los últimos 12 y 24 meses.
-- Estadísticas de servicio: % de primeros servicios, % de puntos ganados con el 1º y 2º saque, % de juegos de servicio mantenidos (Hold %).
-- Estadísticas de resto: % de puntos ganados al resto (1º y 2º saque del rival), % de juegos de resto ganados (Break %).
-- Factor Altitud/Velocidad: Si la pista es rápida/lenta o indoor/outdoor, y cómo afecta al estilo de juego de cada uno.
-
-2. MÉTRICAS DE PRESIÓN Y MOMENTUM (Ponderación: 25%)
-- Break Points: % de bolas de break salvadas (BP Saved) y % de de break points convertidos (BP Converted).
-- Rendimiento en momentos clave: Registro en Tie-breaks en los últimos 6 meses y balance en sets decisivos (3º set).
-- Tendencia reciente: Rendimiento en los últimos 5 partidos y nivel de los rivales enfrentados (ranking promedio).
-
-3. FATIGA, CARGA DE TRABAJO Y CONTEXTO (Ponderación: 20%)
-- Fatiga acumulada: Horas en pista y sets jugados en los últimos 7 días. ¿Viene de jugar una final el domingo pasado o qualis previas?
-- Motivación y defensa de puntos: Puntos ATP que defiende en este torneo. Diferencia de nivel motivacional (ej. Jugador ATP bajando a Challenger vs. Tenista local motivado).
-- Edad y desgaste físico: Brecha de edad y su historial de lesiones reciente si lo hubiera.
-
-4. ENFRENTAMIENTOS DIRECTOS (H2H) Y ESTILOS (Ponderación: 15%)
-- H2H Histórico y H2H específico en esta superficie.
-- Choque de estilos: ¿Cómo rinde el sacador contra el restador? Dinámica Diestro vs. Zurdo.
-
-5. AJUSTE DE CATEGORÍA (ATP vs. CHALLENGER) (Ponderación: 10%)
-- Si el partido es Challenger, ajusta la volatilidad: penaliza la irregularidad en el servicio y premia el % de puntos ganados al segundo saque y la resiliencia mental.
-
-${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
-
-${TENNIS_INJURY_COMEBACK_CHECK}
+| # | Torneo | Partido | Mercado / Selección | Cuota Winamax | Cuota Sharp / Fair | Prob. Real Est. | EV Estimado % |
+|---|---|---|---|---|---|---|---|
+| 1 | ATP [Nombre] | [Jugador A vs Jugador B] | [Ej: Jugador A (-1.5 Sets)] | [1.85] | [1.75] | [57%] | [+5.4%] |
 
 ---
 
-DATOS DEL PARTIDO A ANALIZAR:
-Busca todos los datos y cuotas de los partidos analizados en la bookie Winamax o bet365 para encontrar el edge y proponer 8 picks con EV+ de 8 partidos distintos.
+### 🔍 ANÁLISIS TÉCNICO DETALLADO POR PICK
+
+Para cada una de las 8 selecciones, incluye un breve desglose cuantitativo:
+1. **[Jugador A vs Jugador B] - [Mercado Escolado]**
+   * **Métricas Clave:** (Estadísticas de servicio/resto recientes + win rate en superficie en los últimos 12 meses).
+   * **Justificación de Valor (+EV):** (Por qué la cuota de Winamax está desajustada vs Pinnacle/Mercado + tendencia de cuota/noticias).
+   * **Factor de Riesgo:** (Principal amenaza o contexto físico/desgaste).`,
+  },
+  {
+    label: "Machine Learning",
+    prompt: `Actúa como un modelo de Machine Learning avanzado y analista cuantitativo especializado en apuestas de tenis (ATP y ATP Challenger Tour). Tu objetivo es analizar la jornada de tenis indicada por la ventana de fechas que se detalla más abajo en este mismo mensaje para encontrar valor real frente a las cuotas de las casas de apuestas (Value Betting).
+
+La conclusión final deben ser exactamente 8 recomendaciones de picks con EV+ (sin repetir partidos), utilizando cuotas superiores a 1,80 en la casa de apuestas WINAMAX.
+
+Analiza minuciosamente los datos de los partidos de singles masculinos (ATP y Challenger) bajo los siguientes 5 pilares metodológicos y sus ponderaciones:
+
+1. RENDIMIENTO EN SUPERFICIE Y CONDICIONES (Ponderación: 30%)
+- Porcentaje de victorias en la superficie específica en los últimos 12 meses.
+- Estadísticas de servicio y resto: % de primeros servicios, puntos ganados con 1º/2º saque, Hold % y Break %.
+- Factor Altitud/Velocidad: Pista rápida/lenta o indoor/outdoor y su impacto en los estilos de juego.
+
+2. MÉTRICAS DE PRESIÓN Y MOMENTUM (Ponderación: 25%)
+- Break Points: % de BP salvadas y BP convertidas.
+- Rendimiento bajo presión: Registro en Tie-breaks y sets decisivos recientes.
+- Tendencia reciente: Rendimiento en los últimos 5 partidos y nivel de los rivales.
+
+3. FATIGA, CARGA DE TRABAJO Y CONTEXTO (Ponderación: 20%)
+- Fatiga acumulada: Horas en pista y sets jugados en los últimos 7 días.
+- Motivación y defensa de puntos: Puntos ATP que defiende y contexto de categoría (ej. jugador ATP en Challenger).
+- Desgaste físico: Historial de lesiones recientes o molestias reportadas.
+
+4. ENFRENTAMIENTOS DIRECTOS (H2H) Y ESTILOS (Ponderación: 15%)
+- H2H general y específico en esta superficie.
+- Choque de estilos (ej. sacador vs restador, zurdo vs diestro).
+
+5. AJUSTE DE CATEGORÍA (ATP vs. CHALLENGER) (Ponderación: 10%)
+- Penaliza la irregularidad en el servicio en torneos Challenger y premia la resiliencia mental y el % de puntos al segundo saque.
+
+${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
+
+${TENNIS_INJURY_COMEBACK_CHECK}
 
 ---
 
 INSTRUCCIONES DE SALIDA (Formato de Respuesta):
-Presenta tu análisis estructurado estrictamente de la siguiente manera:
+Presenta tu análisis estructurado estrictamente con este formato para cada uno de los 8 picks seleccionados:
 
-### 1. Ventajas Competitivas Encontradas
-(Breve resumen de los desequilibrios estadísticos más severos en Saque/Resto, Fatiga o Superficie).
+### 🎾 [Partido: Jugador A vs Jugador B] ([Torneo / Categoría])
 
-### 2. Matriz de Probabilidad Estimada (Tu Modelo)
-- Probabilidad de victoria Jugador A: XX% (Cuota justa estimada: X.XX)
-- Probabilidad de victoria Jugador B: XX% (Cuota justa estimada: X.XX)
-- Proyección de Sets Totales: [Ej: 2.3 sets] | Proyección de Juegos Totales: [Ej: 22.5 juegos]
+1. **Ventajas Competitivas Encontradas**
+   * (Resumen breve de los desequilibrios estadísticos severos en Saque/Resto, Fatiga o Superficie).
 
-### 3. Identificación de VALOR (The Edge)
-Compara tus probabilidades con las cuotas reales del mercado proporcionadas. Selecciona únicamente la opción que presente un valor matemático real (donde tu cuota estimada sea menor que la de la casa de apuestas). Elige el mercado óptimo entre:
-- Ganador Simple (Moneyline)
-- Hándicap de Juegos o Sets
-- Total de Juegos (Over/Under) o Total de Sets
+2. **Matriz de Probabilidad Estimada (Modelo)**
+   * Probabilidad estimada Jugador A: XX% (Cuota justa: X.XX)
+   * Probabilidad estimada Jugador B: XX% (Cuota justa: X.XX)
+   * Proyección: [Ej: 2.5 sets | 22.5 juegos]
 
-### 4. Pronóstico Final y Stake Recomendado
-- Mercado recomendado: [Ej: Hándicap Juegos Jugador B +3.5]
-- Cuota de la casa: [X.XX]
-- Stake Sugerido (1 al 5): [X/5] (Basado en el tamaño del 'edge' y confiabilidad de los datos en circuito Challenger/ATP).`,
+3. **Identificación de VALOR (The Edge)**
+   * Mercado seleccionado: [Ej: Ganador Simple / Hándicap Juegos / Total de Juegos]
+   * Cuota Winamax: [X.XX] vs Cuota Justa Estimada: [Y.YY]
+   * Margen de EV+: [+X.X%] (Demostrando que la probabilidad real estimada supera la probabilidad implícita de la cuota de la casa).
+
+4. **Pronóstico Final y Stake**
+   * Apuesta recomendada: [Detalle exacto del pick]
+   * Cuota: [X.XX]
+   * Stake Sugerido (1 al 5): [X/5]`,
   },
   {
     label: "Analista cuantitativo",
-    prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en tenis ATP y Challenger (Singles Masculinos). Tu objetivo es realizar un análisis probabilístico y estadístico exhaustivo para las próximas 24h (analiza la hora actual para restringir los partidos a las próximas 24h desde ahora) en los atp y challenger single masculino.
-Quiero determinar si existe valor esperado positivo (EV+) en algún mercado para este partido, priorizando selecciones de cuota superior a 1.60 y con una probabilidad de éxito superior al 60%.
-Sigue estrictamente los siguientes pasos de análisis detallados:
+    prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en tenis ATP y Challenger (Singles Masculinos). Tu objetivo es realizar un análisis probabilístico y estadístico exhaustivo para la jornada de tenis indicada por la ventana de fechas que se detalla más abajo en este mismo mensaje.
 
-CONTEXTO Y ENTORNO DEL PARTIDO
-Superficie exacta: Tipo de pista (arcilla, hierba, dura, dura bajo techo) y velocidad de la pista (Court Pace Index - CPI si está disponible).
-Condiciones climáticas: Temperatura, humedad, viento, altitud y si se juega indoor o al aire libre. ¿A quién favorecen estas condiciones según su estilo de juego?
-Motivación y Calendario: Categoría del torneo (Grand Slam, Master 1000, ATP 250...). ¿Tiene alguno de los jugadores que defender puntos del año pasado? ¿Hay fatiga acumulada o un torneo importante la próxima semana?
+Quiero determinar si existe Valor Esperado Positivo (EV+) en el mercado, priorizando selecciones con cuotas superiores a 1.70 en la casa de apuestas WINAMAX.
 
-RENDIMIENTO ESTADÍSTICO RECIENTE (Últimos 10 partidos en esta superficie)
-Analiza y compara detalladamente las siguientes métricas para ambos jugadores en esta superficie:
-Porcentaje de puntos ganados con el primer servicio y con el segundo servicio.
-Porcentaje de break points salvados y break points convertidos.
-Dominance Ratio (DR): Puntos de devolución ganados (%) / Puntos de servicio perdidos (%).
-Hold/Break Index: La suma del % de juegos de servicio ganados + % de juegos de devolución ganados. (Busca si alguno supera el umbral de 105%).
+Sigue estrictamente esta metodología de análisis:
 
-MATCH-UP TÁCTICO Y FATIGA
-Historial Cara a Cara (Head-to-Head): Resultados previos generales y específicos en esta superficie. ¿Hay algún patrón táctico recurrente (ej. un zurdo castigando el revés a una mano del rival)?
-Estilos de juego: ¿Cómo interactúan sus estilos? (ej: sacador contra restador, contragolpeador contra jugador agresivo).
-Estado físico y fatiga: Tiempo en pista en sus últimos partidos de este torneo. ¿Vienen de partidos largos a 3 sets (o 5 sets)? ¿Hay reportes de molestias físicas o asistencia del fisioterapeuta recientemente?
+1. FILTRADO Y BENCHMARK DE MERCADO (Detección de Valor)
+* Compara las cuotas actuales de Winamax con las cuotas de cierre/actuales de casas Sharp (Pinnacle) o Exchanges (Betfair).
+* Selecciona únicamente aquellos partidos donde Winamax ofrezca una cuota superior a la de la casa Sharp (descontando el margen/vig). Esa discrepancia será nuestra base matemática para el EV+.
 
-ANÁLISIS DE MERCADO Y DETECCIÓN DE VALOR (EV+)
-Revisa las cuotas actuales en las principales casas de apuestas (como Winamax).
-Calcula tu propia probabilidad implícita para la victoria de cada jugador basándote en los datos anteriores.
-Compara tu probabilidad calculada con la probabilidad implícita de las cuotas de la casa de apuestas (Fórmula: 1 / Cuota).
-Identifica si hay discrepancias donde la cuota de la casa pague más de lo que la probabilidad real sugiere (Valor Esperado Positivo).
+2. AUDITORÍA ESTADÍSTICA (Últimos 10 partidos en la superficie actual)
+Para los partidos filtrados en el paso 1, analiza las siguientes métricas clave de ambos jugadores:
+* Hold/Break Index: Suma del % de juegos de servicio ganados + % de juegos al resto ganados. (Destaca si algún jugador supera el 105%).
+* Dominance Ratio (DR): Puntos de devolución ganados (%) / Puntos de servicio perdidos (%).
+* Rendimiento bajo presión: % de Break Points salvados y convertidos.
+
+3. CONTEXTO, MATCH-UP Y FATIGA
+* Condiciones y Superficie: Velocidad estimada de la pista (si aplica) y a qué estilo de juego beneficia (ej. sacadores vs terrícolas puros).
+* H2H Táctico: Patrones de juego recurrentes (ej. zurdo cruzando al revés a una mano).
+* Fatiga Acumulada: Minutos en pista en los últimos 3 días, partidos a 3 sets recientes o historial de molestias físicas en el torneo.
+
+4. RESTRICCIONES DE ENTREGA
+* NINGUNA apuesta combinada. Solo selecciones simples (Ganador, Hándicap, Total de Juegos).
+* Volumen de salida: Devuelve exactamente 8 recomendaciones, de 8 partidos distintos (nunca repitas un partido), enfocadas 100% en el mayor EV+ matemático (no busques la "apuesta segura", busca el error de la casa de apuestas).
 
 ${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
 
 ${TENNIS_INJURY_COMEBACK_CHECK}
 
-RESTRICCIONES Y FORMATO DE ENTREGA:
-NO me ofrezcas bajo ninguna circunstancia pronósticos que incluyan combinadas.
-Entrega tu análisis dividido claramente en estas secciones.
-Concluye con 8 recomendaciones de apuestas específicas, de 8 partidos distintos (nunca repitas un partido entre los 8 picks), que consideres de ALTA PROBABILIDAD DE ACIERTO, como ganador, numero de juegos, aces, handicaps, etc y que tengan EV+ (indicando mercado, cuota estimada y la justificación matemática de por qué es EV+).`,
+FORMATO DE SALIDA (Genera la respuesta con esta estructura exacta para cada pick):
+
+🎾 [Torneo] | [Jugador A vs Jugador B]
+* 🎯 Mercado: [Ej: Gana Jugador A / Hándicap +3.5 Juegos]
+* 📈 Cuota Winamax: [X.XX] | ⚖️ Cuota Sharp (Pinnacle/Betfair): [Y.YY]
+* 💎 EV Estimado: [+X.X%]
+
+📊 Justificación Cuantitativa:
+* Hold/Break Index y DR: [Breve comparativa de los datos de los últimos 10 partidos].
+* Contexto y Fatiga: [Datos relevantes de tiempo en pista o match-up táctico].
+* Motivo del Valor: [Por qué el mercado de Winamax está desajustado respecto a la línea real].`,
   },
 ];
 
