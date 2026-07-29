@@ -29,13 +29,14 @@ import { composeMontage } from "./montage/composeMontage";
 import { analyzeTicket } from "./montage/analyzeTicket";
 import { formatTicketCaption, formatSelectionsSummary } from "./montage/formatTicketCaption";
 import {
+  createBetCandidate,
+  consumeBetCandidate,
   createPendingBet,
   getPendingBets,
   markBetLost,
   markBetWon,
   getStatsSummary,
   formatMoney,
-  type BetCandidate,
 } from "./stats/betsStore";
 import { randomUUID } from "node:crypto";
 
@@ -412,12 +413,6 @@ function describeError(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-// Candidatos a apuesta pendientes de que el usuario pulse "📝 Registrar
-// apuesta" en su propio mensaje, indexados por un token aleatorio (no por
-// message_id: así el mismo helper vale tanto para ctx.reply como para el
-// envío programado, que no comparten el mismo tipo de mensaje).
-const pendingBetRegistration = new Map<string, BetCandidate>();
-
 /** Manda cada entrada como su PROPIO mensaje, con botón de registrar apuesta si trae datos de apuesta. */
 async function sendBetEntries(reply: ReplyFn, entries: FormattedBetEntry[]): Promise<void> {
   for (const entry of entries) {
@@ -425,27 +420,34 @@ async function sendBetEntries(reply: ReplyFn, entries: FormattedBetEntry[]): Pro
       await reply(entry.text, { parse_mode: "Markdown" });
       continue;
     }
+
+    // El candidato se guarda en Firestore (no en memoria): Cloud Run puede
+    // reciclar el contenedor por inactividad en pocos minutos, mucho antes
+    // de que el usuario vuelva a mirar el móvil y pulse el botón.
     const token = randomUUID();
-    pendingBetRegistration.set(token, entry.bet);
-    await reply(entry.text, {
-      parse_mode: "Markdown",
-      reply_markup: Markup.inlineKeyboard([
-        [Markup.button.callback("📝 Registrar apuesta", `regbet:${token}`)],
-      ]).reply_markup,
-    });
+    try {
+      await createBetCandidate(token, entry.bet);
+      await reply(entry.text, {
+        parse_mode: "Markdown",
+        reply_markup: Markup.inlineKeyboard([
+          [Markup.button.callback("📝 Registrar apuesta", `regbet:${token}`)],
+        ]).reply_markup,
+      });
+    } catch (err) {
+      console.error("No se pudo guardar el candidato a apuesta:", err);
+      await reply(entry.text, { parse_mode: "Markdown" });
+    }
   }
 }
 
 bot.action(/^regbet:(.+)$/, async (ctx) => {
   const token = ctx.match[1];
-  const candidate = pendingBetRegistration.get(token);
-  if (!candidate) {
-    await ctx.answerCbQuery("Esta apuesta ya se registró o el botón ha caducado.");
-    return;
-  }
-  pendingBetRegistration.delete(token);
-
   try {
+    const candidate = await consumeBetCandidate(token);
+    if (!candidate) {
+      await ctx.answerCbQuery("Esta apuesta ya se registró o el botón ha caducado.");
+      return;
+    }
     await createPendingBet(candidate);
     await ctx.answerCbQuery("Apuesta registrada ✅");
     await ctx.editMessageReplyMarkup(undefined);

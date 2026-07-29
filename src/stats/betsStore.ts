@@ -22,9 +22,34 @@ export interface Bet extends BetCandidate {
 }
 
 const COLLECTION = "bets";
+// Candidatos a apuesta a la espera de que el usuario pulse "📝 Registrar
+// apuesta" en su mensaje de Telegram. Antes vivían en un Map en memoria del
+// proceso, y Cloud Run recicla el contenedor por inactividad mucho antes de
+// lo que tarda un usuario en volver a mirar el móvil — se perdía el botón
+// sin avisar. Guardarlos en Firestore (doc ID = el mismo token del botón)
+// hace que sobrevivan a cualquier reinicio del contenedor.
+const CANDIDATES_COLLECTION = "betCandidates";
 // Stake fijo de referencia para calcular el beneficio, igual que en el
 // mensaje-resumen del montaje de /ticket.
 const STAKE_EUR = 50;
+
+export async function createBetCandidate(token: string, candidate: BetCandidate): Promise<void> {
+  await firestore
+    .collection(CANDIDATES_COLLECTION)
+    .doc(token)
+    .set({ ...candidate, createdAt: Date.now() });
+}
+
+/** Lee el candidato y lo borra en el mismo paso (un botón solo se puede usar una vez). Null si ya se usó, caducó o nunca existió. */
+export async function consumeBetCandidate(token: string): Promise<BetCandidate | null> {
+  const ref = firestore.collection(CANDIDATES_COLLECTION).doc(token);
+  const snapshot = await ref.get();
+  if (!snapshot.exists) return null;
+
+  await ref.delete();
+  const { matchup, tournament, market, section, sourceLabel } = snapshot.data() as BetCandidate;
+  return { matchup, tournament, market, section, sourceLabel };
+}
 
 export async function createPendingBet(candidate: BetCandidate): Promise<string> {
   const doc = await firestore.collection(COLLECTION).add({

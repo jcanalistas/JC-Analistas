@@ -306,10 +306,6 @@ orden, en dos filas). Cada uno hace lo mismo que su comando equivalente:
   publicar/editar viven en memoria del proceso: si Cloud Run apaga el
   contenedor por inactividad entre medias, se pierden (el botón de
   reutilizar fondo deja de ofrecerse, y los de publicar/editar caducan).
-- Los botones "📝 Registrar apuesta" de un `/analizar` también viven en
-  memoria hasta que se pulsan: si el contenedor se reinicia entre medias,
-  esos botones concretos caducan (aunque las apuestas ya registradas en
-  Firestore no se ven afectadas — solo las que aún no se habían pulsado).
 - Las cuotas reales que se guardan en Firestore se registran a mano al
   marcar "✅ Ganada"; no hay ninguna integración con casas de apuestas.
 
