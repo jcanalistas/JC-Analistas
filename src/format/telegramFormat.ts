@@ -13,7 +13,8 @@ export interface FormattedBetEntry {
 /**
  * Mensaje 1: selecciones finales de cada Deep Research, agrupadas por
  * perfil (Tipster, Machine Learning, Analista cuantitativo), con cuota,
- * EV, % de éxito y explicación de cada pick.
+ * EV y % de éxito de cada pick (sin explicación, para no alargar tanto
+ * el mensaje — esa se deja solo en Recomendaciones y Mismo partido).
  */
 export function formatIndividualSelections(
   labels: string[],
@@ -39,7 +40,6 @@ export function formatIndividualSelections(
         .filter(Boolean)
         .join("  ·  ");
       if (details) lines.push(details);
-      lines.push(`_${s.explanation || "Sin explicación detallada."}_`);
     });
   });
 
