@@ -301,10 +301,12 @@ bot.action("comp:confirm", async (ctx) => {
   }
   await ctx.answerCbQuery();
 
-  const labels = FOOTBALL_COMPETITIONS.filter((c) => selectedIds.has(c.id)).map((c) => c.label);
+  const selectedComps = FOOTBALL_COMPETITIONS.filter((c) => selectedIds.has(c.id));
+  const displayLabels = selectedComps.map((c) => c.label);
+  const promptLabels = selectedComps.map((c) => c.searchHint ?? c.label);
   competitionSelection.delete(userId);
-  await ctx.editMessageText(`Competiciones elegidas: ${labels.join(", ")}`);
-  await launchResearch(ctx, "futbol", labels, dateFilterSelection.get(userId));
+  await ctx.editMessageText(`Competiciones elegidas: ${displayLabels.join(", ")}`);
+  await launchResearch(ctx, "futbol", promptLabels, dateFilterSelection.get(userId));
 });
 
 // Firma común de ctx.reply — así runResearch() sirve tanto para el flujo

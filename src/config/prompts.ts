@@ -29,7 +29,18 @@ export interface PromptDefinition {
  * selector de competiciones antes de lanzar /analizar solo aplica a
  * fútbol, ya que en tenis los prompts ya están acotados a ATP/Challenger).
  */
-export const FOOTBALL_COMPETITIONS: Array<{ id: string; label: string; flag: string }> = [
+export const FOOTBALL_COMPETITIONS: Array<{
+  id: string;
+  label: string;
+  flag: string;
+  /**
+   * Texto que se manda a Gemini en la restricción de competiciones en vez
+   * del label corto del botón, para entradas "paraguas" que agrupan varias
+   * ligas (Gemini necesita saber exactamente cuáles, el label del botón no
+   * da suficiente contexto por sí solo). Si no se indica, se usa el label.
+   */
+  searchHint?: string;
+}> = [
   { id: "laliga1", label: "LaLiga 1ª", flag: "🇪🇸" },
   { id: "laliga2", label: "LaLiga 2ª", flag: "🇪🇸" },
   { id: "rfef1", label: "1ª RFEF", flag: "🇪🇸" },
@@ -43,6 +54,13 @@ export const FOOTBALL_COMPETITIONS: Array<{ id: string; label: string; flag: str
   { id: "champions", label: "Champions League", flag: "🇪🇺" },
   { id: "europa", label: "Europa League", flag: "🇪🇺" },
   { id: "conference", label: "Conference League", flag: "🇪🇺" },
+  {
+    id: "european_others",
+    label: "Ligas Europeas (otras)",
+    flag: "🇪🇺",
+    searchHint:
+      "Ligas Europeas (otras) — primeras divisiones nacionales europeas de fútbol masculino no cubiertas en las demás opciones, como la Superliga de Dinamarca, la Eliteserien de Noruega, la Allsvenskan de Suecia, la Jupiler Pro League de Bélgica, la Eredivisie de Países Bajos, la Scottish Premiership, la Bundesliga austriaca o la Super League suiza",
+  },
 ];
 
 // Ejemplo real que motivó este bloque: la victoria del Copenhague a 1,58 no
