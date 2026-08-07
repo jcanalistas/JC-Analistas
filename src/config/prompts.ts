@@ -48,7 +48,12 @@ export const FOOTBALL_COMPETITIONS: Array<{
   { id: "portugal", label: "Liga Portugal", flag: "🇵🇹" },
   { id: "premier", label: "Premier League", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
   { id: "bundesliga", label: "Bundesliga", flag: "🇩🇪" },
-  { id: "mls", label: "MLS", flag: "🇺🇸" },
+  {
+    id: "mls",
+    label: "MLS",
+    flag: "🇺🇸",
+    searchHint: "MLS (incluye también la Leagues Cup, el torneo entre clubes de MLS y Liga MX)",
+  },
   { id: "brasileirao", label: "Brasileirão", flag: "🇧🇷" },
   // Competiciones de la UEFA: se usa la bandera de la UE como referencia visual.
   { id: "champions", label: "Champions League", flag: "🇪🇺" },
@@ -85,7 +90,7 @@ Sigue estas reglas estrictas:
  * Ordénalos obligatoriamente de mayor a menor confianza de éxito (asignando un % de probabilidad de acierto a cada uno).
 
 2. Cobertura y Filtros Estadísticos:
- * Ligas permitidas: MLS, LaLiga (1ª y 2ª), 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga, Brasileirão y competiciones europeas (Champions, Europa, Conference).
+ * Ligas permitidas: MLS (incluye también la Leagues Cup, el torneo entre clubes de MLS y Liga MX), LaLiga (1ª y 2ª), 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga, Brasileirão y competiciones europeas (Champions, Europa, Conference).
  * Criterio de selección: Busca equipos con un win-rate local/visitante > 65% frente a rivales con H2H desfavorable o rendimiento modesto en esa condición.
  * Métricas avanzadas: Apoya tu decisión en datos como el xG (generado/concedido), tiros a puerta y posesión. Revisa si han vencido a rivales de la parte alta de la tabla recientemente.
 
@@ -109,7 +114,7 @@ Antes de la tabla, escribe un breve párrafo resumiendo qué ligas tenían más 
 
 Tu objetivo es analizar los datos para encontrar valor matemático real (Value Betting) frente a las cuotas de Winamax o Bet365. Debes proporcionar exactamente 8 selecciones de picks con EV+ (Expected Value positivo) de 8 partidos distintos. La probabilidad estimada de acierto del PICK (ya sea 1X2, hándicap, goles, etc.) debe ser estrictamente superior al 50%.
 
-Ligas cubiertas: MLS, LaLiga (1ª y 2ª), 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga, Brasileirão y competiciones europeas (Champions, Europa y Conference League).
+Ligas cubiertas: MLS (incluye también la Leagues Cup, el torneo entre clubes de MLS y Liga MX), LaLiga (1ª y 2ª), 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga, Brasileirão y competiciones europeas (Champions, Europa y Conference League).
 
 Analizarás minuciosamente los partidos bajo estos 5 pilares metodológicos:
 
@@ -164,7 +169,7 @@ Para CADA UNO de los 8 partidos seleccionados, genera el siguiente bloque:
   },
   {
     label: "Analista cuantitativo",
-    prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en fútbol. Utiliza tus herramientas de búsqueda para identificar la fecha y hora actual, y filtra los partidos que se disputarán en las próximas 24 horas en las siguientes competiciones: MLS, LaLiga (1ª y 2ª), 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga, Brasileirão y competiciones europeas (Champions, Europa y Conference League).
+    prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en fútbol. Utiliza tus herramientas de búsqueda para identificar la fecha y hora actual, y filtra los partidos que se disputarán en las próximas 24 horas en las siguientes competiciones: MLS (incluye también la Leagues Cup, el torneo entre clubes de MLS y Liga MX), LaLiga (1ª y 2ª), 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga, Brasileirão y competiciones europeas (Champions, Europa y Conference League).
 
 Tu objetivo es encontrar Valor Esperado Positivo (EV+) puro. Selecciona exactamente 8 partidos distintos. NO se permiten apuestas combinadas.
 
