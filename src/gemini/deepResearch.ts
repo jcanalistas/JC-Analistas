@@ -1,11 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { withRetry } from "./retry";
 
-export interface DeepResearchResult {
-  prompt: string;
-  reportText: string;
-}
-
 export class DeepResearchError extends Error {
   constructor(message: string, public readonly promptPreview: string) {
     super(message);
@@ -13,16 +8,11 @@ export class DeepResearchError extends Error {
   }
 }
 
-interface RunOptions {
+interface CreateOptions {
   apiKey: string;
   /** p.ej. "deep-research-preview-04-2026" o "deep-research-max-preview-04-2026" */
   agent: string;
-  timeoutMinutes: number;
-  pollIntervalMs?: number;
 }
-
-const DEFAULT_POLL_INTERVAL_MS = 10_000;
-const MAX_CONSECUTIVE_POLL_ERRORS = 5;
 
 // El SDK aplica por defecto un timeout de 90s a cada petición HTTP, muy
 // corto para crear un Deep Research (que puede tardar en confirmar el
@@ -37,19 +27,20 @@ const POLL_TIMEOUT_MS = 60_000;
 const CREATE_RETRIES = 3;
 const CREATE_RETRY_BASE_DELAY_MS = 3_000;
 
-/**
- * Ejecuta un Deep Research usando la API oficial de Gemini (Interactions
- * API), sin navegador ni sesión de Google — solo una API key de Google AI
- * Studio. La tarea corre en segundo plano en los servidores de Google y
- * aquí hacemos polling hasta que termina.
- */
-export async function runDeepResearch(prompt: string, options: RunOptions): Promise<DeepResearchResult> {
-  const client = new GoogleGenAI({
-    apiKey: options.apiKey,
-    httpOptions: { timeout: HTTP_TIMEOUT_MS },
-  });
+function client(apiKey: string): GoogleGenAI {
+  return new GoogleGenAI({ apiKey, httpOptions: { timeout: HTTP_TIMEOUT_MS } });
+}
 
-  let interactionId: string;
+/**
+ * Lanza un Deep Research en segundo plano en los servidores de Google y
+ * devuelve solo su ID (tarda segundos). NO espera a que termine — eso lo
+ * hace `pollDeepResearchOnce`, pensada para llamarse repetidamente desde
+ * fuera (ver /internal/poll-research en server.ts) en vez de mantener un
+ * proceso esperando de forma continua los 20-30 minutos que puede tardar
+ * en completarse: un contenedor de Cloud Run puede reciclarse por el
+ * camino y perder ese progreso sin avisar.
+ */
+export async function createDeepResearchInteraction(prompt: string, options: CreateOptions): Promise<string> {
   try {
     // Lanzar los 3 Deep Research casi a la vez puede toparse con un 429
     // transitorio de la API; unos segundos de espera y reintento suelen
@@ -58,7 +49,7 @@ export async function runDeepResearch(prompt: string, options: RunOptions): Prom
     const interaction = await withRetry(
       () =>
         withTimeout(
-          client.interactions.create({
+          client(options.apiKey).interactions.create({
             input: prompt,
             agent: options.agent,
             background: true,
@@ -68,7 +59,7 @@ export async function runDeepResearch(prompt: string, options: RunOptions): Prom
         ),
       { retries: CREATE_RETRIES, baseDelayMs: CREATE_RETRY_BASE_DELAY_MS }
     );
-    interactionId = interaction.id;
+    return interaction.id;
   } catch (err) {
     console.error("No se pudo crear la interacción de Deep Research:", err);
     throw new DeepResearchError(
@@ -76,63 +67,48 @@ export async function runDeepResearch(prompt: string, options: RunOptions): Prom
       prompt
     );
   }
+}
 
-  const pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
-  const deadline = Date.now() + options.timeoutMinutes * 60_000;
-  let consecutivePollErrors = 0;
+export type PollOutcome =
+  | { status: "running" }
+  | { status: "completed"; reportText: string }
+  | { status: "failed"; message: string };
 
-  while (true) {
-    if (Date.now() > deadline) {
-      throw new DeepResearchError(
-        `Gemini no terminó el informe en ${options.timeoutMinutes} minutos. ` +
-          `Puedes subir DEEP_RESEARCH_TIMEOUT_MINUTES si tus investigaciones tardan más.`,
-        prompt
-      );
-    }
-
-    let result;
-    try {
-      result = await withTimeout(
-        client.interactions.get(interactionId),
-        POLL_TIMEOUT_MS,
-        "Tiempo de espera agotado consultando el estado"
-      );
-      consecutivePollErrors = 0;
-    } catch (err) {
-      consecutivePollErrors++;
-      console.error(
-        `Fallo consultando interacción ${interactionId} (intento ${consecutivePollErrors}/${MAX_CONSECUTIVE_POLL_ERRORS}):`,
-        err
-      );
-      if (consecutivePollErrors > MAX_CONSECUTIVE_POLL_ERRORS) {
-        throw new DeepResearchError(
-          `Error consultando el estado del Deep Research (${consecutivePollErrors} intentos fallidos seguidos): ${describeError(err)}`,
-          prompt
-        );
-      }
-      // Fallo puntual (p.ej. un timeout huérfano del SDK): esperamos y
-      // reintentamos en vez de abortar todo el research de golpe.
-      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-      continue;
-    }
-
-    if (result.status === "completed") {
-      const reportText = extractReportText(result);
-      if (!reportText.trim()) {
-        throw new DeepResearchError("Gemini terminó pero no devolvió texto en el informe.", prompt);
-      }
-      return { prompt, reportText };
-    }
-
-    if (result.status === "failed" || result.status === "cancelled" || result.status === "budget_exceeded") {
-      throw new DeepResearchError(
-        `El Deep Research terminó con estado "${result.status}" en la API de Gemini.`,
-        prompt
-      );
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+/**
+ * Consulta UNA VEZ el estado de una interacción ya creada (sin bucle ni
+ * espera interna) — pensado para llamarse repetidamente desde un sondeo
+ * externo (Cloud Scheduler cada 1-2 min) en vez de mantener un proceso
+ * esperando de forma continua. Un fallo de red puntual se trata como
+ * "sigue corriendo" (se reintentará en el próximo sondeo); quien llama es
+ * responsable de comparar contra su propio plazo límite y darlo por
+ * fallido si se pasa de tiempo.
+ */
+export async function pollDeepResearchOnce(interactionId: string, options: { apiKey: string }): Promise<PollOutcome> {
+  let result;
+  try {
+    result = await withTimeout(
+      client(options.apiKey).interactions.get(interactionId),
+      POLL_TIMEOUT_MS,
+      "Tiempo de espera agotado consultando el estado"
+    );
+  } catch (err) {
+    console.error(`Fallo consultando interacción ${interactionId}, se reintentará en el próximo sondeo:`, err);
+    return { status: "running" };
   }
+
+  if (result.status === "completed") {
+    const reportText = extractReportText(result);
+    if (!reportText.trim()) {
+      return { status: "failed", message: "Gemini terminó pero no devolvió texto en el informe." };
+    }
+    return { status: "completed", reportText };
+  }
+
+  if (result.status === "failed" || result.status === "cancelled" || result.status === "budget_exceeded") {
+    return { status: "failed", message: `El Deep Research terminó con estado "${result.status}" en la API de Gemini.` };
+  }
+
+  return { status: "running" };
 }
 
 /**

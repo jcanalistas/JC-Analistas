@@ -1,5 +1,5 @@
 import express from "express";
-import { bot, runScheduledTennisAnalysis } from "./bot";
+import { bot, runScheduledTennisAnalysis, pollAllResearchJobs } from "./bot";
 import { env } from "./config/env";
 
 // Red de seguridad: sin esto, un rechazo de promesa no capturado en
@@ -37,6 +37,25 @@ app.post("/internal/auto-analizar-tenis", (req, res) => {
   res.status(202).send("ok");
   runScheduledTennisAnalysis().catch((err) => {
     console.error("El análisis automático de tenis falló:", err);
+  });
+});
+
+// Lo llama Cloud Scheduler cada 1-2 minutos: revisa en Firestore si hay
+// algún Deep Research pendiente y consulta su estado en Gemini. Cada
+// llamada dura segundos (una consulta rápida por perfil pendiente), así
+// que nunca depende de que el contenedor siga vivo los 20-30 minutos que
+// puede tardar Gemini en terminar — si el contenedor se recicla entre
+// sondeo y sondeo, el progreso ya está guardado en Firestore y el
+// siguiente sondeo continúa donde se quedó.
+app.post("/internal/poll-research", (req, res) => {
+  const secret = req.query.secret ?? req.get("X-Auto-Secret");
+  if (secret !== env.autoAnalizarSecret) {
+    res.status(401).send("unauthorized");
+    return;
+  }
+  res.status(202).send("ok");
+  pollAllResearchJobs().catch((err) => {
+    console.error("El sondeo de research falló:", err);
   });
 });
 

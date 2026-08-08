@@ -19,11 +19,20 @@ Usa la **API oficial de Gemini Deep Research** (Interactions API,
 `@google/genai`) — nada de automatizar un navegador ni depender de tu
 sesión personal de Google. Solo hace falta una API key de Google AI
 Studio. Cada Deep Research corre en segundo plano en los servidores de
-Google; el bot hace polling hasta que termina y te manda el resultado.
+Google.
 
 Los 3 se lanzan **en paralelo** (cada uno es una llamada de API
-independiente) y cada uno puede tardar varios minutos — el bot avisa por
-Telegram según va terminando cada uno.
+independiente) y cada uno puede tardar varios minutos. Al lanzar
+`/analizar`, el bot solo crea las 3 tareas en Gemini (tarda segundos) y
+guarda su progreso en Firestore — **no se queda esperando** a que
+terminen dentro de la misma petición. Un job de Cloud Scheduler aparte
+(ver 7.7) sondea cada 1-2 minutos si hay tareas pendientes y, en cuanto
+alguna termina, manda el aviso por Telegram. Esto es deliberado: Cloud
+Run puede reciclar el contenedor por su cuenta en cualquier momento
+(inactividad, mantenimiento, redeploys), y una tarea que dependiera de un
+único proceso vivo durante 20-30 minutos seguidos se perdía sin avisar
+cuando eso pasaba — con el progreso guardado en Firestore, el siguiente
+sondeo simplemente continúa donde se quedó.
 
 ## Requisitos
 
@@ -177,13 +186,17 @@ Para desactivarlo sin borrar el job: `gcloud scheduler jobs pause
 auto-analizar-tenis`. Para lanzarlo ya mismo y probarlo: `gcloud
 scheduler jobs run auto-analizar-tenis`.
 
-### 7.6 Activar Firestore (para la funcionalidad Stats)
+Este job solo lanza las 3 tareas en Gemini — igual que `/analizar`
+manual, necesita el job de sondeo de 7.7 para que alguna vez lleguen los
+resultados.
 
-La función "Registrar apuesta" / `/pendientes` / `/stats` guarda los datos
-en Firestore (la primera vez que este proyecto usa una base de datos
-persistente: todo lo demás vive en memoria del proceso). Hace falta
-crearla una sola vez y darle permiso a la cuenta de servicio del propio
-Cloud Run:
+### 7.6 Activar Firestore (obligatorio: lo usan tanto Stats como /analizar)
+
+Firestore es la base de datos persistente del proyecto — la usan tanto
+"Registrar apuesta" / `/pendientes` / `/stats` como el propio `/analizar`
+(para guardar el progreso de cada Deep Research mientras Gemini trabaja,
+ver 7.7). Hace falta crearla una sola vez y darle permiso a la cuenta de
+servicio del propio Cloud Run:
 
 ```bash
 gcloud services enable firestore.googleapis.com
@@ -195,6 +208,30 @@ gcloud projects add-iam-policy-binding $(gcloud config get-value project) \
   --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
   --role="roles/datastore.user"
 ```
+
+### 7.7 Cloud Scheduler para el sondeo de /analizar (obligatorio)
+
+`/analizar` ya no espera dentro de la misma petición a que Gemini
+termine (ver "Cómo funciona por dentro" al principio) — necesita que
+algo externo le pregunte periódicamente "¿ha terminado ya?". Ese algo es
+Cloud Scheduler, llamando cada 1-2 minutos a un endpoint interno del
+propio servicio:
+
+```bash
+gcloud services enable cloudscheduler.googleapis.com
+
+gcloud scheduler jobs create http poll-research \
+  --location=europe-west1 \
+  --schedule="*/2 * * * *" \
+  --uri="https://TU-URL-DE-CLOUD-RUN.a.run.app/internal/poll-research?secret=TU_AUTO_ANALIZAR_SECRET" \
+  --http-method=POST
+```
+
+Usa la misma `TU-URL-DE-CLOUD-RUN` y el mismo secreto que en 7.5 (el
+valor de `AUTO_ANALIZAR_SECRET`). Sin este job, `/analizar` lanza las 3
+tareas en Gemini y se queda ahí para siempre: nadie las vuelve a mirar,
+así que nunca llegan los mensajes de "✅ completado" ni el resultado
+final. Es imprescindible tenerlo activo — no es opcional como el 7.5.
 
 `--location=eur3` es una región multi-región de Europa; si tu proyecto ya
 tiene una base de datos Firestore creada en otra región para otra cosa, no
@@ -305,6 +342,10 @@ orden, en dos filas). Cada uno hace lo mismo que su comando equivalente:
   puede cambiar su comportamiento, precios o disponibilidad.
 - Solo un `/analizar` puede correr a la vez (incluido el automático de las
   7:00: si coincide con uno que lanzaste tú a mano, avisa y no lo lanza).
+  Desde que `/analizar` guarda su progreso en Firestore y se sondea desde
+  fuera (ver 7.7), esto ya no depende de que el contenedor de Cloud Run
+  siga vivo sin interrupción — un reinicio o redeploy en medio de un
+  análisis ya no lo pierde, como sí pasaba antes.
 - El último fondo de `/ticket` y los montajes/resúmenes pendientes de
   publicar/editar viven en memoria del proceso: si Cloud Run apaga el
   contenedor por inactividad entre medias, se pierden (el botón de
@@ -331,4 +372,5 @@ src/
   stats/
     firestore.ts              Cliente de Firestore (vía ADC)
     betsStore.ts               Modelo de apuesta + CRUD (pendiente/ganada/perdida) y estadísticas
+    researchJobs.ts            Modelo del job de /analizar + CRUD (progreso de cada Deep Research en curso)
 ```

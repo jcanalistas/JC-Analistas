@@ -9,7 +9,7 @@ import {
   type Sport,
   type TennisCategory,
 } from "./config/prompts";
-import { runDeepResearch, DeepResearchError, type DeepResearchResult } from "./gemini/deepResearch";
+import { createDeepResearchInteraction, pollDeepResearchOnce, DeepResearchError } from "./gemini/deepResearch";
 import {
   parseSelections,
   parseCombinadaLegs,
@@ -38,6 +38,14 @@ import {
   getStatsSummary,
   formatMoney,
 } from "./stats/betsStore";
+import {
+  createResearchJob,
+  getUnresolvedResearchJobs,
+  hasUnresolvedResearchJob,
+  updateResearchJob,
+  type ResearchJob,
+  type ResearchJobProfile,
+} from "./stats/researchJobs";
 import { randomUUID } from "node:crypto";
 
 // Por defecto Telegraf corta el procesamiento de cada update a los 90s
@@ -46,8 +54,6 @@ import { randomUUID } from "node:crypto";
 // propio límite en deepResearch.ts. Lo desactivamos aquí y cada llamada
 // larga a Gemini se limita a sí misma con su propio timeout.
 export const bot = new Telegraf(env.telegramBotToken, { handlerTimeout: Infinity });
-
-let researchInProgress = false;
 
 // Botones fijos debajo del teclado, siempre visibles, en este orden.
 const START_BUTTON_TEXT = "🏠 Empezar";
@@ -98,7 +104,7 @@ function sportKeyboard() {
 }
 
 async function startResearchFlow(ctx: Context) {
-  if (researchInProgress) {
+  if (await hasUnresolvedResearchJob()) {
     await ctx.reply("Ya hay un Deep Research en curso, espera a que termine antes de lanzar otro.");
     return;
   }
@@ -194,7 +200,7 @@ async function showTennisCategoryStep(ctx: Context) {
 bot.action(/^research:(futbol|tenis)$/, async (ctx) => {
   const sport = ctx.match[1] as Sport;
 
-  if (researchInProgress) {
+  if (await hasUnresolvedResearchJob()) {
     await ctx.answerCbQuery("Ya hay un Deep Research en curso.");
     return;
   }
@@ -213,7 +219,7 @@ bot.action(/^date:(hoy|manana|24h):(futbol|tenis)$/, async (ctx) => {
   const filter = ctx.match[1] as DateFilter;
   const sport = ctx.match[2] as Sport;
 
-  if (researchInProgress) {
+  if (await hasUnresolvedResearchJob()) {
     await ctx.answerCbQuery("Ya hay un Deep Research en curso.");
     return;
   }
@@ -237,7 +243,7 @@ bot.action(/^back:date:(futbol|tenis)$/, async (ctx) => {
 bot.action(/^tenniscat:(atp|challenger|ambos)$/, async (ctx) => {
   const category = ctx.match[1] as TennisCategory;
 
-  if (researchInProgress) {
+  if (await hasUnresolvedResearchJob()) {
     await ctx.answerCbQuery("Ya hay un Deep Research en curso.");
     return;
   }
@@ -247,7 +253,7 @@ bot.action(/^tenniscat:(atp|challenger|ambos)$/, async (ctx) => {
   await ctx.editMessageText(
     `Deporte elegido: ${SPORT_LABELS.tenis}\nFecha: ${dateFilterLabel(dateFilter ?? "24h")}\nCategoría: ${tennisCategoryLabel(category)}`
   );
-  await launchResearch(ctx, "tenis", undefined, dateFilter, category);
+  await launchResearchJob(ctx, "tenis", undefined, dateFilter, category);
 });
 
 bot.action("back:footbolmode", async (ctx) => {
@@ -257,13 +263,13 @@ bot.action("back:footbolmode", async (ctx) => {
 });
 
 bot.action("comp:all", async (ctx) => {
-  if (researchInProgress) {
+  if (await hasUnresolvedResearchJob()) {
     await ctx.answerCbQuery("Ya hay un Deep Research en curso.");
     return;
   }
   await ctx.answerCbQuery();
   await ctx.editMessageText("Todas las competiciones ✅");
-  await launchResearch(ctx, "futbol", undefined, dateFilterSelection.get(ctx.from!.id));
+  await launchResearchJob(ctx, "futbol", undefined, dateFilterSelection.get(ctx.from!.id));
 });
 
 bot.action("comp:pick", async (ctx) => {
@@ -295,7 +301,7 @@ bot.action("comp:confirm", async (ctx) => {
     });
     return;
   }
-  if (researchInProgress) {
+  if (await hasUnresolvedResearchJob()) {
     await ctx.answerCbQuery("Ya hay un Deep Research en curso.");
     return;
   }
@@ -306,108 +312,199 @@ bot.action("comp:confirm", async (ctx) => {
   const promptLabels = selectedComps.map((c) => c.searchHint ?? c.label);
   competitionSelection.delete(userId);
   await ctx.editMessageText(`Competiciones elegidas: ${displayLabels.join(", ")}`);
-  await launchResearch(ctx, "futbol", promptLabels, dateFilterSelection.get(userId));
+  await launchResearchJob(ctx, "futbol", promptLabels, dateFilterSelection.get(userId));
 });
 
-// Firma común de ctx.reply — así runResearch() sirve tanto para el flujo
-// interactivo (pasando ctx.reply) como para el disparo programado (pasando
-// una función que manda directamente al chat privado del usuario, sin ctx).
+// Firma común de "responder" — la usan sendFinalResults/sendBetEntries,
+// que sirven tanto para el flujo interactivo como para el sondeo
+// programado (siempre mandando directamente al chat guardado en el job,
+// nunca dependiendo de un ctx en concreto).
 type ReplyFn = (text: string, extra?: Record<string, unknown>) => Promise<unknown>;
 
-async function launchResearch(
+/**
+ * Crea las 3 interacciones en Gemini (tarda segundos, no minutos) y guarda
+ * el job en Firestore. NO espera a que Gemini termine — eso lo hace
+ * pollAllResearchJobs(), llamado periódicamente desde fuera (ver
+ * /internal/poll-research en server.ts). Así el proceso que lanza
+ * /analizar no necesita seguir vivo los 20-30 minutos que puede tardar
+ * Gemini: si Cloud Run recicla el contenedor por el camino, el progreso
+ * ya guardado en Firestore no se pierde, y el siguiente sondeo continúa
+ * donde se quedó.
+ */
+async function createAndStoreResearchJob(
+  chatId: number,
+  sport: Sport,
+  options: {
+    competitions?: string[];
+    dateFilter?: DateFilter;
+    tennisCategory?: TennisCategory;
+    scheduled: boolean;
+  }
+): Promise<void> {
+  const promptDefs = buildAllPrompts(sport, options);
+  // En paralelo: cada uno es una llamada de API independiente. allSettled
+  // en vez de all: si un perfil falla al crearse (cuota, timeout...) no
+  // queremos perder los otros dos que sí se hayan podido lanzar.
+  const created = await Promise.allSettled(
+    promptDefs.map(({ prompt }) =>
+      createDeepResearchInteraction(prompt, { apiKey: env.geminiApiKey, agent: env.geminiDeepResearchAgent })
+    )
+  );
+
+  const profiles: ResearchJobProfile[] = [];
+  for (const [idx, { label }] of promptDefs.entries()) {
+    const outcome = created[idx];
+    if (outcome.status === "fulfilled") {
+      profiles.push({ label, interactionId: outcome.value, status: "pending", notified: false });
+      continue;
+    }
+    const reason = outcome.reason;
+    const message = reason instanceof DeepResearchError ? reason.message : describeError(reason);
+    console.error(`No se pudo crear la interacción de Gemini para ${label}:`, reason);
+    // Se avisa ya mismo (en vez de esperar al siguiente sondeo, hasta 1-2
+    // min después) porque no hace falta esperar a nada: ya sabemos que
+    // este perfil ha fallado del todo.
+    await bot.telegram.sendMessage(chatId, `⚠️ Ese perfil falló: ${message}`);
+    profiles.push({ label, status: "failed", errorMessage: message, notified: true });
+  }
+
+  await createResearchJob({
+    chatId,
+    sport,
+    dateFilter: options.dateFilter,
+    tennisCategory: options.tennisCategory,
+    competitions: options.competitions,
+    scheduled: options.scheduled,
+    createdAt: Date.now(),
+    deadline: Date.now() + env.deepResearchTimeoutMinutes * 60_000,
+    profiles,
+    resultsSent: false,
+  });
+}
+
+async function launchResearchJob(
   ctx: Context,
   sport: Sport,
   competitions?: string[],
   dateFilter?: DateFilter,
   tennisCategory?: TennisCategory
 ) {
-  await runResearch((text, extra) => ctx.reply(text, extra), sport, competitions, dateFilter, tennisCategory);
-}
-
-async function runResearch(
-  reply: ReplyFn,
-  sport: Sport,
-  competitions?: string[],
-  dateFilter?: DateFilter,
-  tennisCategory?: TennisCategory
-) {
-  if (researchInProgress) {
-    await reply("Ya hay un Deep Research en curso, espera a que termine antes de lanzar otro.");
+  if (await hasUnresolvedResearchJob()) {
+    await ctx.reply("Ya hay un Deep Research en curso, espera a que termine antes de lanzar otro.");
     return;
   }
 
-  researchInProgress = true;
+  const categoryNote = sport === "tenis" && tennisCategory ? `, ${tennisCategoryLabel(tennisCategory)}` : "";
+  await ctx.reply(
+    `🔎 Lanzando los 3 Deep Research de ${SPORT_LABELS[sport]} (${dateFilterLabel(dateFilter ?? "24h")}${categoryNote}) en Gemini, te aviso según vaya terminando cada uno.`
+  );
+
   try {
-    const categoryNote = sport === "tenis" && tennisCategory ? `, ${tennisCategoryLabel(tennisCategory)}` : "";
-    await reply(
-      `🔎 Lanzando los 3 Deep Research de ${SPORT_LABELS[sport]} (${dateFilterLabel(dateFilter ?? "24h")}${categoryNote}) en Gemini, te aviso según vaya terminando cada uno.`
-    );
-
-    const promptDefs = buildAllPrompts(sport, { competitions, dateFilter, tennisCategory });
-    // En paralelo: cada uno es una llamada de API independiente (no hay
-    // ninguna sesión de navegador compartida que pueda saturarse).
-    // allSettled en vez de all: si un perfil falla (cuota, timeout...) no
-    // queremos perder los otros dos que sí hayan terminado.
-    const settled = await Promise.allSettled(
-      promptDefs.map(async ({ label, prompt }) => {
-        const result = await runDeepResearch(prompt, {
-          apiKey: env.geminiApiKey,
-          agent: env.geminiDeepResearchAgent,
-          timeoutMinutes: env.deepResearchTimeoutMinutes,
-        });
-        await reply(`✅ ${label} completado.`);
-        return { label, result };
-      })
-    );
-
-    const successful: Array<{ label: string; result: DeepResearchResult }> = [];
-    for (const outcome of settled) {
-      if (outcome.status === "fulfilled") {
-        successful.push(outcome.value);
-      } else {
-        const reason = outcome.reason;
-        const message = reason instanceof DeepResearchError ? reason.message : describeError(reason);
-        console.error("Un perfil de /analizar falló:", reason);
-        await reply(`⚠️ Ese perfil falló: ${message}`);
-      }
-    }
-
-    if (successful.length === 0) {
-      await reply("⚠️ Los 3 Deep Research fallaron, no hay nada que mostrar.");
-      return;
-    }
-
-    const labels = successful.map((s) => s.label);
-    const selectionsBySource: Selection[][] = successful.map((s, idx) =>
-      parseSelections(s.result.reportText, idx, s.label)
-    );
-
-    for (const chunk of formatIndividualSelections(labels, selectionsBySource)) {
-      await reply(chunk, { parse_mode: "Markdown" });
-    }
-
-    const allSelections = selectionsBySource.flat();
-    const repeatedGroups = findRepeatedSelections(allSelections);
-    await sendBetEntries(reply, formatRepeatedSelections(repeatedGroups));
-
-    const mixedMarketGroups = findRepeatedMatchupsWithDifferentMarkets(allSelections);
-    await sendBetEntries(reply, formatMixedMarketMatchups(mixedMarketGroups));
-
-    const promptedCombinadas = successful.map((s) => ({
-      label: s.label,
-      legs: parseCombinadaLegs(s.result.reportText),
-    }));
-    const combinada = suggestCombinada(allSelections, promptedCombinadas);
-    await sendBetEntries(reply, formatCombinadaSuggestion(combinada));
+    await createAndStoreResearchJob(ctx.chat!.id, sport, { competitions, dateFilter, tennisCategory, scheduled: false });
   } catch (err) {
-    if (err instanceof DeepResearchError) {
-      await reply(`⚠️ Error ejecutando Deep Research: ${err.message}`);
-    } else {
-      console.error(err);
-      await reply("⚠️ Ocurrió un error inesperado ejecutando los Deep Research. Revisa los logs.");
+    console.error("No se pudo lanzar el análisis:", err);
+    await ctx.reply("⚠️ Ocurrió un error inesperado lanzando el análisis. Revisa los logs.");
+  }
+}
+
+/** Manda los mensajes finales (Selecciones/Recomendaciones/Mismo partido/Combinada) de un job ya resuelto. */
+async function sendFinalResults(job: ResearchJob): Promise<void> {
+  const reply: ReplyFn = (text, extra) => bot.telegram.sendMessage(job.chatId, text, extra);
+  const successful = job.profiles.filter(
+    (p): p is ResearchJobProfile & { reportText: string } => p.status === "completed" && !!p.reportText
+  );
+
+  if (successful.length === 0) {
+    await reply("⚠️ Los 3 Deep Research fallaron, no hay nada que mostrar.");
+    return;
+  }
+
+  const labels = successful.map((s) => s.label);
+  const selectionsBySource: Selection[][] = successful.map((s, idx) => parseSelections(s.reportText, idx, s.label));
+
+  for (const chunk of formatIndividualSelections(labels, selectionsBySource)) {
+    await reply(chunk, { parse_mode: "Markdown" });
+  }
+
+  const allSelections = selectionsBySource.flat();
+  const repeatedGroups = findRepeatedSelections(allSelections);
+  await sendBetEntries(reply, formatRepeatedSelections(repeatedGroups));
+
+  const mixedMarketGroups = findRepeatedMatchupsWithDifferentMarkets(allSelections);
+  await sendBetEntries(reply, formatMixedMarketMatchups(mixedMarketGroups));
+
+  const promptedCombinadas = successful.map((s) => ({
+    label: s.label,
+    legs: parseCombinadaLegs(s.reportText),
+  }));
+  const combinada = suggestCombinada(allSelections, promptedCombinadas);
+  await sendBetEntries(reply, formatCombinadaSuggestion(combinada));
+}
+
+/** Lanzado periódicamente desde /internal/poll-research (Cloud Scheduler, cada 1-2 min). */
+export async function pollAllResearchJobs(): Promise<void> {
+  const jobs = await getUnresolvedResearchJobs();
+  for (const job of jobs) {
+    try {
+      await pollResearchJob(job);
+    } catch (err) {
+      console.error(`Fallo sondeando el job de research ${job.id}:`, err);
     }
-  } finally {
-    researchInProgress = false;
+  }
+}
+
+async function pollResearchJob(job: ResearchJob): Promise<void> {
+  let changed = false;
+
+  for (const profile of job.profiles) {
+    if (profile.status !== "pending") continue;
+
+    if (Date.now() > job.deadline) {
+      profile.status = "failed";
+      profile.errorMessage =
+        `Gemini no terminó el informe en ${env.deepResearchTimeoutMinutes} minutos. ` +
+        `Puedes subir DEEP_RESEARCH_TIMEOUT_MINUTES si tus investigaciones tardan más.`;
+      changed = true;
+      continue;
+    }
+
+    if (!profile.interactionId) continue; // no debería pasar (pending sin interactionId); por si acaso no se toca
+
+    const outcome = await pollDeepResearchOnce(profile.interactionId, { apiKey: env.geminiApiKey });
+    if (outcome.status === "completed") {
+      profile.status = "completed";
+      profile.reportText = outcome.reportText;
+      changed = true;
+    } else if (outcome.status === "failed") {
+      profile.status = "failed";
+      profile.errorMessage = outcome.message;
+      changed = true;
+    }
+    // "running": no cambia nada, se reintenta en el siguiente sondeo.
+  }
+
+  for (const profile of job.profiles) {
+    if (profile.status !== "pending" && !profile.notified) {
+      const text =
+        profile.status === "completed" ? `✅ ${profile.label} completado.` : `⚠️ Ese perfil falló: ${profile.errorMessage}`;
+      await bot.telegram.sendMessage(job.chatId, text);
+      profile.notified = true;
+      changed = true;
+    }
+  }
+
+  // Se guarda el progreso de los perfiles ANTES de intentar mandar los
+  // mensajes finales: si sendFinalResults fallara a medias, no queremos
+  // perder ni repetir los avisos "✅/⚠️" de cada perfil ya notificados.
+  if (changed) {
+    await updateResearchJob(job);
+  }
+
+  const allSettled = job.profiles.every((p) => p.status !== "pending");
+  if (allSettled && !job.resultsSent) {
+    await sendFinalResults(job);
+    job.resultsSent = true;
+    await updateResearchJob(job);
   }
 }
 
@@ -559,9 +656,23 @@ bot.hears(STATS_BUTTON_TEXT, showStats);
 
 /** Lanzado desde fuera de Telegram (ver server.ts): /analizar de tenis automático a las 7:00. */
 export async function runScheduledTennisAnalysis(): Promise<void> {
-  const reply: ReplyFn = (text, extra) => bot.telegram.sendMessage(env.telegramAllowedUserId, text, extra);
-  await reply("⏰ Análisis automático de tenis (7:00) empezando...");
-  await runResearch(reply, "tenis", undefined, "hoy");
+  const chatId = Number(env.telegramAllowedUserId);
+
+  if (await hasUnresolvedResearchJob()) {
+    await bot.telegram.sendMessage(
+      chatId,
+      "⏰ Análisis automático de tenis (7:00): ya había un Deep Research en curso, no se lanza otro."
+    );
+    return;
+  }
+
+  await bot.telegram.sendMessage(chatId, "⏰ Análisis automático de tenis (7:00) empezando...");
+  try {
+    await createAndStoreResearchJob(chatId, "tenis", { dateFilter: "hoy", scheduled: true });
+  } catch (err) {
+    console.error("No se pudo lanzar el análisis automático de tenis:", err);
+    await bot.telegram.sendMessage(chatId, "⚠️ Ocurrió un error inesperado lanzando el análisis automático.");
+  }
 }
 
 // --- /ticket: superpone la foto del ticket sobre una foto de fondo ---
