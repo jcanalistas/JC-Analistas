@@ -311,12 +311,14 @@ orden, en dos filas). Cada uno hace lo mismo que su comando equivalente:
   además de poder mandar uno nuevo (el que mandes queda guardado para la
   próxima). Devuelve:
   1. El montaje con el ticket centrado sobre el fondo (esquinas
-     redondeadas), con un texto generado automáticamente a partir del
-     propio ticket (usando la visión de Gemini para leer la imagen:
-     bandera, nombres de jugadores/equipos y contexto visible): icono del
-     deporte + competición subrayada, selecciones en negrita, "📊 Stake 2"
-     fijo, y una última línea fija en cursiva "🔞 Misma cuota aquí"
-     enlazada.
+     redondeadas) y el logo de JC Analistas en un sello circular blanco en
+     la esquina superior derecha (tamaño y margen proporcionales al ancho
+     de la foto, para verse igual de bien en fondos pequeños o grandes),
+     con un texto generado automáticamente a partir del propio ticket
+     (usando la visión de Gemini para leer la imagen: bandera, nombres de
+     jugadores/equipos y contexto visible): icono del deporte +
+     competición subrayada, selecciones en negrita, "📊 Stake 2" fijo, y
+     una última línea fija en cursiva "🔞 Misma cuota aquí" enlazada.
   2. Un segundo mensaje aparte con el resumen corto en negrita y
      subrayado, entre ✅: `✅ Topo + Prado Set @1,91 ✅`, y debajo, en
      cursiva con la cifra en negrita, el beneficio calculado sobre un
@@ -369,6 +371,12 @@ src/
     matchSelections.ts        Parseo del bloque "SELECCIONES FINALES" + matching
   format/
     telegramFormat.ts         Construcción de los mensajes de Telegram
+  montage/
+    analyzeTicket.ts          Lee el ticket con la visión de Gemini (deporte, selección, cuota...)
+    composeMontage.ts          Monta el ticket + sello del logo sobre la foto de fondo
+    formatTicketCaption.ts     Texto del montaje y del resumen de apuesta acertada
+    logoAsset.ts                Logo de JC Analistas embebido en base64 (ver composeMontage.ts)
+    assets/logo-circle.png      Fuente del logo (recortado en círculo) por si hay que regenerarlo
   stats/
     firestore.ts              Cliente de Firestore (vía ADC)
     betsStore.ts               Modelo de apuesta + CRUD (pendiente/ganada/perdida) y estadísticas

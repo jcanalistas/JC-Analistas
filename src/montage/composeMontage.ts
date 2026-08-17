@@ -1,13 +1,24 @@
 import sharp from "sharp";
+import { JC_ANALISTAS_LOGO_BASE64 } from "./logoAsset";
 
 // Radio de las esquinas redondeadas del ticket, como fracción de su ancho.
 const CORNER_RADIUS_RATIO = 0.05;
+
+// Sello del logo en la esquina superior derecha: diámetro y margen como
+// fracción del ancho del fondo (para que se vea proporcionado igual en
+// fondos pequeños que panorámicos), y cuánto ocupa el logo dentro del
+// círculo blanco (deja un pequeño borde blanco alrededor para que
+// resalte incluso sobre fondos oscuros o muy recargados).
+const LOGO_BADGE_SIZE_RATIO = 0.13;
+const LOGO_MARGIN_RATIO = 0.035;
+const LOGO_INNER_RATIO = 0.86;
 
 /**
  * Superpone la tarjeta del ticket de apuesta (ya recortada, sin fondo
  * blanco alrededor) centrada sobre la foto de fondo, con las esquinas
  * redondeadas, manteniendo el tamaño/proporción original de la foto de
- * fondo.
+ * fondo. Añade también el sello del logo de JC Analistas en la esquina
+ * superior derecha.
  */
 export async function composeMontage(ticketBuffer: Buffer, backgroundBuffer: Buffer): Promise<Buffer> {
   const backgroundMeta = await sharp(backgroundBuffer).metadata();
@@ -41,9 +52,37 @@ export async function composeMontage(ticketBuffer: Buffer, backgroundBuffer: Buf
   const left = Math.round((bgWidth - ticketWidth) / 2);
   const top = Math.round((bgHeight - ticketHeight) / 2);
 
+  const badgeSize = Math.max(24, Math.round(bgWidth * LOGO_BADGE_SIZE_RATIO));
+  const badgeMargin = Math.round(bgWidth * LOGO_MARGIN_RATIO);
+  const logoBadge = await buildLogoBadge(badgeSize);
+
   return sharp(backgroundBuffer)
-    .composite([{ input: roundedTicket, left, top }])
+    .composite([
+      { input: roundedTicket, left, top },
+      { input: logoBadge, left: bgWidth - badgeSize - badgeMargin, top: badgeMargin },
+    ])
     .jpeg({ quality: 92 })
+    .toBuffer();
+}
+
+/** Círculo blanco con el logo de JC Analistas centrado dentro, del tamaño (diámetro en px) indicado. */
+async function buildLogoBadge(size: number): Promise<Buffer> {
+  const whiteDisc = Buffer.from(
+    `<svg width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#ffffff"/></svg>`
+  );
+
+  const logoSize = Math.round(size * LOGO_INNER_RATIO);
+  const logoOffset = Math.round((size - logoSize) / 2);
+  const logo = await sharp(Buffer.from(JC_ANALISTAS_LOGO_BASE64, "base64")).resize(logoSize, logoSize).toBuffer();
+
+  return sharp({
+    create: { width: size, height: size, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+  })
+    .composite([
+      { input: whiteDisc, left: 0, top: 0 },
+      { input: logo, left: logoOffset, top: logoOffset },
+    ])
+    .png()
     .toBuffer();
 }
 
