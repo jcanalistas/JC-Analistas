@@ -255,9 +255,9 @@ orden, en dos filas). Cada uno hace lo mismo que su comando equivalente:
   las competiciones o restringir a una selección concreta (p. ej. solo
   Champions League) marcando con botones de la lista (con la bandera del
   país de cada una, o de la UEFA en las 4 europeas): LaLiga 1ª/2ª, 1ª/2ª
-  RFEF, Liga Portugal, Premier League, Bundesliga, MLS, Brasileirão,
-  Champions/Europa/Conference League, Ligas Europeas (otras) — esta
-  última agrupa primeras divisiones europeas no cubiertas en el resto
+  RFEF, Liga Portugal, Premier League, Bundesliga, Ligue 1, MLS,
+  Brasileirão, Champions/Europa/Conference League, Ligas Europeas (otras)
+  — esta última agrupa primeras divisiones europeas no cubiertas en el resto
   (Dinamarca, Noruega, Suecia, Bélgica, Países Bajos, Escocia, Austria,
   Suiza). Si eliges Tenis 🎾, pregunta si
   quieres **ATP**, **Challenger**, o **Todo**
