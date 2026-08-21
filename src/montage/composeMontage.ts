@@ -4,21 +4,21 @@ import { JC_ANALISTAS_LOGO_BASE64 } from "./logoAsset";
 // Radio de las esquinas redondeadas del ticket, como fracción de su ancho.
 const CORNER_RADIUS_RATIO = 0.05;
 
-// Sello del logo en la esquina superior derecha: diámetro y margen como
-// fracción del ancho del fondo (para que se vea proporcionado igual en
-// fondos pequeños que panorámicos), y cuánto ocupa el logo dentro del
-// círculo blanco (deja un pequeño borde blanco alrededor para que
-// resalte incluso sobre fondos oscuros o muy recargados).
-const LOGO_BADGE_SIZE_RATIO = 0.08;
+// Logo en la esquina superior derecha: ancho y margen como fracción del
+// ancho del fondo (para que se vea proporcionado igual en fondos
+// pequeños que panorámicos). Sin círculo ni fondo blanco detrás — solo
+// el propio logo (navy) con un contorno blanco fino alrededor de sus
+// líneas, para que se vea igual de bien en fotos claras que oscuras.
+const LOGO_SIZE_RATIO = 0.08;
 const LOGO_MARGIN_RATIO = 0.03;
-const LOGO_INNER_RATIO = 0.86;
+const LOGO_STROKE_RATIO = 0.025;
 
 /**
  * Superpone la tarjeta del ticket de apuesta (ya recortada, sin fondo
  * blanco alrededor) centrada sobre la foto de fondo, con las esquinas
  * redondeadas, manteniendo el tamaño/proporción original de la foto de
- * fondo. Añade también el sello del logo de JC Analistas en la esquina
- * superior derecha.
+ * fondo. Añade también el logo de JC Analistas en la esquina superior
+ * derecha.
  */
 export async function composeMontage(ticketBuffer: Buffer, backgroundBuffer: Buffer): Promise<Buffer> {
   const backgroundMeta = await sharp(backgroundBuffer).metadata();
@@ -52,36 +52,58 @@ export async function composeMontage(ticketBuffer: Buffer, backgroundBuffer: Buf
   const left = Math.round((bgWidth - ticketWidth) / 2);
   const top = Math.round((bgHeight - ticketHeight) / 2);
 
-  const badgeSize = Math.max(24, Math.round(bgWidth * LOGO_BADGE_SIZE_RATIO));
-  const badgeMargin = Math.round(bgWidth * LOGO_MARGIN_RATIO);
-  const logoBadge = await buildLogoBadge(badgeSize);
+  const logo = await buildLogo(bgWidth);
+  const logoMeta = await sharp(logo).metadata();
+  const logoWidth = logoMeta.width ?? 0;
+  const margin = Math.round(bgWidth * LOGO_MARGIN_RATIO);
 
   return sharp(backgroundBuffer)
     .composite([
       { input: roundedTicket, left, top },
-      { input: logoBadge, left: bgWidth - badgeSize - badgeMargin, top: badgeMargin },
+      { input: logo, left: bgWidth - logoWidth - margin, top: margin },
     ])
     .jpeg({ quality: 92 })
     .toBuffer();
 }
 
-/** Círculo blanco con el logo de JC Analistas centrado dentro, del tamaño (diámetro en px) indicado. */
-async function buildLogoBadge(size: number): Promise<Buffer> {
-  const whiteDisc = Buffer.from(
-    `<svg width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#ffffff"/></svg>`
-  );
+/**
+ * Logo de JC Analistas, recortado a su contenido real (sin el margen
+ * transparente asimétrico que trae el PNG original — si no, al colocarlo
+ * en la esquina se ve descuadrado), redimensionado al ancho indicado como
+ * fracción del ancho del fondo, y con un contorno blanco fino alrededor
+ * de sus líneas (para que se vea igual sobre fotos claras u oscuras, sin
+ * necesidad de ponerle un círculo/fondo de color detrás).
+ */
+async function buildLogo(backgroundWidth: number): Promise<Buffer> {
+  const trimmed = await sharp(Buffer.from(JC_ANALISTAS_LOGO_BASE64, "base64")).trim().toBuffer();
+  const trimmedMeta = await sharp(trimmed).metadata();
+  const originalWidth = trimmedMeta.width ?? 1;
+  const originalHeight = trimmedMeta.height ?? 1;
 
-  const logoSize = Math.round(size * LOGO_INNER_RATIO);
-  const logoOffset = Math.round((size - logoSize) / 2);
-  const logo = await sharp(Buffer.from(JC_ANALISTAS_LOGO_BASE64, "base64")).resize(logoSize, logoSize).toBuffer();
+  const width = Math.max(16, Math.round(backgroundWidth * LOGO_SIZE_RATIO));
+  const height = Math.round(width * (originalHeight / originalWidth));
+  const resizedLogo = await sharp(trimmed).resize(width, height).toBuffer();
 
-  return sharp({
-    create: { width: size, height: size, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
-  })
-    .composite([
-      { input: whiteDisc, left: 0, top: 0 },
-      { input: logo, left: logoOffset, top: logoOffset },
-    ])
+  // Contorno: se "dilata" el canal alfa del logo (difuminarlo y volver a
+  // binarizarlo esparce la zona opaca hacia fuera unos px) y se usa como
+  // máscara de un relleno blanco — el resultado es un halo blanco que
+  // sobresale un poco por fuera de cada línea del logo original.
+  const strokeWidth = Math.max(1, Math.round(width * LOGO_STROKE_RATIO));
+  const dilatedAlpha = await sharp(resizedLogo)
+    .ensureAlpha()
+    .extractChannel(3)
+    .blur(strokeWidth)
+    .threshold(10)
+    .raw()
+    .toBuffer();
+
+  const halo = await sharp({ create: { width, height, channels: 3, background: { r: 255, g: 255, b: 255 } } })
+    .joinChannel(dilatedAlpha, { raw: { width, height, channels: 1 } })
+    .png()
+    .toBuffer();
+
+  return sharp(halo)
+    .composite([{ input: resizedLogo, left: 0, top: 0 }])
     .png()
     .toBuffer();
 }
