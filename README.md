@@ -244,8 +244,9 @@ servicio (Application Default Credentials).
 En Telegram, háblale al bot:
 
 El bot deja fijos, siempre debajo del cuadro de texto, los botones
-"🏠 Empezar", "🔍 Analizar", "📸 Ticket", "📝 Pendientes" y "📊 Stats" (en ese
-orden, en dos filas). Cada uno hace lo mismo que su comando equivalente:
+"🏠 Empezar", "🔍 Analizar", "📸 Ticket", "📝 Pendientes", "📊 Stats" y
+"❌ Cancelar análisis" (en ese orden, en tres filas). Cada uno hace lo
+mismo que su comando equivalente:
 
 - `/start` (o "🏠 Empezar") — mensaje de bienvenida.
 - `/analizar` (o "🔍 Analizar") — pregunta el deporte y, después, qué
@@ -305,6 +306,12 @@ orden, en dos filas). Cada uno hace lo mismo que su comando equivalente:
 - `/stats` (o "📊 Stats") — total de apuestas registradas, pendientes,
   ganadas/perdidas, % de acierto y beneficio neto acumulado, siempre
   asumiendo el stake fijo de 50€ por apuesta.
+- `/cancelar` (o "❌ Cancelar análisis") — cancela a mano cualquier
+  `/analizar` que se haya quedado colgado (p. ej. si el sondeo de Cloud
+  Scheduler de 7.7 falla o está mal configurado), borrando su job de
+  Firestore para poder lanzar otro sin tener que hacerlo desde Cloud
+  Shell. Si no hay ningún análisis en curso, avisa de que no hay nada que
+  cancelar.
 - `/ticket` (o "📸 Ticket") — pide primero la foto del ticket (la tarjeta
   ya recortada, sin fondo blanco alrededor). Para el fondo, si ya usaste
   uno antes te ofrece un botón "🔁 Usar el mismo fondo de la última vez"

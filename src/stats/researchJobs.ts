@@ -55,6 +55,11 @@ export async function updateResearchJob(job: ResearchJob): Promise<void> {
   await firestore.collection(COLLECTION).doc(id).set(data);
 }
 
+/** Cancela un job manualmente (p.ej. si se ha quedado colgado): lo borra sin más, no queda registro. */
+export async function deleteResearchJob(id: string): Promise<void> {
+  await firestore.collection(COLLECTION).doc(id).delete();
+}
+
 function toJob(doc: QueryDocumentSnapshot): ResearchJob {
   return { id: doc.id, ...doc.data() } as ResearchJob;
 }

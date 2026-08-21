@@ -43,6 +43,7 @@ import {
   getUnresolvedResearchJobs,
   hasUnresolvedResearchJob,
   updateResearchJob,
+  deleteResearchJob,
   type ResearchJob,
   type ResearchJobProfile,
 } from "./stats/researchJobs";
@@ -61,9 +62,11 @@ const RESEARCH_BUTTON_TEXT = "🔍 Analizar";
 const TICKET_BUTTON_TEXT = "📸 Ticket";
 const PENDIENTES_BUTTON_TEXT = "📝 Pendientes";
 const STATS_BUTTON_TEXT = "📊 Stats";
+const CANCELAR_BUTTON_TEXT = "❌ Cancelar análisis";
 const mainKeyboard = Markup.keyboard([
   [START_BUTTON_TEXT, RESEARCH_BUTTON_TEXT, TICKET_BUTTON_TEXT],
   [PENDIENTES_BUTTON_TEXT, STATS_BUTTON_TEXT],
+  [CANCELAR_BUTTON_TEXT],
 ]).resize();
 
 bot.use(async (ctx, next) => {
@@ -88,7 +91,8 @@ async function sendWelcome(ctx: Context) {
       "🔍 Analizar — lanza los 3 Deep Research en Gemini y compara las selecciones.\n" +
       "📸 Ticket — te pide la foto del ticket y una foto de fondo, y te devuelve el montaje.\n" +
       "📝 Pendientes — apuestas registradas a la espera de marcarse ganada/perdida.\n" +
-      "📊 Stats — aciertos y beneficio acumulado (stake fijo 50€).",
+      "📊 Stats — aciertos y beneficio acumulado (stake fijo 50€).\n" +
+      "❌ Cancelar análisis — si un /analizar se queda colgado, lo cancela para poder lanzar otro.",
     mainKeyboard
   );
 }
@@ -653,6 +657,46 @@ async function showStats(ctx: Context) {
 
 bot.command("stats", showStats);
 bot.hears(STATS_BUTTON_TEXT, showStats);
+
+/**
+ * Cancela a mano cualquier /analizar que se haya quedado colgado (p. ej.
+ * si el sondeo de Cloud Scheduler falla o no está bien configurado): borra
+ * el job de Firestore sin más, para no tener que hacerlo desde Cloud
+ * Shell cada vez. La investigación en los servidores de Gemini puede
+ * seguir corriendo por su cuenta, pero al borrar el job el bot deja de
+ * mirarla y ya no manda nada más sobre ella.
+ */
+async function cancelResearch(ctx: Context) {
+  let jobs;
+  try {
+    jobs = await getUnresolvedResearchJobs();
+  } catch (err) {
+    console.error("No se pudieron obtener los análisis en curso:", err);
+    await ctx.reply("⚠️ No se pudo comprobar si hay algún análisis en curso. Revisa los logs.");
+    return;
+  }
+
+  if (jobs.length === 0) {
+    await ctx.reply("No hay ningún análisis en curso ahora mismo.");
+    return;
+  }
+
+  try {
+    for (const job of jobs) {
+      await deleteResearchJob(job.id);
+    }
+  } catch (err) {
+    console.error("No se pudo cancelar el análisis:", err);
+    await ctx.reply("⚠️ No se pudo cancelar. Revisa los logs.");
+    return;
+  }
+
+  const label = jobs.length === 1 ? "El análisis en curso" : `Los ${jobs.length} análisis en curso`;
+  await ctx.reply(`❌ ${label} se ha cancelado. Ya puedes lanzar /analizar de nuevo.`);
+}
+
+bot.command("cancelar", cancelResearch);
+bot.hears(CANCELAR_BUTTON_TEXT, cancelResearch);
 
 /** Lanzado desde fuera de Telegram (ver server.ts): /analizar de tenis automático a las 7:00. */
 export async function runScheduledTennisAnalysis(): Promise<void> {
