@@ -9,8 +9,8 @@ const CORNER_RADIUS_RATIO = 0.05;
 // fondos pequeños que panorámicos), y cuánto ocupa el logo dentro del
 // círculo blanco (deja un pequeño borde blanco alrededor para que
 // resalte incluso sobre fondos oscuros o muy recargados).
-const LOGO_BADGE_SIZE_RATIO = 0.13;
-const LOGO_MARGIN_RATIO = 0.035;
+const LOGO_BADGE_SIZE_RATIO = 0.08;
+const LOGO_MARGIN_RATIO = 0.03;
 const LOGO_INNER_RATIO = 0.86;
 
 /**
