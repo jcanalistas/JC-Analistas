@@ -747,6 +747,11 @@ const pendingSummaryPublish = new Map<number, PendingSummaryPublish>();
 // tener que volver a mandarlo cada vez.
 const lastBackground = new Map<number, Buffer>();
 
+// Usuarios con un montaje ya en marcha ahora mismo: evita que un reenvío
+// del mismo update por parte de Telegram (si la respuesta al webhook
+// tarda, p. ej. porque Gemini va lento) dispare el montaje por duplicado.
+const ticketProcessing = new Set<number>();
+
 async function startTicketFlow(ctx: Context) {
   montageState.set(ctx.from!.id, { step: "esperando_ticket" });
   await ctx.reply(
@@ -823,6 +828,7 @@ async function finishTicketMontage(ctx: Context, userId: number, ticketBuffer: B
     await ctx.reply("⚠️ No se pudo generar el montaje. Revisa que ambas fotos sean válidas e inténtalo de nuevo con /ticket.");
   } finally {
     montageState.delete(userId);
+    ticketProcessing.delete(userId);
   }
 }
 
@@ -853,8 +859,16 @@ bot.on("photo", async (ctx) => {
   }
 
   // step === "esperando_fondo"
+  if (ticketProcessing.has(ctx.from.id)) return; // ya está montándose (posible reenvío de Telegram), se ignora
+  ticketProcessing.add(ctx.from.id);
   lastBackground.set(ctx.from.id, photoBuffer);
-  await finishTicketMontage(ctx, ctx.from.id, state.ticketBuffer!, photoBuffer);
+  // Sin await a propósito: si esto tardara (Gemini lento), Telegram podría
+  // reenviar el mismo update al no recibir respuesta a tiempo. Se deja
+  // correr en segundo plano y el handler responde ya mismo.
+  finishTicketMontage(ctx, ctx.from.id, state.ticketBuffer!, photoBuffer).catch((err) => {
+    console.error("Fallo inesperado montando el ticket:", err);
+    ticketProcessing.delete(ctx.from.id);
+  });
 });
 
 bot.action("reusebg", async (ctx) => {
@@ -865,9 +879,18 @@ bot.action("reusebg", async (ctx) => {
     await ctx.answerCbQuery("Ya no aplica: manda la foto del ticket de nuevo con /ticket.");
     return;
   }
+  if (ticketProcessing.has(userId)) {
+    await ctx.answerCbQuery("Ya se está montando.");
+    return;
+  }
+  ticketProcessing.add(userId);
   await ctx.answerCbQuery();
   await ctx.editMessageReplyMarkup(undefined);
-  await finishTicketMontage(ctx, userId, state.ticketBuffer!, background);
+  // Sin await a propósito, mismo motivo que en bot.on("photo").
+  finishTicketMontage(ctx, userId, state.ticketBuffer!, background).catch((err) => {
+    console.error("Fallo inesperado montando el ticket:", err);
+    ticketProcessing.delete(userId);
+  });
 });
 
 bot.action(/^publish:(\d+)$/, async (ctx) => {
