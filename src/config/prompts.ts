@@ -86,7 +86,7 @@ const FOOTBALL_PROMPT_DEFS: PromptDefinition[] = [
 Sigue estas reglas estrictas:
 
 1. Mercados y Cuotas:
- * Busca selecciones en la casa de apuestas WINAMAX con cuotas superiores a 1.65. Mercados permitidos: resultado (1X2), hándicap asiático, más/menos de goles, ambos marcan, córners o tarjetas.
+ * Busca selecciones en la casa de apuestas WINAMAX con cuotas superiores a 1.65. Mercados permitidos: resultado (1X2), hándicap asiático, más/menos de goles del partido, más/menos de goles marcados por un equipo en concreto, ambos marcan, córners o tarjetas.
  * Restricción de volumen: Devuelve exactamente 8 selecciones simples. NO repitas partidos.
  * Ordénalos obligatoriamente de mayor a menor confianza de éxito (asignando un % de probabilidad de acierto a cada uno).
 
@@ -159,7 +159,7 @@ Para CADA UNO de los 8 partidos seleccionados, genera el siguiente bloque:
   - Victoria Local: XX% (Cuota justa: X.XX) | Empate: XX% (Cuota justa: X.XX) | Victoria Vis: XX% (Cuota justa: X.XX)
   - Proyección de Goles: [X.X] | Proyección de Córners: [X.X]
 * Identificación de VALOR (The Edge):
-  - Mercado detectado con ineficiencia: [Ej: Over 2.5 goles / Hándicap...]
+  - Mercado detectado con ineficiencia: [Ej: Over 2.5 goles del partido / Hándicap / Más de 1.5 goles marcados por el Equipo A...]
   - Probabilidad de acierto del pick: [XX%] (Debe ser >50%)
   - Comparativa: Cuota Bookie [X.XX] vs Cuota Justa [X.XX]
   - Cálculo EV: [(Probabilidad Decimal * Cuota Bookie) - 1] = +[X.XX]% EV
@@ -186,7 +186,7 @@ Selecciona los 8 picks y redacta tu informe presentando cada partido bajo esta e
 FORMATO DE SALIDA (Repite esta estructura para cada uno de los 8 picks):
 
 ### 🎯 PICK [1-8]: [Equipo A] vs [Equipo B] | Competición
-* Mercado y Selección: [Ej: Hándicap Asiático -1 Local / Over 2.5...]
+* Mercado y Selección: [Ej: Hándicap Asiático -1 Local / Over 2.5 goles del partido / Más de 1.5 goles marcados por el Equipo A...]
 * Comparativa Sharp: Cuota Bookie [X.XX] | Tu Cuota Justa [X.XX] | Probabilidad Real [XX%] (Debe ser >60%)
 * Cálculo EV+: [(Probabilidad Real Decimal * Cuota Bookie) - 1] = +[XX.X]% EV
 
