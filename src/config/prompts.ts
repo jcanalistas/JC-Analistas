@@ -245,6 +245,21 @@ const TENNIS_FATIGUE_CHECK = `IMPORTANTE - Desgaste físico acumulado de la sema
 - Variable de edad y capacidad de recuperación: ten en cuenta la edad de cada jugador como factor de recuperación. Un jugador de más edad (orientativamente 30+ años) tarda más en recuperarse de una carga física alta que uno joven (sub-23), y ese efecto se acentúa cuantos más partidos consecutivos con poco descanso entre ellos haya jugado esa semana. No penalices la edad en sí misma si el jugador no arrastra carga física relevante esa semana — el factor edad actúa como MULTIPLICADOR del desgaste acumulado, no como variable aislada.
 - Si detectas un desequilibrio relevante de desgaste/edad/recuperación en un partido que recomiendes, menciónalo expresamente en la Explicación de ese pick.`;
 
+// El ranking ATP/WTA oficial no diferencia entre ganar a un rival del
+// top-20 o de fuera del top-300, ni refleja el nivel real en una
+// superficie concreta (un jugador puede ser top-50 general pero mediocre
+// en tierra). Sin pedir explícitamente el diferencial ELO (el estándar
+// del sector para medir nivel real independientemente del cuadro o el
+// torneo) y un win rate ponderado por la calidad media del rival, un
+// análisis basado solo en el ranking oficial puede sobrevalorar una racha
+// de victorias fácil o infravalorar a un jugador con mal ranking pero
+// nivel real alto.
+const TENNIS_ELO_RATING_CHECK = `IMPORTANTE - Diferencial ELO, calidad en la superficie concreta y win rate ponderado por el rival: además del ranking ATP/WTA oficial, busca y utiliza las métricas ELO estándar del sector de tenis (p. ej. los ratings Elo de Tennis Abstract/Jeff Sackmann, o fuentes equivalentes de referencia) para cada jugador:
+- ELO general y, muy especialmente, el ELO específico de la superficie de ESTE partido (hierba/tierra/dura). Un jugador puede tener un ELO general alto pero un ELO de superficie mucho más bajo (o al revés), y ese dato pesa más que el ranking oficial para estimar el nivel real en este partido concreto — prioriza siempre el ELO de superficie sobre el ELO general o el ranking cuando estén en conflicto.
+- Calcula o estima el diferencial ELO de superficie entre ambos jugadores: cuanto mayor sea la diferencia, mayor debería ser la probabilidad de victoria del favorito según tu modelo — contrasta esa probabilidad con la probabilidad implícita de la cuota para detectar valor real.
+- Win rate ponderado por la calidad del rival: no te quedes en el % de victorias en bruto de los últimos meses. Pondera esas victorias por el ranking/ELO del rival en el momento de cada partido — una racha de victorias contra rivales de ranking bajo (top 150+) vale mucho menos que unas pocas victorias contra rivales de ranking alto (top 50), aunque el % en bruto sea parecido. Aplica el mismo criterio a las derrotas: perder ajustadamente contra un top-10 no debe penalizar tanto como perder contra un rival de nivel similar o inferior.
+- Si detectas una discrepancia relevante entre el ranking ATP/WTA oficial y el nivel real que reflejan estas métricas (ELO de superficie, calidad de los rivales vencidos/perdidos), menciónalo expresamente en la Explicación del pick — suele ser la señal de un desajuste de cuota que el mercado todavía no ha visto.`;
+
 const TENNIS_PROMPT_DEFS: PromptDefinition[] = [
   {
     label: "Tipster",
@@ -273,6 +288,8 @@ ${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
 ${TENNIS_INJURY_COMEBACK_CHECK}
 
 ${TENNIS_FATIGUE_CHECK}
+
+${TENNIS_ELO_RATING_CHECK}
 
 FORMATO DE SALIDA (Responde exclusivamente con esta estructura):
 
@@ -327,6 +344,8 @@ ${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
 ${TENNIS_INJURY_COMEBACK_CHECK}
 
 ${TENNIS_FATIGUE_CHECK}
+
+${TENNIS_ELO_RATING_CHECK}
 
 ---
 
@@ -385,6 +404,8 @@ ${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
 ${TENNIS_INJURY_COMEBACK_CHECK}
 
 ${TENNIS_FATIGUE_CHECK}
+
+${TENNIS_ELO_RATING_CHECK}
 
 FORMATO DE SALIDA (Genera la respuesta con esta estructura exacta para cada pick):
 
