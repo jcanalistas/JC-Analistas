@@ -232,6 +232,19 @@ Si confirmas un caso así:
 
 No trates una ausencia del calendario como un "regalo" si no puedes confirmar el motivo con una fuente: sin confirmación, ignóralo y sigue con el resto del análisis.`;
 
+// El desgaste físico real no se ve en el partido más reciente por sí solo:
+// un jugador puede llegar "fresco" a su último partido pero arrastrar una
+// semana muy cargada, y la edad determina cuánto le pesa esa carga. Sin
+// pedir explícitamente el cálculo de horas en pista (vía games, ya que la
+// duración exacta no siempre está publicada) y el cruce con la edad, un
+// análisis basado solo en estadísticas recientes puede pasar por alto un
+// desequilibrio físico relevante de cara al último set.
+const TENNIS_FATIGUE_CHECK = `IMPORTANTE - Desgaste físico acumulado de la semana, horas en pista y capacidad de recuperación: para cada jugador, calcula su carga física acumulada en los últimos 7 días (no solo su partido más reciente), sumando todos los partidos disputados en ese periodo (incluida clasificación si aplica).
+- Horas en pista: si no encuentras la duración exacta publicada de un partido, estímala a partir de los games jugados (aprox. 3-4 minutos por game de media; algo más si hubo muchos tie-breaks o juegos con deuces largos). Suma esa estimación entre todos los partidos de los últimos 7 días para tener una cifra total de horas en pista de esa semana por jugador.
+- Compara la carga de ambos jugadores: un desequilibrio relevante (p. ej. uno lleva 2h en pista esta semana y el otro más de 6h, o uno viene de un partido a 3 sets muy reñido ayer mismo y el otro tuvo un walkover o descansó varios días) debe pesar en tu pronóstico, especialmente en partidos al mejor de 3 o 5 sets, donde el desgaste físico se nota más en el último set.
+- Variable de edad y capacidad de recuperación: ten en cuenta la edad de cada jugador como factor de recuperación. Un jugador de más edad (orientativamente 30+ años) tarda más en recuperarse de una carga física alta que uno joven (sub-23), y ese efecto se acentúa cuantos más partidos consecutivos con poco descanso entre ellos haya jugado esa semana. No penalices la edad en sí misma si el jugador no arrastra carga física relevante esa semana — el factor edad actúa como MULTIPLICADOR del desgaste acumulado, no como variable aislada.
+- Si detectas un desequilibrio relevante de desgaste/edad/recuperación en un partido que recomiendes, menciónalo expresamente en la Explicación de ese pick.`;
+
 const TENNIS_PROMPT_DEFS: PromptDefinition[] = [
   {
     label: "Tipster",
@@ -249,7 +262,7 @@ Aplica estrictamente las siguientes reglas metodológicas:
    * Benchmark Sharp: Compara la cuota de Winamax con la cuota actual en Pinnacle o Betfair Exchange. Solo considera selecciones donde la cuota de Winamax sea superior a la cuota fair/sharp estimada (Value Bet).
    * Rendimiento Contextual: Prioriza jugadores con un win rate >60% en la superficie específica en los últimos 12 meses (no métricas históricas globales) o un rendimiento reciente destacado en partidos de la misma categoría.
    * Métricas de Servidor/Restador: Analiza en sus últimos 3-5 partidos el % de puntos ganados con el 1º/2º servicio y el % de bolas de break salvadas/convertidas.
-   * Dinámica de Mercado y Noticias: Verifica si la cuota ha bajado recientemente en portales como Oddsportal (indicador de dinero profesional) y evalúa factores físicos críticos (acumulación de minutos/partidos en los últimos 3 días, molestias físicas o retiradas recientes).
+   * Dinámica de Mercado y Noticias: Verifica si la cuota ha bajado recientemente en portales como Oddsportal (indicador de dinero profesional) y evalúa factores físicos críticos (acumulación de minutos/partidos en los últimos 7 días, molestias físicas o retiradas recientes).
 
 3. ORDENACIÓN Y MATEMÁTICA DEL PICK:
    * Ordena las 8 selecciones de MAYOR a MENOR Valor Esperado (EV%).
@@ -258,6 +271,8 @@ Aplica estrictamente las siguientes reglas metodológicas:
 ${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
 
 ${TENNIS_INJURY_COMEBACK_CHECK}
+
+${TENNIS_FATIGUE_CHECK}
 
 FORMATO DE SALIDA (Responde exclusivamente con esta estructura):
 
@@ -311,6 +326,8 @@ ${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
 
 ${TENNIS_INJURY_COMEBACK_CHECK}
 
+${TENNIS_FATIGUE_CHECK}
+
 ---
 
 INSTRUCCIONES DE SALIDA (Formato de Respuesta):
@@ -357,7 +374,7 @@ Para los partidos filtrados en el paso 1, analiza las siguientes métricas clave
 3. CONTEXTO, MATCH-UP Y FATIGA
 * Condiciones y Superficie: Velocidad estimada de la pista (si aplica) y a qué estilo de juego beneficia (ej. sacadores vs terrícolas puros).
 * H2H Táctico: Patrones de juego recurrentes (ej. zurdo cruzando al revés a una mano).
-* Fatiga Acumulada: Minutos en pista en los últimos 3 días, partidos a 3 sets recientes o historial de molestias físicas en el torneo.
+* Fatiga Acumulada: Minutos en pista en los últimos 7 días, partidos a 3 sets recientes o historial de molestias físicas en el torneo.
 
 4. RESTRICCIONES DE ENTREGA
 * NINGUNA apuesta combinada. Solo selecciones simples (Ganador, Hándicap, Total de Juegos).
@@ -366,6 +383,8 @@ Para los partidos filtrados en el paso 1, analiza las siguientes métricas clave
 ${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
 
 ${TENNIS_INJURY_COMEBACK_CHECK}
+
+${TENNIS_FATIGUE_CHECK}
 
 FORMATO DE SALIDA (Genera la respuesta con esta estructura exacta para cada pick):
 
