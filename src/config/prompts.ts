@@ -29,6 +29,12 @@ export interface PromptDefinition {
  * selector de competiciones antes de lanzar /analizar solo aplica a
  * fútbol, ya que en tenis los prompts ya están acotados a ATP/Challenger).
  */
+// Texto exacto reutilizado también para detectar (por igualdad de string)
+// si el usuario ha elegido esta opción y así añadir el bloque de ajuste
+// FOOTBALL_NATIONAL_TEAMS_ADAPTATION al prompt — ver buildPrompt().
+const NATIONAL_TEAMS_SEARCH_HINT =
+  "Selecciones nacionales absolutas masculinas: amistosos internacionales, fase de clasificación para el Mundial, la Eurocopa u otra copa continental, y la UEFA Nations League";
+
 export const FOOTBALL_COMPETITIONS: Array<{
   id: string;
   label: string;
@@ -41,6 +47,12 @@ export const FOOTBALL_COMPETITIONS: Array<{
    */
   searchHint?: string;
 }> = [
+  {
+    id: "selecciones",
+    label: "Selecciones Nacionales",
+    flag: "🌍",
+    searchHint: NATIONAL_TEAMS_SEARCH_HINT,
+  },
   { id: "laliga1", label: "LaLiga 1ª", flag: "🇪🇸" },
   { id: "laliga2", label: "LaLiga 2ª", flag: "🇪🇸" },
   { id: "rfef1", label: "1ª RFEF", flag: "🇪🇸" },
@@ -495,6 +507,26 @@ function buildCompetitionRestriction(competitions?: string[]): string {
   return `\n\nRESTRICCIÓN OBLIGATORIA DE COMPETICIONES: para este análisis en concreto, analiza ÚNICAMENTE estas competiciones: ${competitions.join(", ")}. Ignora cualquier otra liga o torneo mencionado en las instrucciones generales de arriba aunque tenga partidos en las próximas 24h — si no hay suficientes partidos EV+ en las competiciones indicadas, devuelve menos de 8 picks en vez de rellenar con otras competiciones.`;
 }
 
+// Los 3 prompts de fútbol dan por hecho contexto de clubes (calendario de
+// liga, título/descenso, plantilla estable) que no aplica a selecciones:
+// la convocatoria varía partido a partido, hay muchísima menos muestra de
+// partidos recientes y los amistosos/partidos ya decididos tienen un
+// riesgo de rotación que un análisis centrado en clubes no contempla. Se
+// añade solo cuando el usuario elige la competición "Selecciones
+// Nacionales" (ver NATIONAL_TEAMS_SEARCH_HINT), no en el resto de casos.
+const FOOTBALL_NATIONAL_TEAMS_ADAPTATION = `AJUSTE ESPECÍFICO PARA SELECCIONES NACIONALES: cuando el partido sea entre selecciones nacionales (amistoso, clasificación para Mundial/Eurocopa/otra copa continental, o UEFA Nations League), aplica estos ajustes sobre el análisis genérico de arriba:
+- Convocatoria real, no plantilla ideal: verifica la lista de convocados oficial de cada selección para ESTE partido concreto (bajas por lesión, sanción, descarte del seleccionador, o jugador que rechazó/pidió no ir). No asumas la alineación tipo del país si no está confirmada para esta convocatoria.
+- Fatiga y estado físico de club: los jugadores llegan directamente del calendario de su club (a veces de ligas y países muy distintos, con vuelos largos de por medio); revisa si algún titular llega con carga física alta o molestias arrastradas de su equipo antes de asumir su disponibilidad al 100%.
+- Riesgo de rotación/experimentación: en AMISTOSOS y en partidos SIN nada en juego (selección ya clasificada o ya eliminada matemáticamente), el riesgo de rotación masiva o de pruebas de jugadores nuevos por parte del seleccionador es mucho mayor que en fútbol de clubes — baja la confianza del pick si detectas que el partido no tiene relevancia competitiva real. En partidos de clasificación con algo en juego, al contrario, espera la alineación más fuerte posible.
+- Muestra de partidos pequeña: las selecciones juegan pocos partidos al año, así que no hay un histórico "últimos 10 partidos" tan representativo como en clubes. Pondera más el rendimiento en competición OFICIAL reciente (clasificatorios, última fase final) que en amistosos poco exigentes, y ten cuidado con sacar conclusiones fuertes de una muestra tan pequeña.
+- Contexto de local/neutral: identifica si el partido se juega en el estadio habitual de la selección local, en sede neutral (fases finales de copas continentales) o en un país con condiciones especiales (altitud, clima extremo) que puedan afectar al rendimiento de la selección visitante.
+- Motivación por fase de grupo/clasificación: sustituye el criterio de "título/descenso" de las ligas de clubes por la situación real de clasificación de cada selección en su grupo (necesita puntuar sí o sí / ya está clasificada o eliminada matemáticamente / partido de puro trámite).`;
+
+function buildNationalTeamsAdaptation(competitions?: string[]): string {
+  if (!competitions?.includes(NATIONAL_TEAMS_SEARCH_HINT)) return "";
+  return `\n\n${FOOTBALL_NATIONAL_TEAMS_ADAPTATION}`;
+}
+
 export type DateFilter = "hoy" | "manana" | "24h";
 
 /** "27 de julio" en hora de España, para las etiquetas de los botones Hoy/Mañana. */
@@ -561,8 +593,9 @@ export function buildPrompt(basePrompt: string, options: BuildPromptOptions = {}
   const now = options.now ?? new Date();
   const restriction = buildCompetitionRestriction(options.competitions);
   const categoryRestriction = buildTennisCategoryRestriction(options.tennisCategory);
+  const nationalTeamsAdaptation = buildNationalTeamsAdaptation(options.competitions);
   const temporal = buildTemporalInstructions(options.dateFilter, now);
-  return `${basePrompt.trim()}${restriction}${categoryRestriction}${temporal}${OUTPUT_FORMAT_INSTRUCTIONS}`;
+  return `${basePrompt.trim()}${restriction}${categoryRestriction}${nationalTeamsAdaptation}${temporal}${OUTPUT_FORMAT_INSTRUCTIONS}`;
 }
 
 /** Devuelve los 3 prompts del deporte, en orden Tipster → Machine Learning → Analista cuantitativo. */

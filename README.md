@@ -255,12 +255,17 @@ mismo que su comando equivalente:
   ahora). Si eliges Fútbol ⚽, además pregunta si quieres analizar todas
   las competiciones o restringir a una selección concreta (p. ej. solo
   Champions League) marcando con botones de la lista (con la bandera del
-  país de cada una, o de la UEFA en las 4 europeas): LaLiga 1ª/2ª, 1ª/2ª
-  RFEF, Liga Portugal, Premier League, Bundesliga, Ligue 1, MLS,
-  Brasileirão, Champions/Europa/Conference League, Ligas Europeas (otras)
-  — esta última agrupa primeras divisiones europeas no cubiertas en el resto
-  (Dinamarca, Noruega, Suecia, Bélgica, Países Bajos, Escocia, Austria,
-  Suiza). Si eliges Tenis 🎾, pregunta si
+  país de cada una, o de la UEFA en las 4 europeas): Selecciones
+  Nacionales, LaLiga 1ª/2ª, 1ª/2ª RFEF, Liga Portugal, Premier League,
+  Bundesliga, Ligue 1, MLS, Brasileirão, Champions/Europa/Conference
+  League, Ligas Europeas (otras) — esta última agrupa primeras divisiones
+  europeas no cubiertas en el resto (Dinamarca, Noruega, Suecia, Bélgica,
+  Países Bajos, Escocia, Austria, Suiza). Si eliges Selecciones
+  Nacionales, los 3 perfiles adaptan el análisis al contexto propio de
+  fútbol de selecciones (convocatoria real en vez de plantilla ideal,
+  fatiga de club, riesgo de rotación en amistosos/partidos sin nada en
+  juego, muestra de partidos pequeña, y motivación por clasificación en
+  vez de título/descenso). Si eliges Tenis 🎾, pregunta si
   quieres **ATP**, **Challenger**, o **Todo**
   (siempre individuales masculinos). Cada paso tiene un botón "⬅️ Atrás"
   para volver al anterior (p. ej. desde la lista de competiciones puedes
