@@ -26,8 +26,12 @@ import {
   type FormattedBetEntry,
 } from "./format/telegramFormat";
 import { composeMontage } from "./montage/composeMontage";
-import { analyzeTicket } from "./montage/analyzeTicket";
-import { formatTicketCaption, formatSelectionsSummary } from "./montage/formatTicketCaption";
+import {
+  formatTicketCaption,
+  formatSelectionsSummary,
+  type TicketInfo,
+  type TicketSport,
+} from "./montage/formatTicketCaption";
 import {
   createBetCandidate,
   consumeBetCandidate,
@@ -698,9 +702,14 @@ bot.hears(CANCELAR_BUTTON_TEXT, cancelResearch);
 
 // --- /ticket: superpone la foto del ticket sobre una foto de fondo ---
 
+// Flujo: foto del ticket → foto de fondo → deporte (botones) → texto
+// escrito a mano (competición / selecciones / cuota). El texto ya no se lee
+// de la imagen con Gemini para no gastar API en cada ticket.
 interface MontageState {
-  step: "esperando_ticket" | "esperando_fondo";
+  step: "esperando_ticket" | "esperando_fondo" | "esperando_deporte" | "esperando_texto";
   ticketBuffer?: Buffer;
+  backgroundBuffer?: Buffer;
+  sport?: TicketSport;
 }
 const montageState = new Map<number, MontageState>();
 
@@ -726,7 +735,7 @@ const lastBackground = new Map<number, Buffer>();
 
 // Usuarios con un montaje ya en marcha ahora mismo: evita que un reenvío
 // del mismo update por parte de Telegram (si la respuesta al webhook
-// tarda, p. ej. porque Gemini va lento) dispare el montaje por duplicado.
+// tarda) dispare el montaje por duplicado.
 const ticketProcessing = new Set<number>();
 
 async function startTicketFlow(ctx: Context) {
@@ -752,21 +761,47 @@ async function downloadTelegramPhoto(ctx: Context): Promise<Buffer> {
   return Buffer.from(arrayBuffer);
 }
 
-async function finishTicketMontage(ctx: Context, userId: number, ticketBuffer: Buffer, backgroundBuffer: Buffer) {
+const TICKET_TEXT_INSTRUCTIONS =
+  "✍️ Escríbeme los datos del ticket en un solo mensaje, una cosa por línea:\n\n" +
+  "Competición\nSelecciones\nCuota total\n\n" +
+  "Ejemplo:\nATP Washington & CH Bonn\nPoljicak + Dalla Valle Set\n1,91\n\n" +
+  "La cuota es opcional: sin ella no se genera el mensaje de beneficio.";
+
+async function askTicketSport(ctx: Context) {
+  await ctx.reply(
+    "🏷️ ¿De qué deporte es el ticket?",
+    Markup.inlineKeyboard([
+      [Markup.button.callback("🎾 Tenis", "ticketsport:tenis"), Markup.button.callback("⚽ Fútbol", "ticketsport:futbol")],
+      [Markup.button.callback("🖼️ Sin texto, solo la imagen", "ticketsport:none")],
+    ])
+  );
+}
+
+/** "ATP Washington\nPoljicak + Dalla Valle Set\n1,91" → TicketInfo, o null si faltan competición o selecciones. */
+function parseTicketText(text: string, sport: TicketSport): TicketInfo | null {
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length < 2) return null;
+  const [competition, selections, rawOdds = ""] = lines;
+  const odds = rawOdds.replace(/^@/, "").replace(".", ",").trim();
+  return { sport, competition, selections, odds };
+}
+
+async function finishTicketMontage(
+  ctx: Context,
+  userId: number,
+  ticketBuffer: Buffer,
+  backgroundBuffer: Buffer,
+  ticketInfo?: TicketInfo
+) {
   await ctx.reply("🎨 Montando la imagen…");
   try {
     const result = await composeMontage(ticketBuffer, backgroundBuffer);
 
-    let caption: string | undefined;
-    let summary: string | undefined;
-    try {
-      const ticketInfo = await analyzeTicket(ticketBuffer, env.geminiApiKey);
-      caption = formatTicketCaption(ticketInfo);
-      if (ticketInfo.odds) summary = formatSelectionsSummary(ticketInfo);
-    } catch (err) {
-      console.error("No se pudo analizar el ticket para generar el texto:", err);
-      await ctx.reply("⚠️ No pude leer los datos del ticket, te mando la imagen sin el texto.");
-    }
+    const caption = ticketInfo ? formatTicketCaption(ticketInfo) : undefined;
+    const summary = ticketInfo?.odds ? formatSelectionsSummary(ticketInfo) : undefined;
 
     const sentMsg = await ctx.replyWithPhoto(
       { source: result },
@@ -835,17 +870,14 @@ bot.on("photo", async (ctx) => {
     return;
   }
 
-  // step === "esperando_fondo"
-  if (ticketProcessing.has(ctx.from.id)) return; // ya está montándose (posible reenvío de Telegram), se ignora
-  ticketProcessing.add(ctx.from.id);
+  if (state.step !== "esperando_fondo") {
+    await ctx.reply("Ya tengo las dos fotos: ahora elige el deporte o escríbeme los datos del ticket.");
+    return;
+  }
+
   lastBackground.set(ctx.from.id, photoBuffer);
-  // Sin await a propósito: si esto tardara (Gemini lento), Telegram podría
-  // reenviar el mismo update al no recibir respuesta a tiempo. Se deja
-  // correr en segundo plano y el handler responde ya mismo.
-  finishTicketMontage(ctx, ctx.from.id, state.ticketBuffer!, photoBuffer).catch((err) => {
-    console.error("Fallo inesperado montando el ticket:", err);
-    ticketProcessing.delete(ctx.from.id);
-  });
+  montageState.set(ctx.from.id, { ...state, step: "esperando_deporte", backgroundBuffer: photoBuffer });
+  await askTicketSport(ctx);
 });
 
 bot.action("reusebg", async (ctx) => {
@@ -856,18 +888,37 @@ bot.action("reusebg", async (ctx) => {
     await ctx.answerCbQuery("Ya no aplica: manda la foto del ticket de nuevo con /ticket.");
     return;
   }
-  if (ticketProcessing.has(userId)) {
-    await ctx.answerCbQuery("Ya se está montando.");
-    return;
-  }
-  ticketProcessing.add(userId);
+  montageState.set(userId, { ...state, step: "esperando_deporte", backgroundBuffer: background });
   await ctx.answerCbQuery();
   await ctx.editMessageReplyMarkup(undefined);
-  // Sin await a propósito, mismo motivo que en bot.on("photo").
-  finishTicketMontage(ctx, userId, state.ticketBuffer!, background).catch((err) => {
-    console.error("Fallo inesperado montando el ticket:", err);
-    ticketProcessing.delete(userId);
-  });
+  await askTicketSport(ctx);
+});
+
+bot.action(/^ticketsport:(tenis|futbol|none)$/, async (ctx) => {
+  const userId = ctx.from!.id;
+  const state = montageState.get(userId);
+  if (!state || state.step !== "esperando_deporte") {
+    await ctx.answerCbQuery("Ya no aplica: empieza de nuevo con /ticket.");
+    return;
+  }
+  await ctx.answerCbQuery();
+  await ctx.editMessageReplyMarkup(undefined);
+
+  const choice = ctx.match[1];
+  if (choice === "none") {
+    if (ticketProcessing.has(userId)) return;
+    ticketProcessing.add(userId);
+    // Sin await a propósito: si el montaje tardara, Telegram podría reenviar
+    // el mismo update al no recibir respuesta a tiempo.
+    finishTicketMontage(ctx, userId, state.ticketBuffer!, state.backgroundBuffer!).catch((err) => {
+      console.error("Fallo inesperado montando el ticket:", err);
+      ticketProcessing.delete(userId);
+    });
+    return;
+  }
+
+  montageState.set(userId, { ...state, step: "esperando_texto", sport: choice as TicketSport });
+  await ctx.reply(TICKET_TEXT_INSTRUCTIONS);
 });
 
 bot.action(/^publish:(\d+)$/, async (ctx) => {
@@ -944,6 +995,25 @@ bot.action(/^editsum:(\d+)$/, async (ctx) => {
 });
 
 bot.on("text", async (ctx) => {
+  const ticketState = montageState.get(ctx.from.id);
+  if (ticketState?.step === "esperando_texto") {
+    const ticketInfo = parseTicketText(ctx.message.text, ticketState.sport!);
+    if (!ticketInfo) {
+      await ctx.reply("⚠️ Necesito al menos 2 líneas (competición y selecciones).\n\n" + TICKET_TEXT_INSTRUCTIONS);
+      return;
+    }
+    if (ticketProcessing.has(ctx.from.id)) return; // ya está montándose (posible reenvío de Telegram), se ignora
+    ticketProcessing.add(ctx.from.id);
+    // Sin await a propósito, mismo motivo que en ticketsport.
+    finishTicketMontage(ctx, ctx.from.id, ticketState.ticketBuffer!, ticketState.backgroundBuffer!, ticketInfo).catch(
+      (err) => {
+        console.error("Fallo inesperado montando el ticket:", err);
+        ticketProcessing.delete(ctx.from.id);
+      }
+    );
+    return;
+  }
+
   const betIdAwaitingOdds = awaitingRealOdds.get(ctx.from.id);
   if (betIdAwaitingOdds !== undefined) {
     awaitingRealOdds.delete(ctx.from.id);

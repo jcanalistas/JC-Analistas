@@ -1,4 +1,13 @@
-import type { TicketInfo } from "./analyzeTicket";
+export type TicketSport = "tenis" | "futbol";
+
+/** Datos del ticket que escribe el usuario a mano tras mandar las fotos (ver /ticket en bot.ts). */
+export interface TicketInfo {
+  sport: TicketSport;
+  competition: string;
+  selections: string;
+  /** Cuota total combinada (ej. "1,91"). Vacío si no se indicó. */
+  odds: string;
+}
 
 const SPORT_EMOJI: Record<TicketInfo["sport"], string> = {
   tenis: "🎾",

@@ -295,14 +295,16 @@ mismo que su comando equivalente:
   ya recortada, sin fondo blanco alrededor). Para el fondo, si ya usaste
   uno antes te ofrece un botón "🔁 Usar el mismo fondo de la última vez"
   además de poder mandar uno nuevo (el que mandes queda guardado para la
-  próxima). Devuelve:
+  próxima). Después te pregunta el deporte (🎾 Tenis / ⚽ Fútbol, o
+  "🖼️ Sin texto, solo la imagen") y te pide que escribas los datos del
+  ticket en un mensaje, una cosa por línea: competición, selecciones y
+  cuota total (opcional), p. ej. `ATP Washington`, `Poljicak + Dalla Valle
+  Set`, `1,91`. No usa Gemini, así que no gasta API. Devuelve:
   1. El montaje con el ticket centrado sobre el fondo (esquinas
      redondeadas) y el logo de JC Analistas en un sello circular blanco en
      la esquina superior derecha (tamaño y margen proporcionales al ancho
      de la foto, para verse igual de bien en fondos pequeños o grandes),
-     con un texto generado automáticamente a partir del propio ticket
-     (usando la visión de Gemini para leer la imagen: bandera, nombres de
-     jugadores/equipos y contexto visible): icono del deporte +
+     con un texto generado a partir de los datos que escribiste: icono del deporte +
      competición subrayada, selecciones en negrita, "📊 Stake 2" fijo, y
      una última línea fija en cursiva "🔞 Misma cuota aquí" enlazada.
   2. Un segundo mensaje aparte con el resumen corto en negrita y
@@ -357,7 +359,6 @@ src/
   format/
     telegramFormat.ts         Construcción de los mensajes de Telegram
   montage/
-    analyzeTicket.ts          Lee el ticket con la visión de Gemini (deporte, selección, cuota...)
     composeMontage.ts          Monta el ticket + sello del logo sobre la foto de fondo
     formatTicketCaption.ts     Texto del montaje y del resumen de apuesta acertada
     logoAsset.ts                Logo de JC Analistas embebido en base64 (ver composeMontage.ts)
