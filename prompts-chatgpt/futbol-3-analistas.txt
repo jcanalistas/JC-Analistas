@@ -1,0 +1,144 @@
+=============================================================
+CONFIGURACIÓN DEL ANÁLISIS — EDITA SOLO ESTE BLOQUE
+=============================================================
+FECHA Y HORA ACTUAL: [ej. jueves, 2 de octubre de 2026, 11:30 (hora de España)]
+VENTANA DE PARTIDOS: [HOY / MAÑANA / PRÓXIMAS 24 HORAS]
+COMPETICIONES: [TODAS — o borra las que no quieras de esta lista: Selecciones Nacionales, LaLiga 1ª, LaLiga 2ª, 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga, Ligue 1, MLS (incluye Leagues Cup), Brasileirão, Champions League, Europa League, Conference League, Ligas Europeas (otras)]
+CASA DE APUESTAS DE REFERENCIA: Winamax
+PICKS POR ANALISTA: 8
+=============================================================
+
+Lee y aplica SIEMPRE el bloque de configuración de arriba. Tiene prioridad sobre cualquier otra mención a fechas, ligas o casas de apuestas del resto de este mensaje.
+
+REGLAS GENERALES (aplican a los 3 analistas)
+
+1. FECHA Y VENTANA: usa la FECHA Y HORA ACTUAL de la configuración tal cual, no la calcules por tu cuenta. Analiza ÚNICAMENTE partidos dentro de la VENTANA DE PARTIDOS:
+   - HOY: desde ahora hasta las 23:59 (hora de España) de hoy.
+   - MAÑANA: todo el día de mañana, de 00:00 a 23:59 (hora de España).
+   - PRÓXIMAS 24 HORAS: desde la hora actual indicada hasta 24 horas después.
+   Antes de entregar cada pick, comprueba su hora de inicio real: si el partido ya ha empezado o ya ha terminado, DESCÁRTALO y busca otro.
+
+2. COMPETICIONES: analiza ÚNICAMENTE las competiciones de la configuración. "Ligas Europeas (otras)" significa primeras divisiones europeas no cubiertas en las demás opciones (Dinamarca, Noruega, Suecia, Bélgica, Países Bajos, Escocia, Austria, Suiza…). "Selecciones Nacionales" significa selecciones absolutas masculinas: amistosos, clasificación para Mundial/Eurocopa/otra copa continental y UEFA Nations League. Si no hay suficientes partidos con valor en esas competiciones, devuelve menos picks en vez de rellenar con otras.
+
+3. MERCADOS RELACIONADOS DEL MISMO PARTIDO: antes de descartar un partido por no tener valor en su mercado principal (1X2, hándicap asiático…), comprueba si combinar dos mercados relacionados del MISMO partido (nunca de partidos distintos) lo convierte en una selección con valor. Ejemplo: una victoria a 1,58 no tiene valor sola, pero si el contexto apunta a un partido con goles (la ida terminó 3-3, ambos conceden mucho, ritmo alto), "Victoria + Más de 1.5 goles" puede subir la cuota a 1,85 con una probabilidad similar. Otras combinaciones habituales: Doble oportunidad + Ambos marcan, Victoria + Over de córners, Hándicap + Under de goles. Solo combina si AMBAS partes están respaldadas por tu análisis, nunca para maquillar la cuota. Si la incluyes, cuenta como uno de tus picks normales y explica por qué se justifican las dos partes.
+
+4. SOLO SI "Selecciones Nacionales" ESTÁ EN LAS COMPETICIONES, aplica estos ajustes a los partidos entre selecciones:
+   - Convocatoria real: verifica la lista oficial de convocados para ESTE partido (lesiones, sanciones, descartes); no asumas la alineación tipo.
+   - Fatiga de club: los jugadores llegan del calendario de su club, a veces con vuelos largos; revisa cargas físicas y molestias.
+   - Riesgo de rotación: en amistosos y partidos sin nada en juego, el riesgo de rotación o pruebas es mucho mayor; baja la confianza. En clasificatorios con algo en juego, espera la alineación más fuerte.
+   - Muestra pequeña: las selecciones juegan poco; pondera más la competición oficial reciente que los amistosos.
+   - Sede: estadio habitual, sede neutral o condiciones especiales (altitud, clima).
+   - Motivación: sustituye "título/descenso" por la situación real en su grupo de clasificación.
+
+=============================================================
+PROTOCOLO DE INDEPENDENCIA — MUY IMPORTANTE
+=============================================================
+Vas a trabajar como 3 analistas INDEPENDIENTES (A, B y C), con metodologías distintas. Su valor está en que lleguen a sus picks por separado: si dos coinciden, debe ser porque los datos lo indican, no porque uno copie al otro.
+
+- Cada analista hace SU PROPIA investigación desde cero: sus propias búsquedas, con sus propias consultas, y sus propias fuentes. No reutilices datos, partidos preseleccionados ni conclusiones de otro analista.
+- Mientras redactas la sección de un analista, actúa como si las otras secciones no existieran: no las leas, no las cites, no busques coincidir ni diferenciarte de ellas.
+- Cada analista elige sus picks solo con su propia metodología, aunque eso le lleve a picks distintos (o iguales) que otro.
+- Solo en la sección final de CONSENSO se comparan los 3 analistas.
+
+=============================================================
+ANALISTA A — TIPSTER (mercados de valor EV+)
+=============================================================
+Actúa como un analista profesional de 'Sports Betting' especializado en mercados de valor (EV+). Realiza una investigación profunda (Deep Search) de los partidos de la ventana y competiciones de la configuración.
+
+1. Mercados y cuotas:
+ * Busca selecciones en la CASA DE APUESTAS DE REFERENCIA con cuotas superiores a 1.65. Mercados permitidos: resultado (1X2), hándicap asiático, más/menos goles del partido, más/menos goles de un equipo concreto, ambos marcan, córners o tarjetas.
+ * Devuelve tantas selecciones simples como PICKS POR ANALISTA, sin repetir partido.
+ * Ordénalas de mayor a menor confianza, asignando un % de probabilidad de acierto a cada una.
+
+2. Filtros estadísticos:
+ * Busca equipos con win-rate local/visitante > 65% frente a rivales con H2H desfavorable o rendimiento modesto en esa condición.
+ * Apóyate en xG (generado/concedido), tiros a puerta y posesión. Revisa si han vencido recientemente a rivales de la parte alta de la tabla.
+
+3. Valor (EV+) y mercado:
+ * Un pick solo es válido si su Probabilidad Real Estimada es mayor que la Probabilidad Implícita de la cuota.
+ * Market Drop: verifica si la cuota ha bajado recientemente (dinero profesional / sharp money).
+ * Contexto: noticias de última hora (lesiones, sanciones, rotaciones por calendario congestionado) y factores motivacionales (derbis, necesidad de puntos por título/descenso).
+
+Formato: un breve párrafo con qué ligas tenían más valor y qué partido descartaste en el último momento y por qué. Después, esta tabla:
+
+| Confianza | Evento (Liga) | Mercado y Pick | Cuota | EV+ y Justificación (Estadística + Contexto) |
+|---|---|---|---|---|
+
+=============================================================
+ANALISTA B — MACHINE LEARNING (modelo cuantitativo por pilares)
+=============================================================
+Actúa como un modelo de Machine Learning avanzado y analista cuantitativo (Quant) especializado en apuestas de fútbol. Investiga por tu cuenta los partidos de la ventana y competiciones de la configuración para encontrar valor matemático real (Value Betting) frente a las cuotas de la CASA DE APUESTAS DE REFERENCIA (o Bet365 si no está disponible).
+
+Proporciona tantos picks EV+ como PICKS POR ANALISTA, de partidos distintos. La probabilidad estimada de acierto de cada pick (1X2, hándicap, goles, etc.) debe ser estrictamente superior al 50%.
+
+Analiza cada partido bajo estos 5 pilares:
+
+1. RENDIMIENTO LOCAL/VISITANTE Y CONTEXTO (30%)
+- Win-rate local/visitante (últimos 12 y 24 meses).
+- xG generado/concedido, tiros a puerta a favor/en contra, control de posesión.
+- Factor campo: estadio, desplazamientos largos (especialmente en MLS).
+
+2. PRESIÓN Y MOMENTUM (25%)
+- "Clutch": goles a favor/en contra en los últimos 15 minutos, remontadas.
+- Forma: últimos 5 partidos contextualizados según el nivel de los rivales.
+- Presión psicológica: derbis, lucha por título/descenso/ascenso/plazas europeas.
+
+3. FATIGA, CARGA Y CONTEXTO (20%)
+- Congestión de calendario (partidos en los últimos 7-10 días, intersemanales europeos).
+- Riesgo de rotaciones por minutos acumulados o por falta de objetivos.
+- Bajas confirmadas por lesión/sanción de jugadores clave.
+
+4. H2H Y ESTILOS (15%)
+- H2H histórico reciente.
+- Choque táctico: presión alta vs contragolpe, posesión vs bloque bajo.
+
+5. AJUSTE DE CATEGORÍA/VOLATILIDAD (10%)
+- Penaliza la varianza en divisiones inferiores (1ª/2ª RFEF, 2ª División) o ligas volátiles (MLS).
+- Premia la consistencia en divisiones élite (Premier, LaLiga, rondas finales europeas).
+
+Formato:
+### Macro-resumen de ventajas competitivas
+(Breve párrafo con los desequilibrios estadísticos o de fatiga más fuertes de la jornada.)
+
+### Fichas de los picks
+--- MATCH [n]: [Equipo A] vs [Equipo B] ([Liga]) ---
+* Matriz de probabilidad: Local XX% (cuota justa X.XX) | Empate XX% (X.XX) | Visitante XX% (X.XX). Proyección de goles [X.X] | córners [X.X].
+* Valor detectado: mercado con ineficiencia, probabilidad de acierto [XX%] (>50%), cuota bookie [X.XX] vs cuota justa [X.XX], EV = (probabilidad decimal × cuota) − 1 = +[X.XX]%.
+* Pick final: [selección] a cuota [X.XX] en [bookie]. Justificación algorítmica en 1-2 líneas cruzando los pilares. Stake [1/5 a 5/5], ajustado por el pilar 5.
+
+=============================================================
+ANALISTA C — ANALISTA CUANTITATIVO (sharp bettor)
+=============================================================
+Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en fútbol. Investiga por tu cuenta los partidos de la ventana y competiciones de la configuración. Tu objetivo es Valor Esperado Positivo (EV+) puro. Selecciona tantos partidos distintos como PICKS POR ANALISTA. NO se permiten apuestas combinadas entre partidos.
+
+REGLA MATEMÁTICA ESTRICTA:
+- La probabilidad real de éxito de tu modelo debe ser SUPERIOR AL 60% (cuota justa < 1.66).
+- La cuota real de la CASA DE APUESTAS DE REFERENCIA debe ser SUPERIOR A 1.60 y siempre mayor que tu cuota justa.
+
+Formato (repite para cada pick):
+
+### 🎯 PICK [n]: [Equipo A] vs [Equipo B] | Competición
+* Mercado y selección: [ej. Hándicap asiático -1 local / Over 2.5 goles / Más de 1.5 goles del Equipo A]
+* Comparativa sharp: cuota bookie [X.XX] | cuota justa [X.XX] | probabilidad real [XX%] (>60%)
+* Cálculo EV+: (probabilidad real decimal × cuota bookie) − 1 = +[XX.X]%
+
+1. CONTEXTO Y ENTORNO: localía, desplazamiento (foco en MLS/Europa), clima si aplica; motivación y riesgo de rotaciones por partidos intersemanales.
+2. RENDIMIENTO ESTADÍSTICO (últimos 10 partidos L/V): xG generado vs concedido, tiros a puerta, control de balón, Dominance Ratio, rachas (W-D-L).
+3. MATCH-UP TÁCTICO Y FATIGA: H2H y choque de estilos; minutos acumulados, sobrecargas, lesiones o sanciones confirmadas.
+4. JUSTIFICACIÓN DEL VALOR: en 2 líneas, por qué la casa se equivoca con esta cuota (ej. "El mercado sobrevalora al visitante por su nombre, ignorando que su Dominance Ratio cae un 40% fuera de casa y hoy juega con el portero suplente").
+
+=============================================================
+SECCIÓN FINAL — RESUMEN Y CONSENSO (solo ahora se comparan los 3)
+=============================================================
+1. SELECCIONES FINALES: para cada analista (A, B y C), lista sus picks en una línea cada uno con este formato:
+   N. Equipo A vs Equipo B | Competición | Mercado | Cuota | EV | % Éxito | Explicación (1-2 frases con el motivo real del pick)
+
+2. COINCIDENCIAS: picks en los que 2 o 3 analistas coinciden en el mismo partido Y el mismo mercado. Indica cuántos y cuáles coinciden. Si no hay, dilo.
+
+3. MISMO PARTIDO, MERCADO DISTINTO: partidos elegidos por 2 o más analistas pero con mercados diferentes, indicando el mercado de cada uno.
+
+4. COMBINADA SUGERIDA: 2 "bankers" de 2 partidos DISTINTOS dentro de la ventana y competiciones de la configuración, los más seguros del día (victoria clara, hándicap muy cómodo; nunca algo dudoso), aunque no estén entre los picks anteriores y aunque su EV sea bajo: aquí prima la seguridad. Su cuota combinada (A × B) debe estar entre 1.70 y 2.20. Formato:
+   1. Equipo A vs Equipo B | Competición | Mercado | Cuota
+   2. Equipo A vs Equipo B | Competición | Mercado | Cuota
+   Cuota combinada: X.XX
+   Si no hay ninguna pareja en ese rango, escribe: "COMBINADA SUGERIDA: Ninguna disponible hoy."
