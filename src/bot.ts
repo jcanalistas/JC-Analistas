@@ -27,8 +27,12 @@ import {
 } from "./format/telegramFormat";
 import { composeMontage } from "./montage/composeMontage";
 import {
+  BOOKIES,
+  DEFAULT_BOOKIE,
   formatTicketCaption,
   formatSelectionsSummary,
+  parseBookie,
+  type BookieId,
   type TicketInfo,
   type TicketSport,
 } from "./montage/formatTicketCaption";
@@ -763,9 +767,12 @@ async function downloadTelegramPhoto(ctx: Context): Promise<Buffer> {
 
 const TICKET_TEXT_INSTRUCTIONS =
   "✍️ Escríbeme los datos del ticket en un solo mensaje, una cosa por línea:\n\n" +
-  "Competición\nSelecciones\nCuota total\n\n" +
-  "Ejemplo:\nATP Washington & CH Bonn\nPoljicak + Dalla Valle Set\n1,91\n\n" +
-  "La cuota es opcional: sin ella no se genera el mensaje de beneficio.";
+  "Competición\nSelecciones\nCuota total\nCasa de apuestas\n\n" +
+  "Ejemplo:\nATP Washington & CH Bonn\nPoljicak + Dalla Valle Set\n1,91\nWH\n\n" +
+  "La cuota es opcional (sin ella no se genera el mensaje de beneficio). " +
+  `Casa: ${Object.values(BOOKIES)
+    .map((b) => b.hint)
+    .join(" o ")}; si no la pones, se usa ${BOOKIES[DEFAULT_BOOKIE].label}.`;
 
 async function askTicketSport(ctx: Context) {
   await ctx.reply(
@@ -777,16 +784,36 @@ async function askTicketSport(ctx: Context) {
   );
 }
 
-/** "ATP Washington\nPoljicak + Dalla Valle Set\n1,91" → TicketInfo, o null si faltan competición o selecciones. */
-function parseTicketText(text: string, sport: TicketSport): TicketInfo | null {
+/**
+ * "ATP Washington\nPoljicak + Dalla Valle Set\n1,91\nWH" → TicketInfo.
+ * Las dos primeras líneas son competición y selecciones; las siguientes
+ * (cuota y casa, ambas opcionales y en cualquier orden) se reconocen por
+ * su contenido. Devuelve un mensaje de error si algo no cuadra.
+ */
+function parseTicketText(text: string, sport: TicketSport): TicketInfo | { error: string } {
   const lines = text
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
-  if (lines.length < 2) return null;
-  const [competition, selections, rawOdds = ""] = lines;
-  const odds = rawOdds.replace(/^@/, "").replace(".", ",").trim();
-  return { sport, competition, selections, odds };
+  if (lines.length < 2) return { error: "Necesito al menos 2 líneas (competición y selecciones)." };
+  const [competition, selections, ...rest] = lines;
+
+  let odds = "";
+  let bookie: BookieId = DEFAULT_BOOKIE;
+  for (const line of rest) {
+    const maybeOdds = line.replace(/^@/, "").replace(".", ",").trim();
+    if (/^\d+(,\d+)?$/.test(maybeOdds)) {
+      odds = maybeOdds;
+      continue;
+    }
+    const parsedBookie = parseBookie(line);
+    if (parsedBookie) {
+      bookie = parsedBookie;
+      continue;
+    }
+    return { error: `No entiendo la línea "${line}": no es una cuota ni una casa de apuestas conocida.` };
+  }
+  return { sport, competition, selections, odds, bookie };
 }
 
 async function finishTicketMontage(
@@ -998,8 +1025,8 @@ bot.on("text", async (ctx) => {
   const ticketState = montageState.get(ctx.from.id);
   if (ticketState?.step === "esperando_texto") {
     const ticketInfo = parseTicketText(ctx.message.text, ticketState.sport!);
-    if (!ticketInfo) {
-      await ctx.reply("⚠️ Necesito al menos 2 líneas (competición y selecciones).\n\n" + TICKET_TEXT_INSTRUCTIONS);
+    if ("error" in ticketInfo) {
+      await ctx.reply(`⚠️ ${ticketInfo.error}\n\n${TICKET_TEXT_INSTRUCTIONS}`);
       return;
     }
     if (ticketProcessing.has(ctx.from.id)) return; // ya está montándose (posible reenvío de Telegram), se ignora

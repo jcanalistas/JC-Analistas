@@ -7,6 +7,41 @@ export interface TicketInfo {
   selections: string;
   /** Cuota total combinada (ej. "1,91"). Vacío si no se indicó. */
   odds: string;
+  bookie: BookieId;
+}
+
+/**
+ * Casas de apuestas: el enlace de "Misma cuota aquí" cambia según la que
+ * escribas en el texto del ticket. `aliases` son las formas aceptadas
+ * (sin distinguir mayúsculas ni espacios) y `hint` cómo se le sugiere al
+ * usuario. Para añadir otra casa basta con añadir una entrada aquí.
+ */
+export const BOOKIES = {
+  winamax: {
+    label: "Winamax",
+    hint: "Winamax",
+    link: "https://bdeal.io/Winamax/147910/1",
+    aliases: ["winamax", "wina"],
+  },
+  williamhill: {
+    label: "William Hill",
+    hint: "WH",
+    link: "https://bdeal.io/WilliamHill/153389/1",
+    aliases: ["wh", "williamhill"],
+  },
+} as const;
+
+export type BookieId = keyof typeof BOOKIES;
+
+export const DEFAULT_BOOKIE: BookieId = "winamax";
+
+/** "WH", "William Hill", "winamax"... → id de la casa, o null si no es ninguna conocida. */
+export function parseBookie(text: string): BookieId | null {
+  const normalized = text.toLowerCase().replace(/\s+/g, "");
+  for (const [id, bookie] of Object.entries(BOOKIES) as Array<[BookieId, (typeof BOOKIES)[BookieId]]>) {
+    if ((bookie.aliases as readonly string[]).includes(normalized)) return id;
+  }
+  return null;
 }
 
 const SPORT_EMOJI: Record<TicketInfo["sport"], string> = {
@@ -14,14 +49,12 @@ const SPORT_EMOJI: Record<TicketInfo["sport"], string> = {
   futbol: "⚽",
 };
 
-const SAME_ODDS_LINK = "https://bdeal.io/Winamax/147910/1";
-
 /**
  * Construye el texto (HTML de Telegram) que acompaña al montaje:
  * línea 1: icono del deporte + competición subrayada.
  * línea 2: 🏆 + selecciones en negrita.
  * línea 3: fija, "📊 Stake 2" sin formato.
- * línea 4: fija, "🔞 Misma cuota aquí" en cursiva con hipervínculo.
+ * línea 4: fija, "🔞 Misma cuota aquí" en cursiva con el enlace de la casa elegida.
  */
 export function formatTicketCaption(info: TicketInfo): string {
   const emoji = SPORT_EMOJI[info.sport];
@@ -29,7 +62,7 @@ export function formatTicketCaption(info: TicketInfo): string {
     `${emoji} <u>${escapeHtml(info.competition)}</u>\n` +
     `🏆 <b>${escapeHtml(info.selections)}</b>\n` +
     `📊 Stake 2\n` +
-    `🔞 <i><a href="${SAME_ODDS_LINK}">Misma cuota aquí</a></i>`
+    `🔞 <i><a href="${BOOKIES[info.bookie].link}">Misma cuota aquí</a></i>`
   );
 }
 

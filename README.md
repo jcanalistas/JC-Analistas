@@ -297,16 +297,19 @@ mismo que su comando equivalente:
   además de poder mandar uno nuevo (el que mandes queda guardado para la
   próxima). Después te pregunta el deporte (🎾 Tenis / ⚽ Fútbol, o
   "🖼️ Sin texto, solo la imagen") y te pide que escribas los datos del
-  ticket en un mensaje, una cosa por línea: competición, selecciones y
-  cuota total (opcional), p. ej. `ATP Washington`, `Poljicak + Dalla Valle
-  Set`, `1,91`. No usa Gemini, así que no gasta API. Devuelve:
+  ticket en un mensaje, una cosa por línea: competición, selecciones,
+  cuota total (opcional) y casa de apuestas (opcional: `Winamax` o `WH`;
+  si no se pone, Winamax), p. ej. `ATP Washington`, `Poljicak + Dalla
+  Valle Set`, `1,91`, `WH`. La casa decide a dónde apunta el enlace de
+  "Misma cuota aquí" (ver `BOOKIES` en `formatTicketCaption.ts` para
+  añadir más). No usa Gemini, así que no gasta API. Devuelve:
   1. El montaje con el ticket centrado sobre el fondo (esquinas
      redondeadas) y el logo de JC Analistas en un sello circular blanco en
      la esquina superior derecha (tamaño y margen proporcionales al ancho
      de la foto, para verse igual de bien en fondos pequeños o grandes),
      con un texto generado a partir de los datos que escribiste: icono del deporte +
      competición subrayada, selecciones en negrita, "📊 Stake 2" fijo, y
-     una última línea fija en cursiva "🔞 Misma cuota aquí" enlazada.
+     una última línea en cursiva "🔞 Misma cuota aquí" enlazada a la casa elegida.
   2. Un segundo mensaje aparte con el resumen corto en negrita y
      subrayado, entre ✅: `✅ Topo + Prado Set @1,91 ✅`, y debajo, en
      cursiva con la cifra en negrita, el beneficio calculado sobre un
