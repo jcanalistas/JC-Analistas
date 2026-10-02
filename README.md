@@ -157,38 +157,15 @@ curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getWebhookInfo"
 
 Debe apuntar a `https://<tu-servicio>.a.run.app/telegram/<WEBHOOK_SECRET_PATH>`.
 
-### 7.5 (Opcional) /analizar de tenis automático cada mañana a las 7:00
+### 7.5 (Retirado) /analizar de tenis automático a las 7:00
 
-El propio bot no puede programarse solo a sí mismo (Cloud Run apaga el
-contenedor cuando no hay tráfico), así que quien lo despierta a las 7:00
-es Cloud Scheduler, llamando a un endpoint del propio servicio:
+El bot ya no lanza ningún análisis automático: `/analizar` solo se lanza a
+mano. Si en su día creaste el job de Cloud Scheduler para esto, bórralo
+(si no, seguirá llamando cada mañana a un endpoint que ya no existe):
 
 ```bash
-gcloud services enable cloudscheduler.googleapis.com
-
-gcloud scheduler jobs create http auto-analizar-tenis \
-  --location=europe-west1 \
-  --schedule="0 7 * * *" \
-  --time-zone="Europe/Madrid" \
-  --uri="https://TU-URL-DE-CLOUD-RUN.a.run.app/internal/auto-analizar-tenis?secret=TU_AUTO_ANALIZAR_SECRET" \
-  --http-method=POST
+gcloud scheduler jobs delete auto-analizar-tenis --location=europe-west1
 ```
-
-`--location` es la región de Cloud Scheduler (no tiene por qué coincidir
-con la de Cloud Run); si `europe-west1` da error de región no soportada,
-prueba con otra de la [lista de ubicaciones de Cloud
-Scheduler](https://cloud.google.com/scheduler/docs/#locations). El
-`secret` es el mismo valor que pusiste en `AUTO_ANALIZAR_SECRET` al
-desplegar — evita que cualquiera que encuentre la URL pueda lanzar el
-análisis.
-
-Para desactivarlo sin borrar el job: `gcloud scheduler jobs pause
-auto-analizar-tenis`. Para lanzarlo ya mismo y probarlo: `gcloud
-scheduler jobs run auto-analizar-tenis`.
-
-Este job solo lanza las 3 tareas en Gemini — igual que `/analizar`
-manual, necesita el job de sondeo de 7.7 para que alguna vez lleguen los
-resultados.
 
 ### 7.6 Activar Firestore (obligatorio: lo usan tanto Stats como /analizar)
 
@@ -227,11 +204,11 @@ gcloud scheduler jobs create http poll-research \
   --http-method=POST
 ```
 
-Usa la misma `TU-URL-DE-CLOUD-RUN` y el mismo secreto que en 7.5 (el
-valor de `AUTO_ANALIZAR_SECRET`). Sin este job, `/analizar` lanza las 3
+Usa tu `TU-URL-DE-CLOUD-RUN` y como secreto el valor de
+`AUTO_ANALIZAR_SECRET` que pusiste al desplegar. Sin este job, `/analizar` lanza las 3
 tareas en Gemini y se queda ahí para siempre: nadie las vuelve a mirar,
 así que nunca llegan los mensajes de "✅ completado" ni el resultado
-final. Es imprescindible tenerlo activo — no es opcional como el 7.5.
+final. Es imprescindible tenerlo activo.
 
 `--location=eur3` es una región multi-región de Europa; si tu proyecto ya
 tiene una base de datos Firestore creada en otra región para otra cosa, no
@@ -269,10 +246,7 @@ mismo que su comando equivalente:
   quieres **ATP**, **Challenger**, o **Todo**
   (siempre individuales masculinos). Cada paso tiene un botón "⬅️ Atrás"
   para volver al anterior (p. ej. desde la lista de competiciones puedes
-  volver a elegir Tenis en vez de Fútbol). El tenis además se lanza solo,
-  sin tocar nada (fecha "Hoy" fija, ambas categorías), todas las mañanas
-  a las 7:00 (hora de España) si configuraste el paso 7.5 — los resultados te
-  llegan igual que si lo hubieras pulsado tú. Al terminar, envía:
+  volver a elegir Tenis en vez de Fútbol). Al terminar, envía:
   1. Las selecciones finales de cada perfil (Tipster, Machine Learning,
      Analista cuantitativo): partido, torneo/competición exacta (ej. "ATP
      Washington", "CH Bonn"), mercado, cuota, EV, % de éxito y
@@ -354,8 +328,7 @@ mismo que su comando equivalente:
   todo si los informes redactan el mismo partido de forma muy distinta.
 - El agente Deep Research de la API de Gemini está en preview: Google
   puede cambiar su comportamiento, precios o disponibilidad.
-- Solo un `/analizar` puede correr a la vez (incluido el automático de las
-  7:00: si coincide con uno que lanzaste tú a mano, avisa y no lo lanza).
+- Solo un `/analizar` puede correr a la vez.
   Desde que `/analizar` guarda su progreso en Firestore y se sondea desde
   fuera (ver 7.7), esto ya no depende de que el contenedor de Cloud Run
   siga vivo sin interrupción — un reinicio o redeploy en medio de un

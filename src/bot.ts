@@ -342,7 +342,6 @@ async function createAndStoreResearchJob(
     competitions?: string[];
     dateFilter?: DateFilter;
     tennisCategory?: TennisCategory;
-    scheduled: boolean;
   }
 ): Promise<void> {
   const promptDefs = buildAllPrompts(sport, options);
@@ -378,7 +377,6 @@ async function createAndStoreResearchJob(
     dateFilter: options.dateFilter,
     tennisCategory: options.tennisCategory,
     competitions: options.competitions,
-    scheduled: options.scheduled,
     createdAt: Date.now(),
     deadline: Date.now() + env.deepResearchTimeoutMinutes * 60_000,
     profiles,
@@ -404,7 +402,7 @@ async function launchResearchJob(
   );
 
   try {
-    await createAndStoreResearchJob(ctx.chat!.id, sport, { competitions, dateFilter, tennisCategory, scheduled: false });
+    await createAndStoreResearchJob(ctx.chat!.id, sport, { competitions, dateFilter, tennisCategory });
   } catch (err) {
     console.error("No se pudo lanzar el análisis:", err);
     await ctx.reply("⚠️ Ocurrió un error inesperado lanzando el análisis. Revisa los logs.");
@@ -697,27 +695,6 @@ async function cancelResearch(ctx: Context) {
 
 bot.command("cancelar", cancelResearch);
 bot.hears(CANCELAR_BUTTON_TEXT, cancelResearch);
-
-/** Lanzado desde fuera de Telegram (ver server.ts): /analizar de tenis automático a las 7:00. */
-export async function runScheduledTennisAnalysis(): Promise<void> {
-  const chatId = Number(env.telegramAllowedUserId);
-
-  if (await hasUnresolvedResearchJob()) {
-    await bot.telegram.sendMessage(
-      chatId,
-      "⏰ Análisis automático de tenis (7:00): ya había un Deep Research en curso, no se lanza otro."
-    );
-    return;
-  }
-
-  await bot.telegram.sendMessage(chatId, "⏰ Análisis automático de tenis (7:00) empezando...");
-  try {
-    await createAndStoreResearchJob(chatId, "tenis", { dateFilter: "hoy", scheduled: true });
-  } catch (err) {
-    console.error("No se pudo lanzar el análisis automático de tenis:", err);
-    await bot.telegram.sendMessage(chatId, "⚠️ Ocurrió un error inesperado lanzando el análisis automático.");
-  }
-}
 
 // --- /ticket: superpone la foto del ticket sobre una foto de fondo ---
 

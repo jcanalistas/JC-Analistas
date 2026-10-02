@@ -22,8 +22,6 @@ export interface ResearchJob {
   dateFilter?: DateFilter;
   tennisCategory?: TennisCategory;
   competitions?: string[];
-  /** true si viene del /analizar de tenis automático de las 7:00, para el mensaje inicial. */
-  scheduled: boolean;
   createdAt: number;
   /** Date.now() + timeoutMinutes*60000, calculado una sola vez al crear el job. */
   deadline: number;
