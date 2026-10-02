@@ -94,7 +94,7 @@ const FOOTBALL_PROMPT_DEFS: PromptDefinition[] = [
 Sigue estas reglas estrictas:
 
 1. Mercados y Cuotas:
- * Busca selecciones en la casa de apuestas WINAMAX con cuotas superiores a 1.65. Mercados permitidos: resultado (1X2), hándicap asiático, más/menos de goles del partido, más/menos de goles marcados por un equipo en concreto, ambos marcan, córners o tarjetas.
+ * Busca selecciones con cuota de mercado superior a 1.65 (ver FUENTE DE CUOTAS). Mercados permitidos: resultado (1X2), hándicap asiático, más/menos de goles del partido, más/menos de goles marcados por un equipo en concreto, ambos marcan, córners o tarjetas.
  * Restricción de volumen: Devuelve exactamente 8 selecciones simples. NO repitas partidos.
  * Ordénalos obligatoriamente de mayor a menor confianza de éxito (asignando un % de probabilidad de acierto a cada uno).
 
@@ -119,7 +119,7 @@ Antes de la tabla, escribe un breve párrafo resumiendo qué ligas tenían más 
     label: "Machine Learning",
     prompt: `Actúa como un modelo de Machine Learning avanzado y analista cuantitativo (Quant) especializado en apuestas de fútbol. Utiliza tus herramientas de búsqueda web para analizar la jornada de las próximas 24 horas (identifica la fecha/hora actual al lanzar el research para delimitar el calendario de partidos).
 
-Tu objetivo es analizar los datos para encontrar valor matemático real (Value Betting) frente a las cuotas de Winamax o Bet365. Debes proporcionar exactamente 8 selecciones de picks con EV+ (Expected Value positivo) de 8 partidos distintos. La probabilidad estimada de acierto del PICK (ya sea 1X2, hándicap, goles, etc.) debe ser estrictamente superior al 50%.
+Tu objetivo es analizar los datos para encontrar valor matemático real (Value Betting) frente a las cuotas de mercado (ver FUENTE DE CUOTAS). Debes proporcionar exactamente 8 selecciones de picks con EV+ (Expected Value positivo) de 8 partidos distintos. La probabilidad estimada de acierto del PICK (ya sea 1X2, hándicap, goles, etc.) debe ser estrictamente superior al 50%.
 
 Ligas cubiertas: MLS (incluye también la Leagues Cup, el torneo entre clubes de MLS y Liga MX), LaLiga (1ª y 2ª), 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga, Ligue 1 (Francia), Brasileirão y competiciones europeas (Champions, Europa y Conference League).
 
@@ -165,10 +165,10 @@ Para CADA UNO de los 8 partidos seleccionados, genera el siguiente bloque:
 * Identificación de VALOR (The Edge):
   - Mercado detectado con ineficiencia: [Ej: Over 2.5 goles del partido / Hándicap / Más de 1.5 goles marcados por el Equipo A...]
   - Probabilidad de acierto del pick: [XX%] (Debe ser >50%)
-  - Comparativa: Cuota Bookie [X.XX] vs Cuota Justa [X.XX]
-  - Cálculo EV: [(Probabilidad Decimal * Cuota Bookie) - 1] = +[X.XX]% EV
+  - Comparativa: Cuota de mercado [X.XX] ([fuente]) vs Cuota Justa [X.XX]
+  - Cálculo EV: [(Probabilidad Decimal * Cuota de mercado) - 1] = +[X.XX]% EV
 * Pronóstico Final y Stake:
-  - Pick: [Selección final] a cuota [X.XX] en [Bookie]
+  - Pick: [Selección final] a cuota [X.XX] ([fuente de la cuota])
   - Justificación algorítmica: [1-2 líneas cruzando los pilares. Ej: 30% ventaja en xG local + 20% penalización visitante por fatiga europea].
   - Stake: [1/5 a 5/5] (Ajustado por el pilar 5 de volatilidad).`,
   },
@@ -180,7 +180,7 @@ Tu objetivo es encontrar Valor Esperado Positivo (EV+) puro. Selecciona exactame
 
 REGLA MATEMÁTICA ESTRICTA PARA LOS 8 PICKS:
 - La probabilidad real de éxito calculada por tu modelo debe ser estrictamente SUPERIOR AL 60% (Cuota justa estimada < 1.66).
-- La cuota real ofrecida por la casa de apuestas (ej. Winamax) debe ser SUPERIOR A 1.60, y siempre mayor que tu cuota justa estimada, para garantizar el EV+.
+- La cuota de mercado (ver FUENTE DE CUOTAS) debe ser SUPERIOR A 1.60, y siempre mayor que tu cuota justa estimada, para garantizar el EV+.
 
 Selecciona los 8 picks y redacta tu informe presentando cada partido bajo esta estructura de 4 pasos analíticos:
 
@@ -189,8 +189,8 @@ FORMATO DE SALIDA (Repite esta estructura para cada uno de los 8 picks):
 
 ### 🎯 PICK [1-8]: [Equipo A] vs [Equipo B] | Competición
 * Mercado y Selección: [Ej: Hándicap Asiático -1 Local / Over 2.5 goles del partido / Más de 1.5 goles marcados por el Equipo A...]
-* Comparativa Sharp: Cuota Bookie [X.XX] | Tu Cuota Justa [X.XX] | Probabilidad Real [XX%] (Debe ser >60%)
-* Cálculo EV+: [(Probabilidad Real Decimal * Cuota Bookie) - 1] = +[XX.X]% EV
+* Comparativa Sharp: Cuota de mercado [X.XX] ([fuente]) | Tu Cuota Justa [X.XX] | Probabilidad Real [XX%] (Debe ser >60%)
+* Cálculo EV+: [(Probabilidad Real Decimal * Cuota de mercado) - 1] = +[XX.X]% EV
 
 1. CONTEXTO Y ENTORNO
 * Localía y Condiciones: Impacto real del estadio, desplazamiento (especial foco en MLS/Europa) y factores climáticos si aplican.
@@ -265,31 +265,31 @@ const TENNIS_ELO_RATING_CHECK = `IMPORTANTE - Diferencial ELO, calidad en la sup
 const TENNIS_PROMPT_DEFS: PromptDefinition[] = [
   {
     label: "Tipster",
-    prompt: `Actúa como un cuantitativo especializado en Sports Betting y analista de valor (+EV) en tenis. Tu objetivo es identificar oportunidades de apuestas con valor esperado positivo en la casa de apuestas WINAMAX para la jornada de tenis indicada en la CONFIGURACIÓN DEL ANÁLISIS del principio de este mensaje.
+    prompt: `Actúa como un cuantitativo especializado en Sports Betting y analista de valor (+EV) en tenis. Tu objetivo es identificar oportunidades de apuestas con valor esperado positivo frente a las cuotas de mercado (ver FUENTE DE CUOTAS) para la jornada de tenis indicada en la CONFIGURACIÓN DEL ANÁLISIS del principio de este mensaje.
 
 Aplica estrictamente las siguientes reglas metodológicas:
 
 1. FILTROS DE MERCADO Y COBERTURA:
    * Cobertura: Exclusivamente cuadros individuales masculinos (Singles) de torneos ATP y Challenger activos hoy.
-   * Bookie principal: WINAMAX (Cuotas iguales o superiores a 1.70).
+   * Cuotas de mercado iguales o superiores a 1.70 (ver FUENTE DE CUOTAS).
    * Mercados permitidos: Victoria simple (Moneyline), Hándicap de Juegos, Hándicap de Sets y Total de Juegos.
    * Volumen de salida: Devuelve exactamente 8 selecciones simples. Sin repetir partidos (máximo 1 pick por partido).
 
 2. CRITERIOS DE VALOR (+EV) Y RECOLECCIÓN DE DATOS:
-   * Benchmark Sharp: Compara la cuota de Winamax con la cuota actual en Pinnacle o Betfair Exchange. Solo considera selecciones donde la cuota de Winamax sea superior a la cuota fair/sharp estimada (Value Bet).
+   * Benchmark Sharp: Compara la cuota media de mercado con la cuota de Pinnacle o Betfair Exchange (sin margen). Solo considera selecciones donde la cuota de mercado sea superior a la cuota fair/sharp estimada (Value Bet).
    * Rendimiento Contextual: Prioriza jugadores con un win rate >60% en la superficie específica en los últimos 12 meses (no métricas históricas globales) o un rendimiento reciente destacado en partidos de la misma categoría.
    * Métricas de Servidor/Restador: Analiza en sus últimos 3-5 partidos el % de puntos ganados con el 1º/2º servicio y el % de bolas de break salvadas/convertidas.
    * Dinámica de Mercado y Noticias: Verifica si la cuota ha bajado recientemente en portales como Oddsportal (indicador de dinero profesional) y evalúa factores físicos críticos (acumulación de minutos/partidos en los últimos 7 días, molestias físicas o retiradas recientes).
 
 3. ORDENACIÓN Y MATEMÁTICA DEL PICK:
    * Ordena las 8 selecciones de MAYOR a MENOR Valor Esperado (EV%).
-   * Calcula la probabilidad real estimada (% acierto) sin margen y contrástala con la probabilidad implícita de la cuota de Winamax.
+   * Calcula la probabilidad real estimada (% acierto) sin margen y contrástala con la probabilidad implícita de la cuota de mercado.
 
 FORMATO DE SALIDA (Responde exclusivamente con esta estructura):
 
-### 📊 SELECCIONES +EV - WINAMAX
+### 📊 SELECCIONES +EV
 
-| # | Torneo | Partido | Mercado / Selección | Cuota Winamax | Cuota Sharp / Fair | Prob. Real Est. | EV Estimado % |
+| # | Torneo | Partido | Mercado / Selección | Cuota mercado (fuente) | Cuota Sharp / Fair | Prob. Real Est. | EV Estimado % |
 |---|---|---|---|---|---|---|---|
 | 1 | ATP [Nombre] | [Jugador A vs Jugador B] | [Ej: Jugador A (-1.5 Sets)] | [1.85] | [1.75] | [57%] | [+5.4%] |
 
@@ -300,14 +300,14 @@ FORMATO DE SALIDA (Responde exclusivamente con esta estructura):
 Para cada una de las 8 selecciones, incluye un breve desglose cuantitativo:
 1. **[Jugador A vs Jugador B] - [Mercado Escolado]**
    * **Métricas Clave:** (Estadísticas de servicio/resto recientes + win rate en superficie en los últimos 12 meses).
-   * **Justificación de Valor (+EV):** (Por qué la cuota de Winamax está desajustada vs Pinnacle/Mercado + tendencia de cuota/noticias).
+   * **Justificación de Valor (+EV):** (Por qué la cuota de mercado está desajustada vs Pinnacle + tendencia de cuota/noticias).
    * **Factor de Riesgo:** (Principal amenaza o contexto físico/desgaste).`,
   },
   {
     label: "Machine Learning",
     prompt: `Actúa como un modelo de Machine Learning avanzado y analista cuantitativo especializado en apuestas de tenis (ATP y ATP Challenger Tour). Tu objetivo es analizar la jornada de tenis indicada en la CONFIGURACIÓN DEL ANÁLISIS del principio de este mensaje para encontrar valor real frente a las cuotas de las casas de apuestas (Value Betting).
 
-La conclusión final deben ser exactamente 8 recomendaciones de picks con EV+ (sin repetir partidos), utilizando cuotas superiores a 1,80 en la casa de apuestas WINAMAX.
+La conclusión final deben ser exactamente 8 recomendaciones de picks con EV+ (sin repetir partidos), con cuotas de mercado superiores a 1,80 (ver FUENTE DE CUOTAS).
 
 Analiza minuciosamente los datos de los partidos de singles masculinos (ATP y Challenger) bajo los siguientes 5 pilares metodológicos y sus ponderaciones:
 
@@ -350,8 +350,8 @@ Presenta tu análisis estructurado estrictamente con este formato para cada uno 
 
 3. **Identificación de VALOR (The Edge)**
    * Mercado seleccionado: [Ej: Ganador Simple / Hándicap Juegos / Total de Juegos]
-   * Cuota Winamax: [X.XX] vs Cuota Justa Estimada: [Y.YY]
-   * Margen de EV+: [+X.X%] (Demostrando que la probabilidad real estimada supera la probabilidad implícita de la cuota de la casa).
+   * Cuota de mercado: [X.XX] ([fuente]) vs Cuota Justa Estimada: [Y.YY]
+   * Margen de EV+: [+X.X%] (Demostrando que la probabilidad real estimada supera la probabilidad implícita de la cuota de mercado).
 
 4. **Pronóstico Final y Stake**
    * Apuesta recomendada: [Detalle exacto del pick]
@@ -362,13 +362,13 @@ Presenta tu análisis estructurado estrictamente con este formato para cada uno 
     label: "Analista cuantitativo",
     prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en tenis ATP y Challenger (Singles Masculinos). Tu objetivo es realizar un análisis probabilístico y estadístico exhaustivo para la jornada de tenis indicada en la CONFIGURACIÓN DEL ANÁLISIS del principio de este mensaje.
 
-Quiero determinar si existe Valor Esperado Positivo (EV+) en el mercado, priorizando selecciones con cuotas superiores a 1.70 en la casa de apuestas WINAMAX.
+Quiero determinar si existe Valor Esperado Positivo (EV+) en el mercado, priorizando selecciones con cuotas de mercado superiores a 1.70 (ver FUENTE DE CUOTAS).
 
 Sigue estrictamente esta metodología de análisis:
 
 1. FILTRADO Y BENCHMARK DE MERCADO (Detección de Valor)
-* Compara las cuotas actuales de Winamax con las cuotas de cierre/actuales de casas Sharp (Pinnacle) o Exchanges (Betfair).
-* Selecciona únicamente aquellos partidos donde Winamax ofrezca una cuota superior a la de la casa Sharp (descontando el margen/vig). Esa discrepancia será nuestra base matemática para el EV+.
+* Compara la cuota media de mercado con las cuotas actuales de casas Sharp (Pinnacle) o Exchanges (Betfair).
+* Selecciona únicamente aquellos partidos donde la cuota de mercado sea superior a la cuota justa de la casa Sharp (descontando el margen/vig). Esa discrepancia será nuestra base matemática para el EV+.
 
 2. AUDITORÍA ESTADÍSTICA (Últimos 10 partidos en la superficie actual)
 Para los partidos filtrados en el paso 1, analiza las siguientes métricas clave de ambos jugadores:
@@ -389,13 +389,13 @@ FORMATO DE SALIDA (Genera la respuesta con esta estructura exacta para cada pick
 
 🎾 [Torneo] | [Jugador A vs Jugador B]
 * 🎯 Mercado: [Ej: Gana Jugador A / Hándicap +3.5 Juegos]
-* 📈 Cuota Winamax: [X.XX] | ⚖️ Cuota Sharp (Pinnacle/Betfair): [Y.YY]
+* 📈 Cuota mercado: [X.XX] ([fuente]) | ⚖️ Cuota Sharp (Pinnacle/Betfair): [Y.YY]
 * 💎 EV Estimado: [+X.X%]
 
 📊 Justificación Cuantitativa:
 * Hold/Break Index y DR: [Breve comparativa de los datos de los últimos 10 partidos].
 * Contexto y Fatiga: [Datos relevantes de tiempo en pista o match-up táctico].
-* Motivo del Valor: [Por qué el mercado de Winamax está desajustado respecto a la línea real].`,
+* Motivo del Valor: [Por qué la cuota de mercado está desajustada respecto a la línea real].`,
   },
 ];
 
@@ -414,6 +414,17 @@ const SHARED_CHECKS_BY_SPORT: Record<Sport, string[]> = {
   ],
 };
 
+// Los agentes no conseguían validar las cuotas en la web de Winamax (hace
+// falta sesión/geolocalización y apenas está indexada), así que inventaban
+// o no encontraban cuotas. Un comparador público da cuotas verificables;
+// Winamax suele pagar cerca de la media, y la cuota final la comprueba el
+// usuario antes de apostar.
+const ODDS_SOURCE_RULE = `FUENTE DE CUOTAS (obligatorio para los 3 analistas): NO intentes consultar las cuotas en la web de ninguna casa de apuestas concreta (Winamax, Bet365…). Usa como fuente principal OddsPortal (oddsportal.com), que muestra en una sola página las cuotas de muchas casas:
+- "Cuota de mercado" = la cuota MEDIA ("Average") que muestra OddsPortal para ese mercado. Todos los mínimos de cuota de este mensaje se aplican a esa cuota media.
+- Cuota sharp de referencia = la de Pinnacle (o Betfair Exchange) en esa misma página; quítale el margen para estimar la cuota justa cuando lo pida tu metodología.
+- Si el partido o el mercado no aparece en OddsPortal, usa como alternativa Oddschecker, BetExplorer o la pestaña de cuotas de Flashscore, por este orden.
+- Indica siempre de qué fuente sale cada cuota. NUNCA inventes ni estimes una cuota que no hayas visto publicada: si no puedes verificarla en ninguna de esas fuentes, descarta el pick y busca otro.`;
+
 const ANALYST_LETTERS = ["A", "B", "C"];
 
 // Gemini web es un solo modelo escribiendo las 3 secciones seguidas: sin
@@ -430,7 +441,7 @@ Vas a trabajar como 3 analistas INDEPENDIENTES (A, B y C), cada uno con su propi
 const FINAL_SECTION = `SECCIÓN FINAL — RESUMEN Y CONSENSO (solo ahora se comparan los 3 analistas)
 
 1. SELECCIONES FINALES: para cada analista (A, B y C), lista sus 8 picks, uno por línea, con este formato:
-N. Partido/Jugador vs Jugador | Torneo: <torneo o competición exacta, ej. "ATP Washington", "CH Bonn" o "Champions League" — nunca solo "ATP" o "Challenger"> | Mercado: <mercado> | Cuota: <cuota> | EV: <EV estimado, ej. +8%> | % Éxito: <probabilidad de acierto, ej. 65%> | Explicación: <motivo real del pick en 1-2 frases concretas, nunca vacío>
+N. Partido/Jugador vs Jugador | Torneo: <torneo o competición exacta, ej. "ATP Washington", "CH Bonn" o "Champions League" — nunca solo "ATP" o "Challenger"> | Mercado: <mercado> | Cuota: <cuota de mercado> (<fuente>) | EV: <EV estimado, ej. +8%> | % Éxito: <probabilidad de acierto, ej. 65%> | Explicación: <motivo real del pick en 1-2 frases concretas, nunca vacío>
 
 2. COINCIDENCIAS: picks en los que 2 o 3 analistas coinciden en el mismo partido Y el mismo mercado. Indica cuántos y cuáles coinciden. Si no hay ninguno, dilo.
 
@@ -576,7 +587,7 @@ export function buildCombinedPrompt(sport: Sport, options: BuildPromptOptions = 
     `- Fecha y hora actual: ${formatMadridNow(now)} (hora de España)`,
     `- Ventana de partidos: ${windowLabel(options.dateFilter, now)}`,
     scopeLine,
-    "- Casa de apuestas de referencia: Winamax",
+    "- Fuente de cuotas: OddsPortal (cuota media del mercado), ver FUENTE DE CUOTAS",
     "- Picks por analista: 8",
     "",
     "Esta configuración tiene prioridad sobre cualquier mención a fechas, ligas o torneos del resto del mensaje.",
@@ -591,7 +602,12 @@ export function buildCombinedPrompt(sport: Sport, options: BuildPromptOptions = 
     .map((block) => block.trim())
     .filter(Boolean);
 
-  const sharedRules = ["REGLAS COMUNES A LOS 3 ANALISTAS", ...restrictions, ...SHARED_CHECKS_BY_SPORT[sport]].join("\n\n");
+  const sharedRules = [
+    "REGLAS COMUNES A LOS 3 ANALISTAS",
+    ...restrictions,
+    ODDS_SOURCE_RULE,
+    ...SHARED_CHECKS_BY_SPORT[sport],
+  ].join("\n\n");
 
   const analysts = PROMPT_DEFS_BY_SPORT[sport].map(
     (def, idx) => `ANALISTA ${ANALYST_LETTERS[idx]} — ${def.label.toUpperCase()}\n\n${def.prompt.trim()}`

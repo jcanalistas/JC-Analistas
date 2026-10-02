@@ -186,7 +186,7 @@ Cada uno hace lo mismo que su comando equivalente:
 
   Al terminar, te manda el prompt de los 3 analistas con la configuración
   ya puesta al principio (fecha y hora actual, ventana, competiciones o
-  categoría, casa de referencia y número de picks), de dos formas:
+  categoría, fuente de cuotas y número de picks), de dos formas:
   troceado en bloques de código (Telegram tiene un límite de 4096
   caracteres por mensaje; toca cada bloque para copiarlo y pégalos en
   orden en el mismo mensaje de Gemini web) y como archivo `.txt` (puedes
