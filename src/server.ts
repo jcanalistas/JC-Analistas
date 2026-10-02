@@ -1,11 +1,10 @@
 import express from "express";
-import { bot, pollAllResearchJobs } from "./bot";
+import { bot } from "./bot";
 import { env } from "./config/env";
 
 // Red de seguridad: sin esto, un rechazo de promesa no capturado en
-// cualquier dependencia (p.ej. un timeout interno del SDK de Gemini)
-// tumba TODO el proceso — incluidos los /research de otros usuarios en
-// curso. Lo registramos y seguimos vivos en vez de morir.
+// cualquier dependencia tumba TODO el proceso. Lo registramos y seguimos
+// vivos en vez de morir.
 process.on("unhandledRejection", (reason) => {
   console.error("Unhandled rejection (proceso sigue vivo):", reason);
 });
@@ -23,25 +22,6 @@ app.get("/", (_req, res) => {
 });
 
 app.use(bot.webhookCallback(webhookPath));
-
-// Lo llama Cloud Scheduler cada 1-2 minutos: revisa en Firestore si hay
-// algún Deep Research pendiente y consulta su estado en Gemini. Cada
-// llamada dura segundos (una consulta rápida por perfil pendiente), así
-// que nunca depende de que el contenedor siga vivo los 20-30 minutos que
-// puede tardar Gemini en terminar — si el contenedor se recicla entre
-// sondeo y sondeo, el progreso ya está guardado en Firestore y el
-// siguiente sondeo continúa donde se quedó.
-app.post("/internal/poll-research", (req, res) => {
-  const secret = req.query.secret ?? req.get("X-Auto-Secret");
-  if (secret !== env.autoAnalizarSecret) {
-    res.status(401).send("unauthorized");
-    return;
-  }
-  res.status(202).send("ok");
-  pollAllResearchJobs().catch((err) => {
-    console.error("El sondeo de research falló:", err);
-  });
-});
 
 async function main() {
   if (env.publicUrl) {

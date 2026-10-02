@@ -1,43 +1,29 @@
 # JC Analistas — Bot de Telegram
 
-Bot de Telegram para el canal tipster **JC Analistas**. Primera función
-implementada:
+Bot de Telegram para el canal tipster **JC Analistas**. Funciones:
 
-1. Lanza **3 Deep Research distintos en Gemini** (Tipster, Machine
-   Learning y Analista cuantitativo), para el deporte que elijas con
-   botones (⚽ Fútbol / 🎾 Tenis).
-2. Devuelve las **selecciones finales** de cada uno (partido, torneo,
-   mercado, cuota, EV, % de éxito y explicación).
-3. Resalta qué selecciones **se repiten en 2 o 3** informes, con la
-   explicación combinada de cada perfil que coincidió.
-
-El resto de funciones del bot se añadirán más adelante.
+1. **🔍 Analizar**: eliges deporte (⚽ Fútbol / 🎾 Tenis), fecha y
+   competiciones/categoría con botones, y el bot te devuelve **un único
+   prompt** que hace trabajar a los 3 perfiles (Tipster, Machine Learning
+   y Analista cuantitativo) como analistas independientes, con una sección
+   final de consenso (selecciones de cada uno, coincidencias, mismo
+   partido con distinto mercado y combinada sugerida). Lo copias y lo
+   pegas en **Gemini web** (o adjuntas el .txt que manda el bot).
+2. **📸 Ticket**: montaje del ticket sobre una foto de fondo, con su texto,
+   listo para publicar en el canal.
+3. **📝 Pendientes / 📊 Stats**: seguimiento de apuestas registradas.
 
 ## Cómo funciona por dentro
 
-Usa la **API oficial de Gemini Deep Research** (Interactions API,
-`@google/genai`) — nada de automatizar un navegador ni depender de tu
-sesión personal de Google. Solo hace falta una API key de Google AI
-Studio. Cada Deep Research corre en segundo plano en los servidores de
-Google.
-
-Los 3 se lanzan **en paralelo** (cada uno es una llamada de API
-independiente) y cada uno puede tardar varios minutos. Al lanzar
-`/analizar`, el bot solo crea las 3 tareas en Gemini (tarda segundos) y
-guarda su progreso en Firestore — **no se queda esperando** a que
-terminen dentro de la misma petición. Un job de Cloud Scheduler aparte
-(ver 7.7) sondea cada 1-2 minutos si hay tareas pendientes y, en cuanto
-alguna termina, manda el aviso por Telegram. Esto es deliberado: Cloud
-Run puede reciclar el contenedor por su cuenta en cualquier momento
-(inactividad, mantenimiento, redeploys), y una tarea que dependiera de un
-único proceso vivo durante 20-30 minutos seguidos se perdía sin avisar
-cuando eso pasaba — con el progreso guardado en Firestore, el siguiente
-sondeo simplemente continúa donde se quedó.
+El bot **no usa ninguna API de IA**: el Deep Research de la API de Gemini
+dejó de estar disponible en el plan gratuito, así que `/analizar` solo
+construye el prompt (`buildCombinedPrompt` en `src/config/prompts.ts`) con
+la configuración elegida arriba del todo y te lo manda por Telegram. No
+hace falta API key de Gemini ni ningún job de Cloud Scheduler.
 
 ## Requisitos
 
 - Node.js 20+
-- Una API key de Gemini (gratis, Google AI Studio)
 - Un bot de Telegram
 
 ## 1. Crear el bot de Telegram
@@ -49,46 +35,39 @@ sondeo simplemente continúa donde se quedó.
    propio ID de usuario de Telegram — es tu `TELEGRAM_ALLOWED_USER_ID`
    (así solo tú puedes usar el bot).
 
-## 2. Conseguir la API key de Gemini
-
-1. Ve a [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
-2. Inicia sesión con tu Google y pulsa "Create API key".
-3. Guarda esa key — es tu `GEMINI_API_KEY`.
-
-## 3. Configurar variables de entorno
+## 2. Configurar variables de entorno
 
 ```bash
 cp .env.example .env
 ```
 
-Rellena `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_ID`,
-`TELEGRAM_CHANNEL_ID` y `GEMINI_API_KEY`. El resto (`PUBLIC_URL`,
-`WEBHOOK_SECRET_PATH`) se completan al desplegar (paso 6).
+Rellena `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_ID` y
+`TELEGRAM_CHANNEL_ID`. El resto (`PUBLIC_URL`, `WEBHOOK_SECRET_PATH`) se
+completan al desplegar (paso 6).
 
 `TELEGRAM_CHANNEL_ID` es el ID de tu canal (consíguelo reenviando un
 mensaje del canal a [@userinfobot](https://t.me/userinfobot)); el bot
 debe ser **administrador del canal con permiso de publicar mensajes**
 para poder usar el botón "Publicar" de `/ticket`.
 
-## 4. Instalar dependencias
+## 3. Instalar dependencias
 
 ```bash
 npm install
 ```
 
-## 5. Ajustar tus 6 prompts (3 de fútbol + 3 de tenis)
+## 4. Ajustar tus 6 prompts (3 de fútbol + 3 de tenis)
 
-Al escribir `/analizar`, el bot pregunta primero qué deporte analizar
-(⚽ Fútbol / 🎾 Tenis) con botones, y lanza los 3 prompts de ese deporte
-en el orden Tipster → Machine Learning → Analista cuantitativo.
+Edita `src/config/prompts.ts`: `FOOTBALL_PROMPT_DEFS` y
+`TENNIS_PROMPT_DEFS` son los 3 perfiles de cada deporte (Tipster → Machine
+Learning → Analista cuantitativo). Las comprobaciones comunes a los 3
+(mercados del mismo partido en fútbol; retiradas, vueltas de baja,
+desgaste y ELO en tenis) están en `SHARED_CHECKS_BY_SPORT` y se incluyen
+una sola vez. `buildCombinedPrompt` monta el prompt final: configuración,
+reglas comunes, protocolo de independencia, los 3 analistas y
+`FINAL_SECTION` (consenso).
 
-Edita `src/config/prompts.ts` y sustituye el contenido de
-`FOOTBALL_PROMPT_DEFS` y `TENNIS_PROMPT_DEFS` por tus enfoques reales
-(ligas, mercados, criterios). No toques `OUTPUT_FORMAT_INSTRUCTIONS`: es
-lo que le exige a Gemini terminar con un bloque `SELECCIONES FINALES`
-parseable por el bot.
-
-## 6. Probar en local
+## 5. Probar en local
 
 ```bash
 npm run dev
@@ -99,42 +78,39 @@ exponer tu máquina (p. ej. con `ngrok http 8080`) y usar esa URL como
 `PUBLIC_URL` temporalmente, o desplegar directo en Cloud Run (siguiente
 paso).
 
-## 7. Desplegar en Cloud Run
+## 6. Desplegar en Cloud Run
 
-### 7.1 Subir los secretos (token del bot y API key de Gemini)
+### 6.1 Subir el secreto del token de Telegram
 
-Se guardan en Secret Manager en vez de como variables de entorno planas,
-para que no queden visibles en la consola de Cloud Run:
+Se guarda en Secret Manager en vez de como variable de entorno plana,
+para que no quede visible en la consola de Cloud Run:
 
 ```bash
 echo -n "TU_TOKEN_DE_TELEGRAM" | gcloud secrets create telegram-bot-token --data-file=-
-echo -n "TU_API_KEY_DE_GEMINI" | gcloud secrets create gemini-api-key --data-file=-
 ```
 
-Si alguna vez regeneras alguna de las dos, sube una nueva versión:
+Si alguna vez lo regeneras, sube una nueva versión:
 
 ```bash
 echo -n "NUEVO_VALOR" | gcloud secrets versions add telegram-bot-token --data-file=-
-echo -n "NUEVO_VALOR" | gcloud secrets versions add gemini-api-key --data-file=-
 ```
 
-### 7.2 Construir y desplegar (primera vez)
+### 6.2 Construir y desplegar (primera vez)
 
 ```bash
 gcloud run deploy jc-analistas-bot \
   --source . \
   --region europe-southwest1 \
   --allow-unauthenticated \
-  --set-env-vars TELEGRAM_ALLOWED_USER_ID=TU_ID_DE_TELEGRAM,TELEGRAM_CHANNEL_ID=TU_ID_DE_CANAL,WEBHOOK_SECRET_PATH=UNA_CADENA_ALEATORIA,DEEP_RESEARCH_TIMEOUT_MINUTES=20,AUTO_ANALIZAR_SECRET=OTRA_CADENA_ALEATORIA \
-  --set-secrets TELEGRAM_BOT_TOKEN=telegram-bot-token:latest,GEMINI_API_KEY=gemini-api-key:latest \
-  --timeout=3600
+  --set-env-vars TELEGRAM_ALLOWED_USER_ID=TU_ID_DE_TELEGRAM,TELEGRAM_CHANNEL_ID=TU_ID_DE_CANAL,WEBHOOK_SECRET_PATH=UNA_CADENA_ALEATORIA \
+  --set-secrets TELEGRAM_BOT_TOKEN=telegram-bot-token:latest
 ```
 
 Al terminar, `gcloud` imprime la URL pública del servicio (algo como
 `https://jc-analistas-bot-xxxxx.a.run.app`). Cópiala para el siguiente
 paso.
 
-### 7.3 Segundo despliegue: añadir PUBLIC_URL
+### 6.3 Segundo despliegue: añadir PUBLIC_URL
 
 El servicio necesita conocer su propia URL pública para registrar el
 webhook de Telegram al arrancar:
@@ -145,11 +121,7 @@ gcloud run services update jc-analistas-bot \
   --update-env-vars PUBLIC_URL=https://TU-URL-DE-CLOUD-RUN.a.run.app
 ```
 
-Nota: `--timeout=3600` porque un `/analizar` con 3 Deep Research puede
-tardar bastante más que el timeout HTTP por defecto de Cloud Run. Ya no
-hace falta memoria/CPU extra (sin navegador, el contenedor es ligero).
-
-### 7.4 Verificar el webhook
+### 6.4 Verificar el webhook
 
 ```bash
 curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getWebhookInfo"
@@ -157,23 +129,10 @@ curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getWebhookInfo"
 
 Debe apuntar a `https://<tu-servicio>.a.run.app/telegram/<WEBHOOK_SECRET_PATH>`.
 
-### 7.5 (Retirado) /analizar de tenis automático a las 7:00
+### 6.5 Activar Firestore (lo usan Pendientes y Stats)
 
-El bot ya no lanza ningún análisis automático: `/analizar` solo se lanza a
-mano. Si en su día creaste el job de Cloud Scheduler para esto, bórralo
-(si no, seguirá llamando cada mañana a un endpoint que ya no existe):
-
-```bash
-gcloud scheduler jobs delete auto-analizar-tenis --location=europe-west1
-```
-
-### 7.6 Activar Firestore (obligatorio: lo usan tanto Stats como /analizar)
-
-Firestore es la base de datos persistente del proyecto — la usan tanto
-"Registrar apuesta" / `/pendientes` / `/stats` como el propio `/analizar`
-(para guardar el progreso de cada Deep Research mientras Gemini trabaja,
-ver 7.7). Hace falta crearla una sola vez y darle permiso a la cuenta de
-servicio del propio Cloud Run:
+Firestore guarda las apuestas registradas. Hace falta crearla una sola
+vez y darle permiso a la cuenta de servicio del propio Cloud Run:
 
 ```bash
 gcloud services enable firestore.googleapis.com
@@ -186,96 +145,53 @@ gcloud projects add-iam-policy-binding $(gcloud config get-value project) \
   --role="roles/datastore.user"
 ```
 
-### 7.7 Cloud Scheduler para el sondeo de /analizar (obligatorio)
+`--location=eur3` es una región multi-región de Europa; si tu proyecto ya
+tiene una base de datos Firestore, no hace falta repetir el `create`.
 
-`/analizar` ya no espera dentro de la misma petición a que Gemini
-termine (ver "Cómo funciona por dentro" al principio) — necesita que
-algo externo le pregunte periódicamente "¿ha terminado ya?". Ese algo es
-Cloud Scheduler, llamando cada 1-2 minutos a un endpoint interno del
-propio servicio:
+### 6.6 Limpieza si venías de la versión con la API de Gemini
+
+Los jobs de Cloud Scheduler `poll-research` y `auto-analizar-tenis` y el
+secreto `gemini-api-key` ya no se usan. Bórralos:
 
 ```bash
-gcloud services enable cloudscheduler.googleapis.com
-
-gcloud scheduler jobs create http poll-research \
-  --location=europe-west1 \
-  --schedule="*/2 * * * *" \
-  --uri="https://TU-URL-DE-CLOUD-RUN.a.run.app/internal/poll-research?secret=TU_AUTO_ANALIZAR_SECRET" \
-  --http-method=POST
+gcloud scheduler jobs delete poll-research --location=europe-west1
+gcloud scheduler jobs delete auto-analizar-tenis --location=europe-west1
+gcloud run services update jc-analistas-bot --region europe-southwest1 \
+  --remove-secrets GEMINI_API_KEY \
+  --remove-env-vars DEEP_RESEARCH_TIMEOUT_MINUTES,AUTO_ANALIZAR_SECRET,GEMINI_DEEP_RESEARCH_AGENT
+gcloud secrets delete gemini-api-key
 ```
-
-Usa tu `TU-URL-DE-CLOUD-RUN` y como secreto el valor de
-`AUTO_ANALIZAR_SECRET` que pusiste al desplegar. Sin este job, `/analizar` lanza las 3
-tareas en Gemini y se queda ahí para siempre: nadie las vuelve a mirar,
-así que nunca llegan los mensajes de "✅ completado" ni el resultado
-final. Es imprescindible tenerlo activo.
-
-`--location=eur3` es una región multi-región de Europa; si tu proyecto ya
-tiene una base de datos Firestore creada en otra región para otra cosa, no
-hace falta repetir el `create`. No hace falta ninguna variable de entorno
-nueva: la autenticación es automática vía la cuenta de servicio del propio
-servicio (Application Default Credentials).
 
 ## Uso
 
 En Telegram, háblale al bot:
 
 El bot deja fijos, siempre debajo del cuadro de texto, los botones
-"🏠 Empezar", "🔍 Analizar", "📸 Ticket", "📝 Pendientes", "📊 Stats" y
-"❌ Cancelar análisis" (en ese orden, en tres filas). Cada uno hace lo
-mismo que su comando equivalente:
+"🏠 Empezar", "🔍 Analizar", "📸 Ticket", "📝 Pendientes" y "📊 Stats".
+Cada uno hace lo mismo que su comando equivalente:
 
 - `/start` (o "🏠 Empezar") — mensaje de bienvenida.
 - `/analizar` (o "🔍 Analizar") — pregunta el deporte y, después, qué
   partidos analizar: **Hoy** (con la fecha), **Mañana** (con la fecha) o
-  **Próximas 24h** (el comportamiento por defecto, ventana móvil desde
-  ahora). Si eliges Fútbol ⚽, además pregunta si quieres analizar todas
-  las competiciones o restringir a una selección concreta (p. ej. solo
-  Champions League) marcando con botones de la lista (con la bandera del
-  país de cada una, o de la UEFA en las 4 europeas): Selecciones
-  Nacionales, LaLiga 1ª/2ª, 1ª/2ª RFEF, Liga Portugal, Premier League,
-  Bundesliga, Ligue 1, MLS, Brasileirão, Champions/Europa/Conference
-  League, Ligas Europeas (otras) — esta última agrupa primeras divisiones
-  europeas no cubiertas en el resto (Dinamarca, Noruega, Suecia, Bélgica,
-  Países Bajos, Escocia, Austria, Suiza). Si eliges Selecciones
-  Nacionales, los 3 perfiles adaptan el análisis al contexto propio de
-  fútbol de selecciones (convocatoria real en vez de plantilla ideal,
-  fatiga de club, riesgo de rotación en amistosos/partidos sin nada en
-  juego, muestra de partidos pequeña, y motivación por clasificación en
-  vez de título/descenso). Si eliges Tenis 🎾, pregunta si
-  quieres **ATP**, **Challenger**, o **Todo**
-  (siempre individuales masculinos). Cada paso tiene un botón "⬅️ Atrás"
-  para volver al anterior (p. ej. desde la lista de competiciones puedes
-  volver a elegir Tenis en vez de Fútbol). Al terminar, envía:
-  1. Las selecciones finales de cada perfil (Tipster, Machine Learning,
-     Analista cuantitativo): partido, torneo/competición exacta (ej. "ATP
-     Washington", "CH Bonn"), mercado, cuota, EV, % de éxito y
-     explicación. Si algún perfil falla (p. ej. cuota agotada), se avisa
-     de ese perfil en concreto y se muestran igualmente los que sí
-     terminaron, en vez de perderlo todo.
-  2. Las "Recomendaciones": selecciones que coincidieron en 2 o 3
-     informes en el mismo partido Y el mismo mercado, combinadas en una
-     sola entrada con la explicación de cada perfil que coincidió.
-  3. "Mismo partido, distinto mercado" (si aplica): partidos que
-     analizaron 2 o 3 perfiles pero recomendando mercados distintos (p.
-     ej. un perfil pide "Tiafoe 2-0" y otro "Tiafoe -2.5 juegos") —
-     muestra todas las opciones para ese partido.
-  4. "Combinada sugerida" (si aplica): cada uno de los 3 informes busca
-     directamente 2 "bankers" (mercados de máxima seguridad — victoria
-     clara, gana un set, etc. — no tienen por qué salir entre sus 8
-     selecciones de valor) de partidos distintos cuya cuota combinada
-     caiga entre 1,70 y 2,20; se usa la primera propuesta válida que
-     encuentre (Tipster → Machine Learning → Analista cuantitativo). Si
-     ninguno encuentra una, el bot calcula una de red de seguridad
-     buscando entre las 24 selecciones de valor ya obtenidas.
+  **Próximas 24h**. Si eliges Fútbol ⚽, además pregunta si quieres todas
+  las competiciones o una selección concreta marcando con botones:
+  Selecciones Nacionales, LaLiga 1ª/2ª, 1ª/2ª RFEF, Liga Portugal,
+  Premier League, Bundesliga, Ligue 1, MLS, Brasileirão,
+  Champions/Europa/Conference League y Ligas Europeas (otras). Si eliges
+  Selecciones Nacionales, el prompt añade los ajustes propios del fútbol
+  de selecciones (convocatoria real, fatiga de club, riesgo de rotación,
+  muestra pequeña, motivación por clasificación). Si eliges Tenis 🎾,
+  pregunta **ATP**, **Challenger** o **Todo** (siempre individuales
+  masculinos). Cada paso tiene "⬅️ Atrás".
 
-  Cada "Recomendación", cada "Mismo partido, distinto mercado" y la
-  "Combinada sugerida" se mandan como su **propio mensaje** (no todo junto),
-  con un botón **"📝 Registrar apuesta"**: la registra como pendiente en
-  Firestore (partido, torneo, mercado y de qué perfil(es) viene) sin
-  pedir la cuota todavía. En "Mismo partido, distinto mercado" el botón es
-  uno solo por partido aunque haya varias opciones de mercado — memoriza tú
-  cuál elegiste, para marcarla luego con el mercado correcto en mente.
+  Al terminar, te manda el prompt de los 3 analistas con la configuración
+  ya puesta al principio (fecha y hora actual, ventana, competiciones o
+  categoría, casa de referencia y número de picks), de dos formas:
+  troceado en bloques de código (Telegram tiene un límite de 4096
+  caracteres por mensaje; toca cada bloque para copiarlo y pégalos en
+  orden en el mismo mensaje de Gemini web) y como archivo `.txt` (puedes
+  adjuntarlo en Gemini y escribir "Sigue las instrucciones del archivo
+  adjunto").
 - `/pendientes` (o "📝 Pendientes") — lista las apuestas registradas que
   aún no se han marcado, cada una con botones **"✅ Ganada"** / **"❌
   Perdida"**. "❌ Perdida" se resuelve al momento (-50€, no hace falta
@@ -285,12 +201,10 @@ mismo que su comando equivalente:
 - `/stats` (o "📊 Stats") — total de apuestas registradas, pendientes,
   ganadas/perdidas, % de acierto y beneficio neto acumulado, siempre
   asumiendo el stake fijo de 50€ por apuesta.
-- `/cancelar` (o "❌ Cancelar análisis") — cancela a mano cualquier
-  `/analizar` que se haya quedado colgado (p. ej. si el sondeo de Cloud
-  Scheduler de 7.7 falla o está mal configurado), borrando su job de
-  Firestore para poder lanzar otro sin tener que hacerlo desde Cloud
-  Shell. Si no hay ningún análisis en curso, avisa de que no hay nada que
-  cancelar.
+
+  Las apuestas se registraban desde los resultados de `/analizar` cuando
+  el bot lanzaba los Deep Research; ahora que los resultados salen en
+  Gemini web, Pendientes y Stats solo muestran las ya registradas.
 - `/ticket` (o "📸 Ticket") — pide primero la foto del ticket (la tarjeta
   ya recortada, sin fondo blanco alrededor). Para el fondo, si ya usaste
   uno antes te ofrece un botón "🔁 Usar el mismo fondo de la última vez"
@@ -326,18 +240,13 @@ mismo que su comando equivalente:
   quieres los dos en el canal, pulsa "Publicar" en cada mensaje por
   separado.
 
-## Limitaciones conocidas de esta primera versión
+## Limitaciones conocidas
 
-- El emparejamiento de selecciones repetidas es heurístico (normaliza
-  texto y usa similitud de cadenas): revisa siempre el resultado, sobre
-  todo si los informes redactan el mismo partido de forma muy distinta.
-- El agente Deep Research de la API de Gemini está en preview: Google
-  puede cambiar su comportamiento, precios o disponibilidad.
-- Solo un `/analizar` puede correr a la vez.
-  Desde que `/analizar` guarda su progreso en Firestore y se sondea desde
-  fuera (ver 7.7), esto ya no depende de que el contenedor de Cloud Run
-  siga vivo sin interrupción — un reinicio o redeploy en medio de un
-  análisis ya no lo pierde, como sí pasaba antes.
+- Gemini web es un solo modelo escribiendo las 3 secciones seguidas: el
+  prompt le exige que cada analista investigue por su cuenta, pero no es
+  tan independiente como 3 investigaciones separadas. Para independencia
+  total, abre 3 chats y pega en cada uno la configuración, las reglas
+  comunes y un solo analista.
 - El último fondo de `/ticket` y los montajes/resúmenes pendientes de
   publicar/editar viven en memoria del proceso: si Cloud Run apaga el
   contenedor por inactividad entre medias, se pierden (el botón de
@@ -353,14 +262,7 @@ src/
   server.ts                 Servidor Express + registro del webhook
   config/
     env.ts                  Carga de variables de entorno
-    prompts.ts               Los 6 prompts (3 fútbol + 3 tenis) + formato de salida exigido
-  gemini/
-    deepResearch.ts           Llamadas a la API oficial de Gemini Deep Research
-  matching/
-    normalize.ts              Normalización de texto para comparar selecciones
-    matchSelections.ts        Parseo del bloque "SELECCIONES FINALES" + matching
-  format/
-    telegramFormat.ts         Construcción de los mensajes de Telegram
+    prompts.ts               Los 6 prompts (3 fútbol + 3 tenis) y el prompt combinado de /analizar
   montage/
     composeMontage.ts          Monta el ticket + sello del logo sobre la foto de fondo
     formatTicketCaption.ts     Texto del montaje y del resumen de apuesta acertada
@@ -369,5 +271,5 @@ src/
   stats/
     firestore.ts              Cliente de Firestore (vía ADC)
     betsStore.ts               Modelo de apuesta + CRUD (pendiente/ganada/perdida) y estadísticas
-    researchJobs.ts            Modelo del job de /analizar + CRUD (progreso de cada Deep Research en curso)
+prompts-chatgpt/            Prompts de los 3 analistas en un solo mensaje para ChatGPT (editables a mano)
 ```

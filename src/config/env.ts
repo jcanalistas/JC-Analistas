@@ -21,12 +21,4 @@ export const env = {
   publicUrl: process.env.PUBLIC_URL,
   webhookSecretPath: required("WEBHOOK_SECRET_PATH"),
   port: Number(process.env.PORT ?? 8080),
-  geminiApiKey: required("GEMINI_API_KEY"),
-  // Modelo/agente de Deep Research en la API de Gemini. "preview" es más
-  // rápido; "max-preview" es más exhaustivo pero más lento.
-  geminiDeepResearchAgent: process.env.GEMINI_DEEP_RESEARCH_AGENT ?? "deep-research-preview-04-2026",
-  deepResearchTimeoutMinutes: Number(process.env.DEEP_RESEARCH_TIMEOUT_MINUTES ?? 20),
-  // Secreto compartido con Cloud Scheduler para autorizar la llamada al
-  // endpoint de sondeo de los Deep Research (ver server.ts).
-  autoAnalizarSecret: required("AUTO_ANALIZAR_SECRET"),
 };

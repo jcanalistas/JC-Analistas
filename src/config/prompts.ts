@@ -1,15 +1,11 @@
 /**
- * Los prompts que se lanzan como Deep Research en Gemini, agrupados por
- * deporte. El bot pregunta primero qué deporte analizar (ver bot.ts) y
- * lanza los 3 prompts del deporte elegido, en este orden fijo:
- * 1. Tipster, 2. Machine Learning, 3. Analista cuantitativo.
- *
- * El bot añade automáticamente al final de cada uno (ver
- * OUTPUT_FORMAT_INSTRUCTIONS) las instrucciones de formato necesarias
- * para poder leer y comparar las selecciones después.
- *
- * No borres ni cambies OUTPUT_FORMAT_INSTRUCTIONS: sin eso el bot no
- * puede parsear los resultados.
+ * Los prompts de análisis, agrupados por deporte. /analizar ya no lanza
+ * nada contra la API de Gemini: el bot pregunta deporte, fecha y
+ * competiciones/categoría y devuelve UN solo prompt (ver
+ * buildCombinedPrompt) para copiarlo y pegarlo en Gemini web. Ese prompt
+ * lleva arriba la configuración elegida y hace trabajar a los 3 perfiles
+ * (1. Tipster, 2. Machine Learning, 3. Analista cuantitativo) como
+ * analistas independientes, con una sección final de consenso.
  */
 export type Sport = "futbol" | "tenis";
 
@@ -112,8 +108,6 @@ Sigue estas reglas estrictas:
  * Market Drop: Verifica si la cuota ha bajado recientemente (indicador de dinero profesional/sharp money).
  * Contexto: Busca noticias de última hora (lesiones, sanciones, rotaciones por calendario congestionado) y factores motivacionales (derbis, necesidad de puntos por título/descenso). Pondera esto en tu decisión final.
 
-${FOOTBALL_SAME_MATCH_COMBO_CHECK}
-
 Formato de Salida:
 Antes de la tabla, escribe un breve párrafo resumiendo qué ligas tenían más valor hoy y qué partido descartaste en el último momento y por qué. Luego, presenta los resultados estrictamente en esta tabla:
 
@@ -154,8 +148,6 @@ Analizarás minuciosamente los partidos bajo estos 5 pilares metodológicos:
 - Penaliza la varianza e irregularidad en divisiones inferiores (1ª/2ª RFEF, 2ª Div) o ligas de alta volatilidad (MLS).
 - Premia la consistencia de datos en divisiones élite (Premier League, LaLiga, rondas finales europeas).
 
-${FOOTBALL_SAME_MATCH_COMBO_CHECK}
-
 ---
 INSTRUCCIONES DE SALIDA (Formato de Respuesta):
 Presenta tu análisis estructurado estrictamente de la siguiente manera. Primero un resumen global y luego 8 bloques individuales.
@@ -189,8 +181,6 @@ Tu objetivo es encontrar Valor Esperado Positivo (EV+) puro. Selecciona exactame
 REGLA MATEMÁTICA ESTRICTA PARA LOS 8 PICKS:
 - La probabilidad real de éxito calculada por tu modelo debe ser estrictamente SUPERIOR AL 60% (Cuota justa estimada < 1.66).
 - La cuota real ofrecida por la casa de apuestas (ej. Winamax) debe ser SUPERIOR A 1.60, y siempre mayor que tu cuota justa estimada, para garantizar el EV+.
-
-${FOOTBALL_SAME_MATCH_COMBO_CHECK}
 
 Selecciona los 8 picks y redacta tu informe presentando cada partido bajo esta estructura de 4 pasos analíticos:
 
@@ -275,7 +265,7 @@ const TENNIS_ELO_RATING_CHECK = `IMPORTANTE - Diferencial ELO, calidad en la sup
 const TENNIS_PROMPT_DEFS: PromptDefinition[] = [
   {
     label: "Tipster",
-    prompt: `Actúa como un cuantitativo especializado en Sports Betting y analista de valor (+EV) en tenis. Tu objetivo es identificar oportunidades de apuestas con valor esperado positivo en la casa de apuestas WINAMAX para la jornada de tenis indicada por la ventana de fechas que se detalla más abajo en este mismo mensaje.
+    prompt: `Actúa como un cuantitativo especializado en Sports Betting y analista de valor (+EV) en tenis. Tu objetivo es identificar oportunidades de apuestas con valor esperado positivo en la casa de apuestas WINAMAX para la jornada de tenis indicada en la CONFIGURACIÓN DEL ANÁLISIS del principio de este mensaje.
 
 Aplica estrictamente las siguientes reglas metodológicas:
 
@@ -294,14 +284,6 @@ Aplica estrictamente las siguientes reglas metodológicas:
 3. ORDENACIÓN Y MATEMÁTICA DEL PICK:
    * Ordena las 8 selecciones de MAYOR a MENOR Valor Esperado (EV%).
    * Calcula la probabilidad real estimada (% acierto) sin margen y contrástala con la probabilidad implícita de la cuota de Winamax.
-
-${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
-
-${TENNIS_INJURY_COMEBACK_CHECK}
-
-${TENNIS_FATIGUE_CHECK}
-
-${TENNIS_ELO_RATING_CHECK}
 
 FORMATO DE SALIDA (Responde exclusivamente con esta estructura):
 
@@ -323,7 +305,7 @@ Para cada una de las 8 selecciones, incluye un breve desglose cuantitativo:
   },
   {
     label: "Machine Learning",
-    prompt: `Actúa como un modelo de Machine Learning avanzado y analista cuantitativo especializado en apuestas de tenis (ATP y ATP Challenger Tour). Tu objetivo es analizar la jornada de tenis indicada por la ventana de fechas que se detalla más abajo en este mismo mensaje para encontrar valor real frente a las cuotas de las casas de apuestas (Value Betting).
+    prompt: `Actúa como un modelo de Machine Learning avanzado y analista cuantitativo especializado en apuestas de tenis (ATP y ATP Challenger Tour). Tu objetivo es analizar la jornada de tenis indicada en la CONFIGURACIÓN DEL ANÁLISIS del principio de este mensaje para encontrar valor real frente a las cuotas de las casas de apuestas (Value Betting).
 
 La conclusión final deben ser exactamente 8 recomendaciones de picks con EV+ (sin repetir partidos), utilizando cuotas superiores a 1,80 en la casa de apuestas WINAMAX.
 
@@ -350,14 +332,6 @@ Analiza minuciosamente los datos de los partidos de singles masculinos (ATP y Ch
 
 5. AJUSTE DE CATEGORÍA (ATP vs. CHALLENGER) (Ponderación: 10%)
 - Penaliza la irregularidad en el servicio en torneos Challenger y premia la resiliencia mental y el % de puntos al segundo saque.
-
-${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
-
-${TENNIS_INJURY_COMEBACK_CHECK}
-
-${TENNIS_FATIGUE_CHECK}
-
-${TENNIS_ELO_RATING_CHECK}
 
 ---
 
@@ -386,7 +360,7 @@ Presenta tu análisis estructurado estrictamente con este formato para cada uno 
   },
   {
     label: "Analista cuantitativo",
-    prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en tenis ATP y Challenger (Singles Masculinos). Tu objetivo es realizar un análisis probabilístico y estadístico exhaustivo para la jornada de tenis indicada por la ventana de fechas que se detalla más abajo en este mismo mensaje.
+    prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en tenis ATP y Challenger (Singles Masculinos). Tu objetivo es realizar un análisis probabilístico y estadístico exhaustivo para la jornada de tenis indicada en la CONFIGURACIÓN DEL ANÁLISIS del principio de este mensaje.
 
 Quiero determinar si existe Valor Esperado Positivo (EV+) en el mercado, priorizando selecciones con cuotas superiores a 1.70 en la casa de apuestas WINAMAX.
 
@@ -411,14 +385,6 @@ Para los partidos filtrados en el paso 1, analiza las siguientes métricas clave
 * NINGUNA apuesta combinada. Solo selecciones simples (Ganador, Hándicap, Total de Juegos).
 * Volumen de salida: Devuelve exactamente 8 recomendaciones, de 8 partidos distintos (nunca repitas un partido), enfocadas 100% en el mayor EV+ matemático (no busques la "apuesta segura", busca el error de la casa de apuestas).
 
-${TENNIS_RETIREMENT_LUCKY_LOSER_CHECK}
-
-${TENNIS_INJURY_COMEBACK_CHECK}
-
-${TENNIS_FATIGUE_CHECK}
-
-${TENNIS_ELO_RATING_CHECK}
-
 FORMATO DE SALIDA (Genera la respuesta con esta estructura exacta para cada pick):
 
 🎾 [Torneo] | [Jugador A vs Jugador B]
@@ -438,56 +404,43 @@ const PROMPT_DEFS_BY_SPORT: Record<Sport, PromptDefinition[]> = {
   tenis: TENNIS_PROMPT_DEFS,
 };
 
-const OUTPUT_FORMAT_INSTRUCTIONS = `
+const SHARED_CHECKS_BY_SPORT: Record<Sport, string[]> = {
+  futbol: [FOOTBALL_SAME_MATCH_COMBO_CHECK],
+  tenis: [
+    TENNIS_RETIREMENT_LUCKY_LOSER_CHECK,
+    TENNIS_INJURY_COMEBACK_CHECK,
+    TENNIS_FATIGUE_CHECK,
+    TENNIS_ELO_RATING_CHECK,
+  ],
+};
 
----
-Instrucciones de formato obligatorias para tu respuesta final:
-Al terminar tu informe, añade una última sección titulada exactamente
-"SELECCIONES FINALES" (sin nada más en esa línea). Debajo, lista cada
-selección como una línea numerada con este formato exacto, una selección
-por línea:
+const ANALYST_LETTERS = ["A", "B", "C"];
 
-N. Partido/Jugador vs Jugador | Torneo: <torneo o competición exacta, ej. "ATP Washington", "CH Bonn" o "Champions League" — nunca solo "ATP" o "Challenger" a secas> | Mercado: <mercado> | Cuota: <cuota> | EV: <valor EV+ estimado, ej. +8% o el indicador que uses> | % Éxito: <probabilidad de acierto estimada, ej. 65%> | Explicación: <explicación breve en 1-2 frases>
+// Gemini web es un solo modelo escribiendo las 3 secciones seguidas: sin
+// pedirlo expresamente, el segundo y tercer perfil tienden a reutilizar la
+// investigación del primero y a coincidir con él, y las coincidencias de
+// la sección final dejarían de significar nada.
+const INDEPENDENCE_PROTOCOL = `PROTOCOLO DE INDEPENDENCIA — MUY IMPORTANTE
+Vas a trabajar como 3 analistas INDEPENDIENTES (A, B y C), cada uno con su propia metodología. Su valor está en que lleguen a sus picks por separado: si dos coinciden, debe ser porque los datos lo indican, no porque uno copie al otro.
+- Cada analista hace SU PROPIA investigación desde cero: sus propias búsquedas, con sus propias consultas y sus propias fuentes. No reutilices datos, partidos preseleccionados ni conclusiones de otro analista.
+- Mientras redactas la sección de un analista, actúa como si las otras secciones no existieran: no las leas, no las cites, no busques coincidir ni diferenciarte de ellas.
+- Cada analista elige sus picks solo con su propia metodología.
+- Solo en la SECCIÓN FINAL se comparan los 3 analistas.`;
 
-El campo Torneo es OBLIGATORIO en las 8 líneas y debe ser el nombre
-concreto del torneo/competición de ese partido (el que hayas identificado
-en tu propia investigación), nunca solo la categoría genérica.
+const FINAL_SECTION = `SECCIÓN FINAL — RESUMEN Y CONSENSO (solo ahora se comparan los 3 analistas)
 
-El campo Explicación es OBLIGATORIO en las 8 líneas: nunca lo dejes vacío,
-ni pongas un guion o "ver análisis arriba". Resume ahí, en 1-2 frases
-concretas, el motivo real de ese pick (el mismo motivo que ya hayas
-argumentado antes en el informe para ese partido/jugador: estadística
-clave, contexto, lesión, motivación, etc.) — no lo dejes solo en la parte
-narrativa del informe, tiene que estar repetido/resumido en esta línea
-porque es la única parte que se le reenvía al usuario final.
+1. SELECCIONES FINALES: para cada analista (A, B y C), lista sus 8 picks, uno por línea, con este formato:
+N. Partido/Jugador vs Jugador | Torneo: <torneo o competición exacta, ej. "ATP Washington", "CH Bonn" o "Champions League" — nunca solo "ATP" o "Challenger"> | Mercado: <mercado> | Cuota: <cuota> | EV: <EV estimado, ej. +8%> | % Éxito: <probabilidad de acierto, ej. 65%> | Explicación: <motivo real del pick en 1-2 frases concretas, nunca vacío>
 
-No uses negritas, encabezados adicionales ni texto extra dentro de esa
-sección: solo la lista numerada en ese formato exacto.
+2. COINCIDENCIAS: picks en los que 2 o 3 analistas coinciden en el mismo partido Y el mismo mercado. Indica cuántos y cuáles coinciden. Si no hay ninguno, dilo.
 
-Debes devolver EXACTAMENTE 8 selecciones, de 8 partidos/jugadores
-distintos — nunca repitas el mismo partido dos veces en la lista. Esto es
-obligatorio salvo que alguna restricción de competición, categoría o
-fecha de este mismo mensaje te autorice explícitamente a devolver menos
-por no haber suficientes partidos EV+ dentro de esa restricción.
+3. MISMO PARTIDO, MERCADO DISTINTO: partidos elegidos por 2 o más analistas con mercados diferentes, indicando el mercado de cada uno.
 
-Justo debajo de las 8 selecciones, añade otra sección aparte titulada
-exactamente "COMBINADA SUGERIDA" (sin nada más en esa línea). Busca 2
-"bankers" — mercados de máxima seguridad posible (victoria clara o "gana
-al menos un set"/hándicap muy cómodo, nunca algo dudoso), de 2 partidos
-DISTINTOS entre sí. No tienen que ser parte de las 8 selecciones
-anteriores: búscalos específicamente por ser los más seguros del día,
-aunque su EV individual sea bajo — el objetivo aquí es seguridad, no
-valor. Su cuota combinada (cuota A × cuota B) debe caer, a ser posible,
-entre 1.70 y 2.20. Escribe esas 2 selecciones con el mismo formato de
-línea numerada que arriba pero solo estos 4 campos (sin EV, % Éxito ni
-Explicación):
-
+4. COMBINADA SUGERIDA: 2 "bankers" — los mercados más seguros del día (victoria clara, "gana al menos un set", hándicap muy cómodo; nunca algo dudoso) — de 2 partidos DISTINTOS dentro de la ventana y competiciones de la configuración. No tienen que estar entre los picks anteriores: aquí prima la seguridad, no el EV. Su cuota combinada (cuota A × cuota B) debe estar, a ser posible, entre 1.70 y 2.20. Formato:
 1. Partido/Jugador vs Jugador | Torneo: <torneo> | Mercado: <mercado> | Cuota: <cuota>
 2. Partido/Jugador vs Jugador | Torneo: <torneo> | Mercado: <mercado> | Cuota: <cuota>
-
-Si no encuentras ninguna pareja de bankers cuya cuota combinada caiga en
-ese rango, no escribas las 2 líneas: escribe únicamente esta línea en su
-lugar: "COMBINADA SUGERIDA: Ninguna disponible hoy."`;
+Cuota combinada: <X.XX>
+Si no hay ninguna pareja en ese rango, escribe solo: "COMBINADA SUGERIDA: Ninguna disponible hoy."`;
 
 /** "martes, 28 de julio de 2026, 11:32" en hora de España, sin depender de ninguna librería externa. */
 function formatMadridNow(now: Date): string {
@@ -504,7 +457,7 @@ function formatMadridNow(now: Date): string {
 
 function buildCompetitionRestriction(competitions?: string[]): string {
   if (!competitions || competitions.length === 0) return "";
-  return `\n\nRESTRICCIÓN OBLIGATORIA DE COMPETICIONES: para este análisis en concreto, analiza ÚNICAMENTE estas competiciones: ${competitions.join(", ")}. Ignora cualquier otra liga o torneo mencionado en las instrucciones generales de arriba aunque tenga partidos en las próximas 24h — si no hay suficientes partidos EV+ en las competiciones indicadas, devuelve menos de 8 picks en vez de rellenar con otras competiciones.`;
+  return `\n\nRESTRICCIÓN OBLIGATORIA DE COMPETICIONES: para este análisis en concreto, analiza ÚNICAMENTE estas competiciones: ${competitions.join(", ")}. Ignora cualquier otra liga o torneo mencionado en el resto del mensaje (por ejemplo, en las listas de ligas de cada analista) aunque tenga partidos en las próximas 24h — si no hay suficientes partidos EV+ en las competiciones indicadas, devuelve menos de 8 picks en vez de rellenar con otras competiciones.`;
 }
 
 // Los 3 prompts de fútbol dan por hecho contexto de clubes (calendario de
@@ -589,19 +542,61 @@ export interface BuildPromptOptions {
   now?: Date;
 }
 
-export function buildPrompt(basePrompt: string, options: BuildPromptOptions = {}): string {
-  const now = options.now ?? new Date();
-  const restriction = buildCompetitionRestriction(options.competitions);
-  const categoryRestriction = buildTennisCategoryRestriction(options.tennisCategory);
-  const nationalTeamsAdaptation = buildNationalTeamsAdaptation(options.competitions);
-  const temporal = buildTemporalInstructions(options.dateFilter, now);
-  return `${basePrompt.trim()}${restriction}${categoryRestriction}${nationalTeamsAdaptation}${temporal}${OUTPUT_FORMAT_INSTRUCTIONS}`;
+function windowLabel(dateFilter: DateFilter | undefined, now: Date): string {
+  if (dateFilter === "hoy") return `HOY (${formatMadridShortDate(now)})`;
+  if (dateFilter === "manana") {
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return `MAÑANA (${formatMadridShortDate(tomorrow)})`;
+  }
+  return "PRÓXIMAS 24 HORAS";
 }
 
-/** Devuelve los 3 prompts del deporte, en orden Tipster → Machine Learning → Analista cuantitativo. */
-export function buildAllPrompts(sport: Sport, options: BuildPromptOptions = {}): PromptDefinition[] {
-  return PROMPT_DEFS_BY_SPORT[sport].map((def) => ({
-    label: def.label,
-    prompt: buildPrompt(def.prompt, options),
-  }));
+function tennisCategoryConfigLabel(category?: TennisCategory): string {
+  if (category === "atp") return "Solo ATP (individual masculino)";
+  if (category === "challenger") return "Solo Challenger (individual masculino)";
+  return "ATP y Challenger (individual masculino)";
+}
+
+/**
+ * Un único prompt para pegar en Gemini web: configuración elegida arriba
+ * del todo, reglas comunes, protocolo de independencia, los 3 perfiles del
+ * deporte y la sección final de consenso.
+ */
+export function buildCombinedPrompt(sport: Sport, options: BuildPromptOptions = {}): string {
+  const now = options.now ?? new Date();
+
+  const scopeLine =
+    sport === "futbol"
+      ? `- Competiciones: ${options.competitions?.length ? options.competitions.join("; ") : "Todas las cubiertas por los analistas"}`
+      : `- Categoría: ${tennisCategoryConfigLabel(options.tennisCategory)}`;
+  const config = [
+    "CONFIGURACIÓN DEL ANÁLISIS",
+    `- Deporte: ${SPORT_LABELS[sport]}`,
+    `- Fecha y hora actual: ${formatMadridNow(now)} (hora de España)`,
+    `- Ventana de partidos: ${windowLabel(options.dateFilter, now)}`,
+    scopeLine,
+    "- Casa de apuestas de referencia: Winamax",
+    "- Picks por analista: 8",
+    "",
+    "Esta configuración tiene prioridad sobre cualquier mención a fechas, ligas o torneos del resto del mensaje.",
+  ].join("\n");
+
+  const restrictions = [
+    buildTemporalInstructions(options.dateFilter, now),
+    buildCompetitionRestriction(options.competitions),
+    buildTennisCategoryRestriction(options.tennisCategory),
+    buildNationalTeamsAdaptation(options.competitions),
+  ]
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  const sharedRules = ["REGLAS COMUNES A LOS 3 ANALISTAS", ...restrictions, ...SHARED_CHECKS_BY_SPORT[sport]].join("\n\n");
+
+  const analysts = PROMPT_DEFS_BY_SPORT[sport].map(
+    (def, idx) => `ANALISTA ${ANALYST_LETTERS[idx]} — ${def.label.toUpperCase()}\n\n${def.prompt.trim()}`
+  );
+
+  const separator = "\n\n==============================\n\n";
+  return [config, sharedRules, INDEPENDENCE_PROTOCOL, ...analysts, FINAL_SECTION].join(separator);
 }
