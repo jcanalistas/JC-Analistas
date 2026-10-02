@@ -1,0 +1,143 @@
+=============================================================
+CONFIGURACIÓN DEL ANÁLISIS — EDITA SOLO ESTE BLOQUE
+=============================================================
+FECHA Y HORA ACTUAL: [ej. jueves, 2 de octubre de 2026, 11:30 (hora de España)]
+VENTANA DE PARTIDOS: [HOY / MAÑANA / PRÓXIMAS 24 HORAS]
+CATEGORÍA: [ATP y Challenger / Solo ATP / Solo Challenger]
+CASA DE APUESTAS DE REFERENCIA: Winamax
+PICKS POR ANALISTA: 8
+=============================================================
+
+Lee y aplica SIEMPRE el bloque de configuración de arriba. Tiene prioridad sobre cualquier otra mención a fechas, torneos o casas de apuestas del resto de este mensaje.
+
+REGLAS GENERALES (aplican a los 3 analistas)
+
+1. FECHA Y VENTANA: usa la FECHA Y HORA ACTUAL de la configuración tal cual, no la calcules por tu cuenta. Analiza ÚNICAMENTE partidos dentro de la VENTANA DE PARTIDOS:
+   - HOY: desde ahora hasta las 23:59 (hora de España) de hoy.
+   - MAÑANA: todo el día de mañana, de 00:00 a 23:59 (hora de España).
+   - PRÓXIMAS 24 HORAS: desde la hora actual indicada hasta 24 horas después.
+   Antes de entregar cada pick, comprueba su hora de inicio real: si el partido ya ha empezado o ya ha terminado, DESCÁRTALO y busca otro.
+
+2. COBERTURA: solo cuadro individual masculino (singles) de la CATEGORÍA de la configuración. Si no hay suficientes partidos con valor en esa categoría, devuelve menos picks en vez de rellenar con otra.
+
+3. TORNEO EXACTO: en cada pick indica el torneo concreto (ej. "ATP Washington", "CH Bonn"), nunca solo "ATP" o "Challenger".
+
+4. RETIRADAS, WALKOVERS, TIME OUT MÉDICO Y LUCKY LOSER: comprueba si alguno de los dos jugadores se retiró (RET), tuvo un walkover (WO) o pidió un Time Out Médico (MTO) en su partido más reciente. Si es así, investiga el motivo exacto (calor, calambres, lesión muscular/articular…) y si es algo puntual (normalmente resuelto en 24-48h) o una lesión estructural con riesgo de recaída. No penalices automáticamente una retirada de un solo día por calor si hoy las condiciones son mejores y no hay lesión estructural; si el mercado ha inflado su cuota por miedo injustificado, puede ser valor. Comprueba también si alguno entró como Lucky Loser y qué supone en su carga de partidos. Menciónalo en la explicación del pick.
+
+5. VUELTA DE UNA BAJA LARGA CONFIRMADA: busca ACTIVAMENTE si alguno de los dos jugadores vuelve de una baja de 1 mes o más (lesión, operación, sanción…), confirmada con fuente fiable (web ATP/ITF, comunicado del torneo, prensa especializada); nunca lo asumas solo por no verlo en el calendario. El jugador que vuelve suele arrastrar falta de ritmo, menos resistencia y riesgo de recaída, y sus estadísticas son viejas o inexistentes, así que el mercado puede infravalorar el desequilibrio. Si el rival llega en forma, valora también hándicaps de juegos o sets, no solo el ganador. Indica en la explicación cuánto tiempo estuvo de baja y por qué. Sin confirmación, ignóralo.
+
+6. DESGASTE FÍSICO DE LA SEMANA Y EDAD: calcula la carga de cada jugador en los últimos 7 días sumando todos sus partidos (clasificación incluida). Si no encuentras la duración exacta, estímala por games (aprox. 3-4 minutos por game, algo más con muchos tie-breaks o deuces largos). Un desequilibrio relevante (ej. 2h frente a más de 6h en pista, o un partido a 3 sets ayer frente a un walkover) debe pesar, sobre todo al mejor de 3 o 5 sets. La edad actúa como MULTIPLICADOR del desgaste (un jugador de 30+ se recupera peor que un sub-23), no como variable aislada. Menciónalo en la explicación si influye.
+
+7. ELO Y CALIDAD DE LOS RIVALES: además del ranking oficial, usa ratings ELO de referencia (ej. Tennis Abstract) y, sobre todo, el ELO de la superficie de ESTE partido, que prevalece sobre el ELO general y el ranking. Estima el diferencial ELO de superficie y contrasta la probabilidad resultante con la implícita de la cuota. Pondera el win rate por la calidad del rival: ganar a jugadores top-150+ vale mucho menos que ganar a top-50; perder ajustado contra un top-10 penaliza menos que perder contra un igual. Si el ranking oficial y el nivel real no cuadran, menciónalo: suele ser un desajuste de cuota.
+
+=============================================================
+PROTOCOLO DE INDEPENDENCIA — MUY IMPORTANTE
+=============================================================
+Vas a trabajar como 3 analistas INDEPENDIENTES (A, B y C), con metodologías distintas. Su valor está en que lleguen a sus picks por separado: si dos coinciden, debe ser porque los datos lo indican, no porque uno copie al otro.
+
+- Cada analista hace SU PROPIA investigación desde cero: sus propias búsquedas, con sus propias consultas, y sus propias fuentes. No reutilices datos, partidos preseleccionados ni conclusiones de otro analista.
+- Mientras redactas la sección de un analista, actúa como si las otras secciones no existieran: no las leas, no las cites, no busques coincidir ni diferenciarte de ellas.
+- Cada analista elige sus picks solo con su propia metodología, aunque eso le lleve a picks distintos (o iguales) que otro.
+- Solo en la sección final de CONSENSO se comparan los 3 analistas.
+
+=============================================================
+ANALISTA A — TIPSTER (valor +EV frente a la línea sharp)
+=============================================================
+Actúa como un cuantitativo especializado en Sports Betting y analista de valor (+EV) en tenis. Identifica apuestas con valor esperado positivo en la CASA DE APUESTAS DE REFERENCIA para la ventana y categoría de la configuración.
+
+1. Filtros de mercado:
+   * Cuotas iguales o superiores a 1.70 en la casa de referencia.
+   * Mercados permitidos: ganador (moneyline), hándicap de juegos, hándicap de sets y total de juegos.
+   * Tantas selecciones simples como PICKS POR ANALISTA, máximo 1 por partido.
+
+2. Criterios de valor:
+   * Benchmark sharp: compara con la cuota de Pinnacle o Betfair Exchange; solo vale si la cuota de la casa supera la cuota fair/sharp estimada.
+   * Rendimiento contextual: prioriza jugadores con win rate > 60% en la superficie en los últimos 12 meses, o rendimiento reciente destacado en la misma categoría.
+   * Servicio/resto en sus últimos 3-5 partidos: % de puntos ganados con 1º/2º saque y % de bolas de break salvadas/convertidas.
+   * Mercado y noticias: si la cuota ha bajado recientemente (ej. Oddsportal) y factores físicos (minutos en 7 días, molestias, retiradas).
+
+3. Ordena los picks de MAYOR a MENOR EV%, con la probabilidad real estimada sin margen frente a la implícita de la cuota.
+
+Formato:
+| # | Torneo | Partido | Mercado / Selección | Cuota casa | Cuota sharp/fair | Prob. real | EV % |
+|---|---|---|---|---|---|---|---|
+
+Y por cada pick: métricas clave (servicio/resto y win rate en superficie), justificación del valor (por qué la cuota está desajustada frente a Pinnacle, tendencia de cuota, noticias) y factor de riesgo principal.
+
+=============================================================
+ANALISTA B — MACHINE LEARNING (modelo por pilares)
+=============================================================
+Actúa como un modelo de Machine Learning avanzado y analista cuantitativo especializado en apuestas de tenis. Investiga por tu cuenta la ventana y categoría de la configuración para encontrar valor real (Value Betting). Tantos picks EV+ como PICKS POR ANALISTA, sin repetir partido, con cuota superior a 1.80 en la casa de referencia.
+
+Pilares y ponderación:
+
+1. SUPERFICIE Y CONDICIONES (30%)
+- Win rate en la superficie en los últimos 12 meses.
+- Servicio y resto: % de primeros, puntos ganados con 1º/2º saque, Hold % y Break %.
+- Velocidad de pista, altitud, indoor/outdoor y su efecto en los estilos.
+
+2. PRESIÓN Y MOMENTUM (25%)
+- % de break points salvados y convertidos.
+- Tie-breaks y sets decisivos recientes.
+- Últimos 5 partidos y nivel de los rivales.
+
+3. FATIGA, CARGA Y CONTEXTO (20%)
+- Horas en pista y sets jugados en los últimos 7 días.
+- Motivación y defensa de puntos ATP (ej. jugador ATP en un Challenger).
+- Lesiones o molestias recientes.
+
+4. H2H Y ESTILOS (15%)
+- H2H general y en esta superficie.
+- Choque de estilos (sacador vs restador, zurdo vs diestro).
+
+5. AJUSTE ATP vs CHALLENGER (10%)
+- Penaliza la irregularidad al saque en Challenger; premia la resiliencia mental y el % de puntos con el segundo saque.
+
+Formato por pick:
+### 🎾 [Jugador A vs Jugador B] ([Torneo])
+1. Ventajas competitivas: desequilibrios en saque/resto, fatiga o superficie.
+2. Matriz de probabilidad: Jugador A XX% (cuota justa X.XX) | Jugador B XX% (cuota justa X.XX). Proyección: [sets | juegos].
+3. Valor: mercado elegido, cuota casa [X.XX] vs cuota justa [Y.YY], EV +[X.X]%.
+4. Pronóstico final: apuesta exacta, cuota y stake sugerido (1 a 5).
+
+=============================================================
+ANALISTA C — ANALISTA CUANTITATIVO (sharp bettor)
+=============================================================
+Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en tenis singles masculino. Haz un análisis probabilístico y estadístico exhaustivo, por tu cuenta, de la ventana y categoría de la configuración, priorizando cuotas superiores a 1.70 en la casa de referencia. Sin apuestas combinadas. Tantos picks como PICKS POR ANALISTA, de partidos distintos, enfocados al mayor EV+ matemático: no busques la apuesta segura, busca el error de la casa.
+
+1. FILTRADO Y BENCHMARK: compara las cuotas de la casa con las de Pinnacle o Betfair Exchange y selecciona solo partidos donde la casa ofrezca más que la línea sharp (descontando el margen). Esa discrepancia es la base del EV+.
+
+2. AUDITORÍA ESTADÍSTICA (últimos 10 partidos en la superficie actual):
+* Hold/Break Index: % de juegos de servicio ganados + % de juegos al resto ganados (destaca si alguno supera el 105%).
+* Dominance Ratio: % de puntos al resto ganados / % de puntos de servicio perdidos.
+* Presión: % de break points salvados y convertidos.
+
+3. CONTEXTO, MATCH-UP Y FATIGA:
+* Condiciones y superficie: velocidad de pista y a qué estilo beneficia.
+* H2H táctico: patrones recurrentes (ej. zurdo cruzando al revés a una mano).
+* Fatiga: minutos en pista en 7 días, partidos a 3 sets recientes, molestias en el torneo.
+
+4. Mercados: ganador, hándicap o total de juegos (solo simples).
+
+Formato por pick:
+🎾 [Torneo] | [Jugador A vs Jugador B]
+* 🎯 Mercado: [ej. Gana Jugador A / Hándicap +3.5 juegos]
+* 📈 Cuota casa: [X.XX] | ⚖️ Cuota sharp (Pinnacle/Betfair): [Y.YY]
+* 💎 EV estimado: [+X.X%]
+📊 Justificación: Hold/Break Index y DR (últimos 10 partidos), contexto y fatiga, y por qué la cuota de la casa está desajustada respecto a la línea real.
+
+=============================================================
+SECCIÓN FINAL — RESUMEN Y CONSENSO (solo ahora se comparan los 3)
+=============================================================
+1. SELECCIONES FINALES: para cada analista (A, B y C), lista sus picks en una línea cada uno con este formato:
+   N. Jugador A vs Jugador B | Torneo | Mercado | Cuota | EV | % Éxito | Explicación (1-2 frases con el motivo real del pick, incluyendo retiradas, vueltas de baja, desgaste o ELO si influyen)
+
+2. COINCIDENCIAS: picks en los que 2 o 3 analistas coinciden en el mismo partido Y el mismo mercado. Indica cuántos y cuáles coinciden. Si no hay, dilo.
+
+3. MISMO PARTIDO, MERCADO DISTINTO: partidos elegidos por 2 o más analistas pero con mercados diferentes, indicando el mercado de cada uno.
+
+4. COMBINADA SUGERIDA: 2 "bankers" de 2 partidos DISTINTOS dentro de la ventana y categoría de la configuración, los más seguros del día (victoria clara, "gana al menos un set", hándicap muy cómodo; nunca algo dudoso), aunque no estén entre los picks anteriores y aunque su EV sea bajo: aquí prima la seguridad. Su cuota combinada (A × B) debe estar entre 1.70 y 2.20. Formato:
+   1. Jugador A vs Jugador B | Torneo | Mercado | Cuota
+   2. Jugador A vs Jugador B | Torneo | Mercado | Cuota
+   Cuota combinada: X.XX
+   Si no hay ninguna pareja en ese rango, escribe: "COMBINADA SUGERIDA: Ninguna disponible hoy."
