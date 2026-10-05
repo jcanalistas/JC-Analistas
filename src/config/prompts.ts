@@ -94,7 +94,7 @@ const FOOTBALL_PROMPT_DEFS: PromptDefinition[] = [
 Sigue estas reglas estrictas:
 
 1. Mercados y Cuotas:
- * Busca selecciones con cuota de mercado superior a 1.65 (ver FUENTE DE CUOTAS). Mercados permitidos: resultado (1X2), hándicap asiático, más/menos de goles del partido, más/menos de goles marcados por un equipo en concreto, ambos marcan, córners o tarjetas.
+ * Busca selecciones con valor (EV+) a cualquier cuota, sin cuota mínima (ver FUENTE DE CUOTAS). Mercados permitidos: resultado (1X2), hándicap asiático, más/menos de goles del partido, más/menos de goles marcados por un equipo en concreto, ambos marcan, córners o tarjetas.
  * Restricción de volumen: Devuelve exactamente 8 selecciones simples. NO repitas partidos.
  * Ordénalos obligatoriamente de mayor a menor confianza de éxito (asignando un % de probabilidad de acierto a cada uno).
 
@@ -180,7 +180,7 @@ Tu objetivo es encontrar Valor Esperado Positivo (EV+) puro. Selecciona exactame
 
 REGLA MATEMÁTICA ESTRICTA PARA LOS 8 PICKS:
 - La probabilidad real de éxito calculada por tu modelo debe ser estrictamente SUPERIOR AL 60% (Cuota justa estimada < 1.66).
-- La cuota de mercado (ver FUENTE DE CUOTAS) debe ser SUPERIOR A 1.60, y siempre mayor que tu cuota justa estimada, para garantizar el EV+.
+- La cuota de mercado (ver FUENTE DE CUOTAS) debe ser siempre mayor que tu cuota justa estimada, para garantizar el EV+ (no hay cuota mínima).
 
 Selecciona los 8 picks y redacta tu informe presentando cada partido bajo esta estructura de 4 pasos analíticos:
 
@@ -271,7 +271,7 @@ Aplica estrictamente las siguientes reglas metodológicas:
 
 1. FILTROS DE MERCADO Y COBERTURA:
    * Cobertura: Exclusivamente cuadros individuales masculinos (Singles) de torneos ATP y Challenger activos hoy.
-   * Cuotas de mercado iguales o superiores a 1.70 (ver FUENTE DE CUOTAS).
+   * Sin cuota mínima: vale cualquier cuota de mercado con EV+ (ver FUENTE DE CUOTAS).
    * Mercados permitidos: Victoria simple (Moneyline), Hándicap de Juegos, Hándicap de Sets y Total de Juegos.
    * Volumen de salida: Devuelve exactamente 8 selecciones simples. Sin repetir partidos (máximo 1 pick por partido).
 
@@ -307,7 +307,7 @@ Para cada una de las 8 selecciones, incluye un breve desglose cuantitativo:
     label: "Machine Learning",
     prompt: `Actúa como un modelo de Machine Learning avanzado y analista cuantitativo especializado en apuestas de tenis (ATP y ATP Challenger Tour). Tu objetivo es analizar la jornada de tenis indicada en la CONFIGURACIÓN DEL ANÁLISIS del principio de este mensaje para encontrar valor real frente a las cuotas de las casas de apuestas (Value Betting).
 
-La conclusión final deben ser exactamente 8 recomendaciones de picks con EV+ (sin repetir partidos), con cuotas de mercado superiores a 1,80 (ver FUENTE DE CUOTAS).
+La conclusión final deben ser exactamente 8 recomendaciones de picks con EV+ (sin repetir partidos), a cualquier cuota de mercado con EV+, sin cuota mínima (ver FUENTE DE CUOTAS).
 
 Analiza minuciosamente los datos de los partidos de singles masculinos (ATP y Challenger) bajo los siguientes 5 pilares metodológicos y sus ponderaciones:
 
@@ -362,7 +362,7 @@ Presenta tu análisis estructurado estrictamente con este formato para cada uno 
     label: "Analista cuantitativo",
     prompt: `Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en tenis ATP y Challenger (Singles Masculinos). Tu objetivo es realizar un análisis probabilístico y estadístico exhaustivo para la jornada de tenis indicada en la CONFIGURACIÓN DEL ANÁLISIS del principio de este mensaje.
 
-Quiero determinar si existe Valor Esperado Positivo (EV+) en el mercado, priorizando selecciones con cuotas de mercado superiores a 1.70 (ver FUENTE DE CUOTAS).
+Quiero determinar si existe Valor Esperado Positivo (EV+) en el mercado, a cualquier cuota de mercado, sin cuota mínima (ver FUENTE DE CUOTAS).
 
 Sigue estrictamente esta metodología de análisis:
 
@@ -421,7 +421,7 @@ const SHARED_CHECKS_BY_SPORT: Record<Sport, string[]> = {
 // todo y no devolvía ninguna selección: ahora una cuota no verificada se
 // marca como aproximada en vez de tumbar el pick.
 const ODDS_SOURCE_RULE = `FUENTE DE CUOTAS (para los 3 analistas): no hace falta que consultes la web de Winamax ni de ninguna casa concreta. Usa la cuota que encuentres publicada en un comparador o web de resultados, por este orden de preferencia: OddsPortal, Oddschecker, BetExplorer, Flashscore o cualquier otra fuente pública fiable.
-- "Cuota de mercado" = la cuota media o habitual que veas para ese mercado. Los mínimos de cuota de este mensaje se aplican a esa cuota.
+- "Cuota de mercado" = la cuota media o habitual que veas para ese mercado. No hay cuota mínima: lo que importa es que la cuota de mercado supere tu cuota justa (EV+).
 - Si encuentras la cuota de Pinnacle o Betfair Exchange, úsala como referencia sharp para la cuota justa; si no, estima la cuota justa con tu propio modelo.
 - Indica la fuente de cada cuota. Si no consigues ver ninguna cuota publicada para un pick, NO lo descartes por eso: da tu mejor estimación y márcala como "(cuota aproximada, verificar)".`;
 

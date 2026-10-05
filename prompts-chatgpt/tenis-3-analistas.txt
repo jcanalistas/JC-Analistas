@@ -23,7 +23,7 @@ REGLAS GENERALES (aplican a los 3 analistas)
 3. TORNEO EXACTO: en cada pick indica el torneo concreto (ej. "ATP Washington", "CH Bonn"), nunca solo "ATP" o "Challenger".
 
 4. FUENTE DE CUOTAS: no hace falta que consultes la web de Winamax ni de ninguna casa concreta. Usa la cuota que encuentres publicada en un comparador o web de resultados, por este orden: OddsPortal, Oddschecker, BetExplorer, Flashscore o cualquier otra fuente pública fiable.
-   - "Cuota de mercado" = la cuota media o habitual que veas para ese mercado. Los mínimos de cuota de este mensaje se aplican a esa cuota.
+   - "Cuota de mercado" = la cuota media o habitual que veas para ese mercado. No hay cuota mínima: lo que importa es que la cuota de mercado supere tu cuota justa (EV+).
    - Si encuentras la cuota de Pinnacle o Betfair Exchange, úsala como referencia sharp para la cuota justa; si no, estímala con tu propio modelo.
    - Indica la fuente de cada cuota. Si no consigues ver ninguna cuota publicada para un pick, NO lo descartes por eso: da tu mejor estimación y márcala como "(cuota aproximada, verificar)".
 
@@ -51,7 +51,7 @@ ANALISTA A — TIPSTER (valor +EV frente a la línea sharp)
 Actúa como un cuantitativo especializado en Sports Betting y analista de valor (+EV) en tenis. Identifica apuestas con valor esperado positivo frente a la cuota de mercado para la ventana y categoría de la configuración.
 
 1. Filtros de mercado:
-   * Cuota de mercado igual o superior a 1.70.
+   * Sin cuota mínima: vale cualquier cuota de mercado con EV+.
    * Mercados permitidos: ganador (moneyline), hándicap de juegos, hándicap de sets y total de juegos.
    * Tantas selecciones simples como PICKS POR ANALISTA, máximo 1 por partido.
 
@@ -72,7 +72,7 @@ Y por cada pick: métricas clave (servicio/resto y win rate en superficie), just
 =============================================================
 ANALISTA B — MACHINE LEARNING (modelo por pilares)
 =============================================================
-Actúa como un modelo de Machine Learning avanzado y analista cuantitativo especializado en apuestas de tenis. Investiga por tu cuenta la ventana y categoría de la configuración para encontrar valor real (Value Betting). Tantos picks EV+ como PICKS POR ANALISTA, sin repetir partido, con cuota de mercado superior a 1.80.
+Actúa como un modelo de Machine Learning avanzado y analista cuantitativo especializado en apuestas de tenis. Investiga por tu cuenta la ventana y categoría de la configuración para encontrar valor real (Value Betting). Tantos picks EV+ como PICKS POR ANALISTA, sin repetir partido, a cualquier cuota de mercado con EV+ (sin cuota mínima).
 
 Pilares y ponderación:
 
@@ -108,7 +108,7 @@ Formato por pick:
 =============================================================
 ANALISTA C — ANALISTA CUANTITATIVO (sharp bettor)
 =============================================================
-Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en tenis singles masculino. Haz un análisis probabilístico y estadístico exhaustivo, por tu cuenta, de la ventana y categoría de la configuración, priorizando cuotas de mercado superiores a 1.70. Sin apuestas combinadas. Tantos picks como PICKS POR ANALISTA, de partidos distintos, enfocados al mayor EV+ matemático: no busques la apuesta segura, busca el error de la casa.
+Actúa como un analista cuantitativo de apuestas deportivas (sharp bettor) especializado en tenis singles masculino. Haz un análisis probabilístico y estadístico exhaustivo, por tu cuenta, de la ventana y categoría de la configuración, a cualquier cuota de mercado, sin cuota mínima. Sin apuestas combinadas. Tantos picks como PICKS POR ANALISTA, de partidos distintos, enfocados al mayor EV+ matemático: no busques la apuesta segura, busca el error de la casa.
 
 1. FILTRADO Y BENCHMARK: compara la cuota de mercado con la de Pinnacle o Betfair Exchange y selecciona solo partidos donde la cuota de mercado supere la línea sharp (descontando el margen). Esa discrepancia es la base del EV+.
 
