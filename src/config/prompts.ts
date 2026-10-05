@@ -415,15 +415,15 @@ const SHARED_CHECKS_BY_SPORT: Record<Sport, string[]> = {
 };
 
 // Los agentes no conseguían validar las cuotas en la web de Winamax (hace
-// falta sesión/geolocalización y apenas está indexada), así que inventaban
-// o no encontraban cuotas. Un comparador público da cuotas verificables;
-// Winamax suele pagar cerca de la media, y la cuota final la comprueba el
-// usuario antes de apostar.
-const ODDS_SOURCE_RULE = `FUENTE DE CUOTAS (obligatorio para los 3 analistas): NO intentes consultar las cuotas en la web de ninguna casa de apuestas concreta (Winamax, Bet365…). Usa como fuente principal OddsPortal (oddsportal.com), que muestra en una sola página las cuotas de muchas casas:
-- "Cuota de mercado" = la cuota MEDIA ("Average") que muestra OddsPortal para ese mercado. Todos los mínimos de cuota de este mensaje se aplican a esa cuota media.
-- Cuota sharp de referencia = la de Pinnacle (o Betfair Exchange) en esa misma página; quítale el margen para estimar la cuota justa cuando lo pida tu metodología.
-- Si el partido o el mercado no aparece en OddsPortal, usa como alternativa Oddschecker, BetExplorer o la pestaña de cuotas de Flashscore, por este orden.
-- Indica siempre de qué fuente sale cada cuota. NUNCA inventes ni estimes una cuota que no hayas visto publicada: si no puedes verificarla en ninguna de esas fuentes, descarta el pick y busca otro.`;
+// falta sesión/geolocalización y apenas está indexada). La primera versión
+// de esta regla exigía descartar todo pick sin cuota verificada, y como
+// OddsPortal tampoco siempre se deja leer, Gemini acababa descartándolo
+// todo y no devolvía ninguna selección: ahora una cuota no verificada se
+// marca como aproximada en vez de tumbar el pick.
+const ODDS_SOURCE_RULE = `FUENTE DE CUOTAS (para los 3 analistas): no hace falta que consultes la web de Winamax ni de ninguna casa concreta. Usa la cuota que encuentres publicada en un comparador o web de resultados, por este orden de preferencia: OddsPortal, Oddschecker, BetExplorer, Flashscore o cualquier otra fuente pública fiable.
+- "Cuota de mercado" = la cuota media o habitual que veas para ese mercado. Los mínimos de cuota de este mensaje se aplican a esa cuota.
+- Si encuentras la cuota de Pinnacle o Betfair Exchange, úsala como referencia sharp para la cuota justa; si no, estima la cuota justa con tu propio modelo.
+- Indica la fuente de cada cuota. Si no consigues ver ninguna cuota publicada para un pick, NO lo descartes por eso: da tu mejor estimación y márcala como "(cuota aproximada, verificar)".`;
 
 const ANALYST_LETTERS = ["A", "B", "C"];
 
@@ -451,7 +451,9 @@ N. Partido/Jugador vs Jugador | Torneo: <torneo o competición exacta, ej. "ATP 
 1. Partido/Jugador vs Jugador | Torneo: <torneo> | Mercado: <mercado> | Cuota: <cuota>
 2. Partido/Jugador vs Jugador | Torneo: <torneo> | Mercado: <mercado> | Cuota: <cuota>
 Cuota combinada: <X.XX>
-Si no hay ninguna pareja en ese rango, escribe solo: "COMBINADA SUGERIDA: Ninguna disponible hoy."`;
+Si no hay ninguna pareja en ese rango, escribe solo: "COMBINADA SUGERIDA: Ninguna disponible hoy."
+
+ENTREGA OBLIGATORIA: tu respuesta debe terminar SIEMPRE con esta sección final completa. Si algún analista no llega a 8 picks, entrega los mejores que haya encontrado y explica en una línea por qué no hay más; nunca respondas sin selecciones salvo que de verdad no haya ningún partido dentro de la ventana y competiciones de la configuración (en ese caso, dilo expresamente).`;
 
 /** "martes, 28 de julio de 2026, 11:32" en hora de España, sin depender de ninguna librería externa. */
 function formatMadridNow(now: Date): string {
@@ -587,7 +589,7 @@ export function buildCombinedPrompt(sport: Sport, options: BuildPromptOptions = 
     `- Fecha y hora actual: ${formatMadridNow(now)} (hora de España)`,
     `- Ventana de partidos: ${windowLabel(options.dateFilter, now)}`,
     scopeLine,
-    "- Fuente de cuotas: OddsPortal (cuota media del mercado), ver FUENTE DE CUOTAS",
+    "- Fuente de cuotas: comparador público (OddsPortal u otro), ver FUENTE DE CUOTAS",
     "- Picks por analista: 8",
     "",
     "Esta configuración tiene prioridad sobre cualquier mención a fechas, ligas o torneos del resto del mensaje.",

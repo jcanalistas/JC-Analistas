@@ -4,7 +4,7 @@ CONFIGURACIÓN DEL ANÁLISIS — EDITA SOLO ESTE BLOQUE
 FECHA Y HORA ACTUAL: [ej. jueves, 2 de octubre de 2026, 11:30 (hora de España)]
 VENTANA DE PARTIDOS: [HOY / MAÑANA / PRÓXIMAS 24 HORAS]
 CATEGORÍA: [ATP y Challenger / Solo ATP / Solo Challenger]
-FUENTE DE CUOTAS: OddsPortal (cuota media del mercado)
+FUENTE DE CUOTAS: comparador público (OddsPortal u otro)
 PICKS POR ANALISTA: 8
 =============================================================
 
@@ -22,11 +22,10 @@ REGLAS GENERALES (aplican a los 3 analistas)
 
 3. TORNEO EXACTO: en cada pick indica el torneo concreto (ej. "ATP Washington", "CH Bonn"), nunca solo "ATP" o "Challenger".
 
-4. FUENTE DE CUOTAS: NO intentes consultar las cuotas en la web de ninguna casa de apuestas concreta (Winamax, Bet365…). Usa como fuente principal OddsPortal (oddsportal.com), que muestra en una sola página las cuotas de muchas casas:
-   - "Cuota de mercado" = la cuota MEDIA ("Average") de OddsPortal para ese mercado. Todos los mínimos de cuota de este mensaje se aplican a esa cuota media.
-   - Cuota sharp de referencia = la de Pinnacle (o Betfair Exchange) en esa misma página; quítale el margen para estimar la cuota justa.
-   - Si el partido o mercado no aparece en OddsPortal, usa Oddschecker, BetExplorer o la pestaña de cuotas de Flashscore, por este orden.
-   - Indica siempre la fuente de cada cuota. NUNCA inventes una cuota que no hayas visto publicada: si no puedes verificarla, descarta el pick.
+4. FUENTE DE CUOTAS: no hace falta que consultes la web de Winamax ni de ninguna casa concreta. Usa la cuota que encuentres publicada en un comparador o web de resultados, por este orden: OddsPortal, Oddschecker, BetExplorer, Flashscore o cualquier otra fuente pública fiable.
+   - "Cuota de mercado" = la cuota media o habitual que veas para ese mercado. Los mínimos de cuota de este mensaje se aplican a esa cuota.
+   - Si encuentras la cuota de Pinnacle o Betfair Exchange, úsala como referencia sharp para la cuota justa; si no, estímala con tu propio modelo.
+   - Indica la fuente de cada cuota. Si no consigues ver ninguna cuota publicada para un pick, NO lo descartes por eso: da tu mejor estimación y márcala como "(cuota aproximada, verificar)".
 
 5. RETIRADAS, WALKOVERS, TIME OUT MÉDICO Y LUCKY LOSER: comprueba si alguno de los dos jugadores se retiró (RET), tuvo un walkover (WO) o pidió un Time Out Médico (MTO) en su partido más reciente. Si es así, investiga el motivo exacto (calor, calambres, lesión muscular/articular…) y si es algo puntual (normalmente resuelto en 24-48h) o una lesión estructural con riesgo de recaída. No penalices automáticamente una retirada de un solo día por calor si hoy las condiciones son mejores y no hay lesión estructural; si el mercado ha inflado su cuota por miedo injustificado, puede ser valor. Comprueba también si alguno entró como Lucky Loser y qué supone en su carga de partidos. Menciónalo en la explicación del pick.
 
@@ -147,3 +146,5 @@ SECCIÓN FINAL — RESUMEN Y CONSENSO (solo ahora se comparan los 3)
    2. Jugador A vs Jugador B | Torneo | Mercado | Cuota
    Cuota combinada: X.XX
    Si no hay ninguna pareja en ese rango, escribe: "COMBINADA SUGERIDA: Ninguna disponible hoy."
+
+ENTREGA OBLIGATORIA: tu respuesta debe terminar SIEMPRE con esta sección final completa. Si algún analista no llega al número de picks, entrega los mejores que haya encontrado y explica en una línea por qué no hay más; nunca respondas sin selecciones salvo que de verdad no haya ningún partido dentro de la ventana y competiciones de la configuración (en ese caso, dilo expresamente).

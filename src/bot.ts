@@ -319,8 +319,10 @@ async function sendAnalysisPrompt(
 
   await ctx.reply(
     `📋 Prompt de ${SPORT_LABELS[sport]} listo (${chunks.length} ${chunks.length === 1 ? "parte" : "partes"}).\n\n` +
-      "Toca cada bloque para copiarlo y pégalos en orden en el mismo mensaje de Gemini web. " +
-      "O, más fácil, adjunta en Gemini el archivo .txt del final y escribe: \"Sigue las instrucciones del archivo adjunto\"."
+      "En Gemini web: activa la herramienta 🔍 Deep Research, toca cada bloque para copiarlo y pégalos en orden " +
+      "en el MISMO mensaje. Cuando Gemini te enseñe el plan de investigación, pulsa \"Iniciar investigación\".\n\n" +
+      "Genera el prompt justo antes de usarlo: lleva la fecha y hora de ahora, y uno de otro día analizaría partidos ya jugados. " +
+      "El .txt del final es por si prefieres copiarlo entero desde el archivo."
   );
   for (const [idx, chunk] of chunks.entries()) {
     await ctx.reply(`<b>Parte ${idx + 1}/${chunks.length}</b>\n<pre>${escapeHtml(chunk)}</pre>`, { parse_mode: "HTML" });

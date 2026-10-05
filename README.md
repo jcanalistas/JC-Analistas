@@ -189,9 +189,10 @@ Cada uno hace lo mismo que su comando equivalente:
   categoría, fuente de cuotas y número de picks), de dos formas:
   troceado en bloques de código (Telegram tiene un límite de 4096
   caracteres por mensaje; toca cada bloque para copiarlo y pégalos en
-  orden en el mismo mensaje de Gemini web) y como archivo `.txt` (puedes
-  adjuntarlo en Gemini y escribir "Sigue las instrucciones del archivo
-  adjunto").
+  orden en el mismo mensaje de Gemini web, con la herramienta Deep Research
+  activada, y pulsa "Iniciar investigación" cuando te enseñe el plan) y
+  como archivo `.txt`. Genera el prompt justo antes de usarlo: lleva la
+  fecha y hora del momento en que se generó.
 - `/pendientes` (o "📝 Pendientes") — lista las apuestas registradas que
   aún no se han marcado, cada una con botones **"✅ Ganada"** / **"❌
   Perdida"**. "❌ Perdida" se resuelve al momento (-50€, no hace falta

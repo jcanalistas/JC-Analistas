@@ -4,7 +4,7 @@ CONFIGURACIÓN DEL ANÁLISIS — EDITA SOLO ESTE BLOQUE
 FECHA Y HORA ACTUAL: [ej. jueves, 2 de octubre de 2026, 11:30 (hora de España)]
 VENTANA DE PARTIDOS: [HOY / MAÑANA / PRÓXIMAS 24 HORAS]
 COMPETICIONES: [TODAS — o borra las que no quieras de esta lista: Selecciones Nacionales, LaLiga 1ª, LaLiga 2ª, 1ª RFEF, 2ª RFEF, Liga Portugal, Premier League, Bundesliga, Ligue 1, MLS (incluye Leagues Cup), Brasileirão, Champions League, Europa League, Conference League, Ligas Europeas (otras)]
-FUENTE DE CUOTAS: OddsPortal (cuota media del mercado)
+FUENTE DE CUOTAS: comparador público (OddsPortal u otro)
 PICKS POR ANALISTA: 8
 =============================================================
 
@@ -20,11 +20,10 @@ REGLAS GENERALES (aplican a los 3 analistas)
 
 2. COMPETICIONES: analiza ÚNICAMENTE las competiciones de la configuración. "Ligas Europeas (otras)" significa primeras divisiones europeas no cubiertas en las demás opciones (Dinamarca, Noruega, Suecia, Bélgica, Países Bajos, Escocia, Austria, Suiza…). "Selecciones Nacionales" significa selecciones absolutas masculinas: amistosos, clasificación para Mundial/Eurocopa/otra copa continental y UEFA Nations League. Si no hay suficientes partidos con valor en esas competiciones, devuelve menos picks en vez de rellenar con otras.
 
-3. FUENTE DE CUOTAS: NO intentes consultar las cuotas en la web de ninguna casa de apuestas concreta (Winamax, Bet365…). Usa como fuente principal OddsPortal (oddsportal.com), que muestra en una sola página las cuotas de muchas casas:
-   - "Cuota de mercado" = la cuota MEDIA ("Average") de OddsPortal para ese mercado. Todos los mínimos de cuota de este mensaje se aplican a esa cuota media.
-   - Cuota sharp de referencia = la de Pinnacle (o Betfair Exchange) en esa misma página; quítale el margen para estimar la cuota justa.
-   - Si el partido o mercado no aparece en OddsPortal, usa Oddschecker, BetExplorer o la pestaña de cuotas de Flashscore, por este orden.
-   - Indica siempre la fuente de cada cuota. NUNCA inventes una cuota que no hayas visto publicada: si no puedes verificarla, descarta el pick.
+3. FUENTE DE CUOTAS: no hace falta que consultes la web de Winamax ni de ninguna casa concreta. Usa la cuota que encuentres publicada en un comparador o web de resultados, por este orden: OddsPortal, Oddschecker, BetExplorer, Flashscore o cualquier otra fuente pública fiable.
+   - "Cuota de mercado" = la cuota media o habitual que veas para ese mercado. Los mínimos de cuota de este mensaje se aplican a esa cuota.
+   - Si encuentras la cuota de Pinnacle o Betfair Exchange, úsala como referencia sharp para la cuota justa; si no, estímala con tu propio modelo.
+   - Indica la fuente de cada cuota. Si no consigues ver ninguna cuota publicada para un pick, NO lo descartes por eso: da tu mejor estimación y márcala como "(cuota aproximada, verificar)".
 
 4. MERCADOS RELACIONADOS DEL MISMO PARTIDO: antes de descartar un partido por no tener valor en su mercado principal (1X2, hándicap asiático…), comprueba si combinar dos mercados relacionados del MISMO partido (nunca de partidos distintos) lo convierte en una selección con valor. Ejemplo: una victoria a 1,58 no tiene valor sola, pero si el contexto apunta a un partido con goles (la ida terminó 3-3, ambos conceden mucho, ritmo alto), "Victoria + Más de 1.5 goles" puede subir la cuota a 1,85 con una probabilidad similar. Otras combinaciones habituales: Doble oportunidad + Ambos marcan, Victoria + Over de córners, Hándicap + Under de goles. Solo combina si AMBAS partes están respaldadas por tu análisis, nunca para maquillar la cuota. Si la incluyes, cuenta como uno de tus picks normales y explica por qué se justifican las dos partes.
 
@@ -148,3 +147,5 @@ SECCIÓN FINAL — RESUMEN Y CONSENSO (solo ahora se comparan los 3)
    2. Equipo A vs Equipo B | Competición | Mercado | Cuota
    Cuota combinada: X.XX
    Si no hay ninguna pareja en ese rango, escribe: "COMBINADA SUGERIDA: Ninguna disponible hoy."
+
+ENTREGA OBLIGATORIA: tu respuesta debe terminar SIEMPRE con esta sección final completa. Si algún analista no llega al número de picks, entrega los mejores que haya encontrado y explica en una línea por qué no hay más; nunca respondas sin selecciones salvo que de verdad no haya ningún partido dentro de la ventana y competiciones de la configuración (en ese caso, dilo expresamente).
