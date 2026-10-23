@@ -1,6 +1,7 @@
 import express from "express";
 import { bot } from "./bot";
 import { env } from "./config/env";
+import { pollMtoChannel } from "./mto/poll";
 
 // Red de seguridad: sin esto, un rechazo de promesa no capturado en
 // cualquier dependencia tumba TODO el proceso. Lo registramos y seguimos
@@ -22,6 +23,19 @@ app.get("/", (_req, res) => {
 });
 
 app.use(bot.webhookCallback(webhookPath));
+
+// Lo llama Cloud Scheduler cada pocos minutos: lee los avisos nuevos del
+// canal de lesiones y manda las alertas de patrones. Protegido por la misma
+// ruta secreta que el webhook.
+app.post(`/mto/poll/${env.webhookSecretPath}`, async (_req, res) => {
+  try {
+    const result = await pollMtoChannel(bot.telegram);
+    res.status(200).json(result);
+  } catch (err) {
+    console.error("Fallo leyendo el canal de MTO:", err);
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
 
 async function main() {
   if (env.publicUrl) {

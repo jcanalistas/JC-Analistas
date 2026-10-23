@@ -12,6 +12,10 @@ Bot de Telegram para el canal tipster **JC Analistas**. Funciones:
 2. **📸 Ticket**: montaje del ticket sobre una foto de fondo, con su texto,
    listo para publicar en el canal.
 3. **📝 Pendientes / 📊 Stats**: seguimiento de apuestas registradas.
+4. **🚑 MTO**: lee el canal de avisos de asistencias médicas al que estás
+   suscrito ("GRUPO PREMIUM - BOT LESIONES"), guarda cada aviso y te avisa
+   cuando un jugador acumula varias asistencias en el mismo torneo, en
+   semanas seguidas o 3+ en 30 días (ver sección 7).
 
 ## Cómo funciona por dentro
 
@@ -162,6 +166,80 @@ gcloud run services update jc-analistas-bot --region europe-southwest1 \
 gcloud secrets delete gemini-api-key
 ```
 
+## 7. Lector de asistencias médicas (🚑 MTO)
+
+Un bot no puede leer un canal del que no es administrador, así que el
+canal de lesiones se lee con **tu cuenta de Telegram** (solo lectura, con
+la librería GramJS). Cloud Scheduler llama cada 5 minutos a
+`/mto/poll/<WEBHOOK_SECRET_PATH>`, que descarga los mensajes nuevos desde
+el último leído, los guarda en Firestore (`mtoEvents`) y, si el jugador
+encaja en algún patrón, te manda la alerta al chat privado del bot.
+
+### 7.1 Credenciales de API
+
+En https://my.telegram.org → *API development tools* tienes `api_id` y
+`api_hash`. El hash va en Secret Manager:
+
+```bash
+echo -n "TU_API_HASH" | gcloud secrets create telegram-api-hash --data-file=-
+
+gcloud run services update jc-analistas-bot --region europe-southwest1 \
+  --update-env-vars TELEGRAM_API_ID=TU_API_ID \
+  --update-secrets TELEGRAM_API_HASH=telegram-api-hash:latest
+```
+
+Si el título del canal no contiene "BOT LESIONES", añade también
+`MTO_CHANNEL_TITLE=<parte del título>`.
+
+### 7.2 Conectar tu cuenta (una sola vez, desde el móvil)
+
+1. En el bot: `/mto_login` y mándale tu número con prefijo (+34…).
+2. Telegram te envía un código: mándaselo al bot **con letras o espacios
+   en medio** (`1a2b3c4d5`). Si lo envías tal cual, Telegram lo anula.
+3. Si tienes verificación en dos pasos, te pide la contraseña (el bot
+   borra ese mensaje del chat).
+
+La sesión queda guardada en Firestore (`mtoState/session`): equivale a
+tener la sesión abierta, así que nadie más debe tener acceso al proyecto.
+Puedes cerrarla cuando quieras en Telegram → Ajustes → Dispositivos.
+
+### 7.3 Cargar el historial
+
+`/mto_leer` lee el canal desde el principio (hasta 3.000 mensajes por
+vez; si quedan más, el bot te pide volver a lanzarlo). Los avisos de más
+de 3 horas se guardan sin mandar alerta, para que el historial no te
+llene el chat.
+
+### 7.4 Lectura automática cada 5 minutos
+
+```bash
+gcloud scheduler jobs create http mto-poll \
+  --location=europe-west1 \
+  --schedule="*/5 * * * *" \
+  --http-method=POST \
+  --uri="https://TU-URL-DE-CLOUD-RUN.a.run.app/mto/poll/TU_WEBHOOK_SECRET_PATH"
+```
+
+### 7.5 Comandos
+
+- `🚑 MTO` o `/mto` — ranking de jugadores con 2+ asistencias en 7 y 30 días.
+- `/mto brain` — historial de un jugador (vale el nombre parcial).
+- `/mto_leer` — leer el canal ahora mismo.
+- `/mto_estado` — sesión, canal y último mensaje leído.
+
+### 7.6 Qué cuenta como patrón
+
+- **Mismo torneo**: 2+ asistencias en la misma edición. Torneos como los
+  UTR PTT o ITF se repiten cada semana con el mismo nombre, así que solo
+  cuentan avisos separados como mucho 8 días.
+- **Semanas seguidas**: asistencias en semanas ISO consecutivas (horario
+  de Madrid), en cualquier torneo.
+- **3+ en 30 días**.
+
+La alerta añade si el aviso fue antes del minuto 20 y si el rival también
+se atendió en el mismo partido. Dos avisos del mismo jugador en el mismo
+partido con menos de 15 minutos de diferencia cuentan como uno.
+
 ## Uso
 
 En Telegram, háblale al bot:
@@ -269,6 +347,14 @@ src/
     formatTicketCaption.ts     Texto del montaje y del resumen de apuesta acertada
     logoAsset.ts                Logo de JC Analistas embebido en base64 (ver composeMontage.ts)
     assets/logo-circle.png      Fuente del logo (recortado en círculo) por si hay que regenerarlo
+  mto/
+    parseMto.ts               Lee el texto de cada aviso del canal de lesiones
+    patterns.ts               Detección de patrones (mismo torneo, semanas seguidas, 30 días)
+    mtoStore.ts               Firestore: avisos, cursor de lectura y sesión de tu cuenta
+    userbot.ts                Cliente de Telegram con tu cuenta (GramJS)
+    poll.ts                   Lectura periódica + alertas
+    format.ts                 Textos de alertas, historial y ranking
+    mtoBot.ts                 Comandos /mto* e inicio de sesión
   stats/
     firestore.ts              Cliente de Firestore (vía ADC)
     betsStore.ts               Modelo de apuesta + CRUD (pendiente/ganada/perdida) y estadísticas

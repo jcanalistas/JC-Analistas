@@ -27,6 +27,7 @@ import {
   getStatsSummary,
   formatMoney,
 } from "./stats/betsStore";
+import { MTO_BUTTON_TEXT, registerMtoHandlers } from "./mto/mtoBot";
 
 // Por defecto Telegraf corta el procesamiento de cada update a los 90s
 // (handlerTimeout); se desactiva para que un montaje lento de /ticket no
@@ -41,7 +42,7 @@ const PENDIENTES_BUTTON_TEXT = "📝 Pendientes";
 const STATS_BUTTON_TEXT = "📊 Stats";
 const mainKeyboard = Markup.keyboard([
   [START_BUTTON_TEXT, RESEARCH_BUTTON_TEXT, TICKET_BUTTON_TEXT],
-  [PENDIENTES_BUTTON_TEXT, STATS_BUTTON_TEXT],
+  [PENDIENTES_BUTTON_TEXT, STATS_BUTTON_TEXT, MTO_BUTTON_TEXT],
 ]).resize();
 
 bot.use(async (ctx, next) => {
@@ -66,10 +67,15 @@ async function sendWelcome(ctx: Context) {
       "🔍 Analizar — eliges deporte, fecha y competiciones y te devuelvo el prompt de los 3 analistas para pegar en Gemini web.\n" +
       "📸 Ticket — te pide la foto del ticket y una foto de fondo, y te devuelve el montaje.\n" +
       "📝 Pendientes — apuestas registradas a la espera de marcarse ganada/perdida.\n" +
-      "📊 Stats — aciertos y beneficio acumulado (stake fijo 50€).",
+      "📊 Stats — aciertos y beneficio acumulado (stake fijo 50€).\n" +
+      "🚑 MTO — jugadores con varias asistencias médicas (mismo torneo / semanas seguidas). /mto nombre para el historial de uno.",
     mainKeyboard
   );
 }
+
+// Antes que el resto de manejadores: el inicio de sesión de /mto_login
+// necesita ver los mensajes de texto antes que /ticket y compañía.
+registerMtoHandlers(bot);
 
 bot.start(sendWelcome);
 bot.hears(START_BUTTON_TEXT, sendWelcome);

@@ -21,4 +21,11 @@ export const env = {
   publicUrl: process.env.PUBLIC_URL,
   webhookSecretPath: required("WEBHOOK_SECRET_PATH"),
   port: Number(process.env.PORT ?? 8080),
+  // Lector de asistencias médicas (MTO). Opcionales: sin ellos el resto del
+  // bot funciona igual y /mto avisa de que falta configurarlo. Se sacan de
+  // https://my.telegram.org -> API development tools.
+  telegramApiId: process.env.TELEGRAM_API_ID ? Number(process.env.TELEGRAM_API_ID) : undefined,
+  telegramApiHash: process.env.TELEGRAM_API_HASH,
+  // Texto que contiene el título del canal de avisos de lesiones.
+  mtoChannelTitle: process.env.MTO_CHANNEL_TITLE ?? "BOT LESIONES",
 };
