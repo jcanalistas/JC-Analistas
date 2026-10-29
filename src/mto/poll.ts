@@ -99,7 +99,7 @@ async function runPoll(): Promise<PollResult> {
     await saveCursor(cursor);
     return result;
   } finally {
-    await client.disconnect();
+    await client.destroy();
   }
 }
 
@@ -151,6 +151,6 @@ export async function findUnparsedMessages(limit: number): Promise<UnparsedGroup
     }
     return [...groups.values()].sort((a, b) => b.count - a.count);
   } finally {
-    await client.disconnect();
+    await client.destroy();
   }
 }

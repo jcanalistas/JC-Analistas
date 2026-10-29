@@ -34,7 +34,7 @@ export async function connectUserClient(): Promise<TelegramClient | null> {
   if (!session) return null;
   const client = await connectClient(session);
   if (!(await client.checkAuthorization())) {
-    await client.disconnect();
+    await client.destroy();
     return null;
   }
   return client;

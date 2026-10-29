@@ -275,7 +275,7 @@ async function handleLoginText(ctx: Context, step: LoginStep, text: string) {
         const { phoneCodeHash } = await client.sendCode(apiCredentials(), phone);
         await savePendingLogin({ phone, phoneCodeHash, session: client.session.save() as unknown as string });
       } finally {
-        await client.disconnect();
+        await client.destroy();
       }
       loginStep.set(userId, "code");
       await ctx.reply(
@@ -325,7 +325,7 @@ async function handleLoginText(ctx: Context, step: LoginStep, text: string) {
             : "⚠️ Pero no encuentro el canal de lesiones entre tus chats. Revisa MTO_CHANNEL_TITLE.")
       );
     } finally {
-      await client.disconnect();
+      await client.destroy();
     }
   } catch (err) {
     const code = (err as { errorMessage?: string }).errorMessage;
