@@ -119,19 +119,14 @@ function findOpponent(match: string, playerKey: string): string | undefined {
 
 export type TennisCategory = "atp" | "challenger";
 
-// Todo lo que no sea individual masculino del circuito ATP/Challenger:
-// femenino, ITF (M15/M25, W15…), UTR, dobles, juniors… Se descarta lo que
-// se reconoce y se acepta el resto, porque el canal no siempre pone "ATP"
-// delante del nombre del torneo.
-const EXCLUDED_RE =
-  /\b(wta|women|woman|womens|female|ladies|girls|mujeres|femenin[oa]|itf|utr|ptt|w\d{2,3}|m\d{2}|doubles|dobles|mixed|mixto|junior|juniors|boys|wheelchair|exhibition|exhibici[oó]n)\b/i;
+// En el canal todo es individual: se descarta lo femenino ("Women", WTA),
+// lo UTR y lo ITF (también por sus códigos M15/M25, W15/W35…). El resto es
+// ATP o Challenger masculino.
+const EXCLUDED_RE = /\b(women|woman|wta|utr|itf|m\d{2}|w\d{2,3})\b/i;
 
-/**
- * Categoría del torneo de un aviso, o null si no entra en el análisis (solo
- * ATP y Challenger individual masculino). Un partido con "/" es de dobles.
- */
-export function tennisCategory(e: { tournamentRaw?: string; tournament: string; match?: string }): TennisCategory | null {
+/** Categoría del torneo de un aviso, o null si no entra en el análisis. */
+export function tennisCategory(e: { tournamentRaw?: string; tournament: string }): TennisCategory | null {
   const name = e.tournamentRaw ?? e.tournament;
-  if (EXCLUDED_RE.test(name) || e.match?.includes("/") || e.match?.includes("&")) return null;
+  if (EXCLUDED_RE.test(name)) return null;
   return /challenger/i.test(name) ? "challenger" : "atp";
 }
