@@ -1,4 +1,4 @@
-import type { Context, Telegraf } from "telegraf";
+import { Markup, type Context, type Telegraf } from "telegraf";
 import { Api } from "telegram";
 import { computeCheck } from "telegram/Password";
 import { formatPlayerHistory, formatRanking, formatRepeaters, formatWatchlist, escapeHtml, splitMessage } from "./format";
@@ -24,21 +24,75 @@ const NOT_CONFIGURED =
 // Paso del inicio de sesión de tu cuenta en el que está cada usuario.
 type LoginStep = "phone" | "code" | "password";
 const loginStep = new Map<number, LoginStep>();
+// Usuarios que han pulsado "🔎 Buscar jugador" y deben mandar el nombre.
+const awaitingPlayerSearch = new Set<number>();
+
+function menuKeyboard() {
+  return Markup.inlineKeyboard([
+    [Markup.button.callback("🔄 Leer canal", "mto:leer"), Markup.button.callback("🔁 Quién repite", "mto:repiten")],
+    [Markup.button.callback("👀 Todos los atendidos", "mto:vigilar"), Markup.button.callback("📊 Ranking", "mto:ranking")],
+    [Markup.button.callback("🔎 Buscar jugador", "mto:buscar")],
+    [Markup.button.callback("⚙️ Estado", "mto:estado"), Markup.button.callback("🧩 Mensajes raros", "mto:raros")],
+    [Markup.button.callback("🔐 Conectar cuenta", "mto:login")],
+  ]);
+}
+
+async function showMenu(ctx: Context) {
+  await ctx.reply(
+    "🚑 <b>Asistencias médicas (MTO)</b>\n\n" +
+      "🔄 Leer canal — trae los avisos nuevos y te da el resumen de quién repite\n" +
+      "🔁 Quién repite — repiten asistencia en los últimos 14 días\n" +
+      "👀 Todos los atendidos — últimos 14 días\n" +
+      "📊 Ranking — 2+ asistencias en 7 y 30 días\n" +
+      "🔎 Buscar jugador — historial de un jugador",
+    { parse_mode: "HTML", ...menuKeyboard() }
+  );
+}
+
+async function askPlayerName(ctx: Context) {
+  awaitingPlayerSearch.add(ctx.from!.id);
+  await ctx.reply("🔎 Escribe el nombre del jugador (vale solo el apellido).");
+}
 
 export function registerMtoHandlers(bot: Telegraf) {
   // Va antes que el resto de manejadores de texto del bot: mientras hay un
   // inicio de sesión en marcha, los mensajes de texto son para él.
   bot.on("text", async (ctx, next) => {
+    const text = ctx.message.text;
+    // Un comando o un botón del teclado (empiezan por "/" o por emoji, no
+    // por letra) cancela la búsqueda en vez de tomarse como nombre.
+    if (!/^\p{L}/u.test(text.trim())) awaitingPlayerSearch.delete(ctx.from.id);
+    if (text.startsWith("/")) return next();
+    if (awaitingPlayerSearch.delete(ctx.from.id)) {
+      await showPlayer(ctx, text.trim());
+      return;
+    }
     const step = loginStep.get(ctx.from.id);
-    if (!step || ctx.message.text.startsWith("/")) return next();
-    await handleLoginText(ctx, step, ctx.message.text);
+    if (!step) return next();
+    await handleLoginText(ctx, step, text);
+  });
+
+  // Botones del menú 🚑 MTO: cada uno hace lo mismo que su comando.
+  const menuActions: Record<string, (ctx: Context) => Promise<void>> = {
+    leer: readNow,
+    repiten: showRepeaters,
+    vigilar: showWatchlist,
+    ranking: showRanking,
+    buscar: askPlayerName,
+    estado: showStatus,
+    raros: showUnparsed,
+    login: startLogin,
+  };
+  bot.action(/^mto:(\w+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    await menuActions[ctx.match[1]]?.(ctx);
   });
 
   bot.command("mto", async (ctx) => {
     const query = ctx.message.text.replace(/^\/mto(@\w+)?/, "").trim();
     await (query ? showPlayer(ctx, query) : showRanking(ctx));
   });
-  bot.hears(MTO_BUTTON_TEXT, showRepeaters);
+  bot.hears(MTO_BUTTON_TEXT, showMenu);
   bot.command("mto_vigilar", showWatchlist);
   bot.command("mto_repiten", showRepeaters);
   bot.command("mto_estado", showStatus);

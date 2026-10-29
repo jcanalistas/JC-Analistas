@@ -213,9 +213,13 @@ cada vez que quieras ponerte al día.
 
 ### 7.4 Comandos
 
+El botón **🚑 MTO** abre un menú con botones para todo lo de abajo (leer
+canal, quién repite, todos los atendidos, ranking, buscar jugador, estado,
+mensajes raros y conectar cuenta). Los comandos siguen funcionando igual:
+
 - `/mto_leer` — lee los mensajes nuevos del canal y, al terminar, manda
   el resumen de quién repite.
-- `🚑 MTO` o `/mto_repiten` — jugadores atendidos en los últimos 14 días
+- `/mto_repiten` — jugadores atendidos en los últimos 14 días
   que repiten asistencia, con sus asistencias anteriores: candidatos a
   apostar en contra si pasan de ronda o juegan el siguiente torneo.
 - `/mto_vigilar` — todos los atendidos en los últimos 14 días, los que
