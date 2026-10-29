@@ -1,7 +1,7 @@
 import type { Context, Telegraf } from "telegraf";
 import { Api } from "telegram";
 import { computeCheck } from "telegram/Password";
-import { formatPlayerHistory, formatRanking, formatWatchlist, escapeHtml, splitMessage } from "./format";
+import { formatPlayerHistory, formatRanking, formatRepeaters, formatWatchlist, escapeHtml, splitMessage } from "./format";
 import {
   clearPendingLogin,
   getCursor,
@@ -38,8 +38,9 @@ export function registerMtoHandlers(bot: Telegraf) {
     const query = ctx.message.text.replace(/^\/mto(@\w+)?/, "").trim();
     await (query ? showPlayer(ctx, query) : showRanking(ctx));
   });
-  bot.hears(MTO_BUTTON_TEXT, showWatchlist);
+  bot.hears(MTO_BUTTON_TEXT, showRepeaters);
   bot.command("mto_vigilar", showWatchlist);
+  bot.command("mto_repiten", showRepeaters);
   bot.command("mto_estado", showStatus);
   bot.command("mto_leer", readNow);
   bot.command("mto_login", startLogin);
@@ -69,6 +70,16 @@ async function showWatchlist(ctx: Context) {
     for (const chunk of splitMessage(text)) await ctx.reply(chunk, { parse_mode: "HTML" });
   } catch (err) {
     console.error("No se pudo sacar la lista de vigilancia de MTO:", err);
+    await ctx.reply("⚠️ No se pudo sacar la lista. Revisa los logs.");
+  }
+}
+
+async function showRepeaters(ctx: Context) {
+  try {
+    const text = formatRepeaters(await buildWatchlist(WATCHLIST_DAYS), WATCHLIST_DAYS);
+    for (const chunk of splitMessage(text)) await ctx.reply(chunk, { parse_mode: "HTML" });
+  } catch (err) {
+    console.error("No se pudo sacar la lista de jugadores que repiten MTO:", err);
     await ctx.reply("⚠️ No se pudo sacar la lista. Revisa los logs.");
   }
 }
@@ -123,13 +134,14 @@ async function readNow(ctx: Context) {
   }
   await ctx.reply("⏳ Leyendo el canal de lesiones…");
   try {
-    const r = await pollMtoChannel(ctx.telegram);
+    const r = await pollMtoChannel();
     await ctx.reply(
-      `✅ ${r.channel ?? "Canal"}: ${r.read} mensajes leídos, ${r.saved} asistencias nuevas guardadas, ` +
-        `${r.inDigest} en el resumen` +
+      `✅ ${r.channel ?? "Canal"}: ${r.read} mensajes leídos, ${r.saved} asistencias nuevas guardadas` +
         (r.unparsed ? `, ${r.unparsed} mensajes que no son avisos.` : ".") +
         (r.more ? "\n\n⏩ Quedan más mensajes por leer: vuelve a lanzar /mto_leer." : "\n\n✔️ Historial al día.")
     );
+    // Con el historial al día, el resumen de quién repite sale solo.
+    if (!r.more) await showRepeaters(ctx);
   } catch (err) {
     console.error("Fallo leyendo el canal de MTO:", err);
     await ctx.reply(`⚠️ ${(err as Error).message}`);

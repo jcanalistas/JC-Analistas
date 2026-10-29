@@ -41,33 +41,22 @@ export interface DigestItem {
   patterns: PatternResult;
 }
 
-/** Resumen de una lectura del canal: primero los jugadores con patrón, luego el resto. */
-export function formatDigest(allItems: DigestItem[]): string {
-  // Un jugador con dos asistencias en la misma lectura sale una vez, con la
-  // última (sus patrones ya cuentan la anterior).
-  const items = [...new Map(allItems.map((i) => [i.event.playerKey, i])).values()];
-  const withPattern = items.filter((i) => i.patterns.alert);
-  const rest = items.filter((i) => !i.patterns.alert);
-  const lines = [`🚑 <b>Resumen MTO</b> — ${allItems.length} asistencias nuevas`];
-
-  if (withPattern.length) {
-    lines.push("", "⚠️ <b>Con patrón (prioridad para ir en contra)</b>");
-    for (const { event, patterns } of withPattern) {
-      lines.push("", `<b>${escapeHtml(event.player)}</b> — ${patternTags(patterns).join(" · ")}`, eventLine(event));
-      const previous = patterns.recent.filter((e) => e.id !== event.id).slice(-3);
-      if (previous.length) lines.push(...previous.map((e) => `   ↳ ${eventLine(e).slice(2)}`));
-    }
+/** Solo los jugadores que repiten asistencia, con sus asistencias anteriores. */
+export function formatRepeaters(items: DigestItem[], days: number): string {
+  const repeaters = items
+    .filter((i) => i.patterns.alert)
+    .sort((a, b) => b.patterns.recent.length - a.patterns.recent.length || b.event.timestamp - a.event.timestamp);
+  if (!repeaters.length) {
+    return `🔁 Nadie repite asistencia médica entre los atendidos en los últimos ${days} días.`;
   }
 
-  if (rest.length) {
-    lines.push("", "📋 <b>Resto</b>");
-    for (const { event, patterns } of rest) {
-      const tags = patternTags(patterns);
-      lines.push(`• <b>${escapeHtml(event.player)}</b> · ${eventLine(event).slice(2)}${tags.length ? " · " + tags.join(" · ") : ""}`);
-    }
+  const lines = [`🔁 <b>Repiten asistencia médica</b> — ${repeaters.length} jugadores (últimos ${days} días)`];
+  for (const { event, patterns } of repeaters) {
+    lines.push("", `⚠️ <b>${escapeHtml(event.player)}</b> — ${patternTags(patterns).join(" · ")}`, eventLine(event));
+    const previous = patterns.recent.filter((e) => e.id !== event.id).slice(-3).reverse();
+    lines.push(...previous.map((e) => `   ↳ ${eventLine(e).slice(2)}`));
   }
-
-  lines.push("", BET_HINT, "Lista completa: /mto_vigilar");
+  lines.push("", BET_HINT, "Todos los atendidos: /mto_vigilar");
   return lines.join("\n");
 }
 

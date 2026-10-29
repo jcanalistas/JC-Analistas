@@ -68,7 +68,7 @@ async function sendWelcome(ctx: Context) {
       "📸 Ticket — te pide la foto del ticket y una foto de fondo, y te devuelve el montaje.\n" +
       "📝 Pendientes — apuestas registradas a la espera de marcarse ganada/perdida.\n" +
       "📊 Stats — aciertos y beneficio acumulado (stake fijo 50€).\n" +
-      "🚑 MTO — jugadores con asistencia médica reciente para apostar en su contra si siguen vivos. /mto ranking, /mto nombre historial de uno.",
+      "🚑 MTO — jugadores que repiten asistencia médica, para apostar en su contra si siguen vivos. /mto_leer actualiza, /mto_vigilar todos los atendidos, /mto nombre historial de uno.",
     mainKeyboard
   );
 }

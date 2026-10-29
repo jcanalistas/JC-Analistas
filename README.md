@@ -13,9 +13,9 @@ Bot de Telegram para el canal tipster **JC Analistas**. Funciones:
    listo para publicar en el canal.
 3. **📝 Pendientes / 📊 Stats**: seguimiento de apuestas registradas.
 4. **🚑 MTO**: lee el canal de avisos de asistencias médicas al que estás
-   suscrito ("GRUPO PREMIUM - BOT LESIONES") cada 6 horas, guarda cada
-   aviso y te manda un resumen con los jugadores atendidos, destacando los
-   que repiten (mismo torneo, semanas seguidas o 3+ en 30 días). La idea:
+   suscrito ("GRUPO PREMIUM - BOT LESIONES") cuando lanzas `/mto_leer`,
+   guarda cada aviso y te da un resumen de los jugadores que repiten
+   asistencia (mismo torneo, semanas seguidas o 3+ en 30 días). La idea:
    apostar en su contra si siguen vivos en la siguiente ronda o torneo
    (ver sección 7).
 
@@ -173,10 +173,9 @@ gcloud secrets delete gemini-api-key
 Un bot no puede leer un canal del que no es administrador, así que el
 canal de lesiones se lee con **tu cuenta de Telegram** (solo lectura, con
 la librería GramJS). Basta con seguir el canal, no hace falta ser admin.
-Cloud Scheduler llama cada 6 horas a `/mto/poll/<WEBHOOK_SECRET_PATH>`,
-que descarga los mensajes nuevos desde el último leído, los guarda en
-Firestore (`mtoEvents`) y te manda **un resumen** al chat privado del bot:
-primero los jugadores con patrón y después el resto.
+La lectura es manual: `/mto_leer` descarga los mensajes nuevos desde el
+último leído, los guarda en Firestore (`mtoEvents`) y, con el historial
+al día, te manda **el resumen de quién repite asistencia**.
 
 ### 7.1 Credenciales de API
 
@@ -209,33 +208,25 @@ Puedes cerrarla cuando quieras en Telegram → Ajustes → Dispositivos.
 ### 7.3 Cargar el historial
 
 `/mto_leer` lee el canal desde el principio (hasta 3.000 mensajes por
-vez; si quedan más, el bot te pide volver a lanzarlo). Los avisos de más
-de 24 horas se guardan sin entrar en el resumen, para que el historial no
-te llene el chat.
+vez; si quedan más, el bot te pide volver a lanzarlo). Después, lánzalo
+cada vez que quieras ponerte al día.
 
-### 7.4 Lectura automática cada 6 horas
+### 7.4 Comandos
 
-```bash
-gcloud scheduler jobs create http mto-poll \
-  --location=europe-west1 \
-  --schedule="0 */6 * * *" \
-  --http-method=POST \
-  --uri="https://TU-URL-DE-CLOUD-RUN.a.run.app/mto/poll/TU_WEBHOOK_SECRET_PATH"
-```
-
-### 7.5 Comandos
-
-- `🚑 MTO` o `/mto_vigilar` — jugadores con asistencia en los últimos 14
-  días, los de patrón primero: candidatos a apostar en contra si pasan de
-  ronda o juegan el siguiente torneo.
+- `/mto_leer` — lee los mensajes nuevos del canal y, al terminar, manda
+  el resumen de quién repite.
+- `🚑 MTO` o `/mto_repiten` — jugadores atendidos en los últimos 14 días
+  que repiten asistencia, con sus asistencias anteriores: candidatos a
+  apostar en contra si pasan de ronda o juegan el siguiente torneo.
+- `/mto_vigilar` — todos los atendidos en los últimos 14 días, los que
+  repiten primero.
 - `/mto` — ranking de jugadores con 2+ asistencias en 7 y 30 días.
 - `/mto brain` — historial de un jugador (vale el nombre parcial).
-- `/mto_leer` — leer el canal ahora mismo.
 - `/mto_estado` — sesión, canal y último mensaje leído.
 - `/mto_raros` — mensajes recientes del canal que no son avisos de
   asistencia, agrupados, por si hay otro formato que conviene leer.
 
-### 7.6 Qué cuenta como patrón
+### 7.5 Qué cuenta como patrón
 
 - **Mismo torneo**: 2+ asistencias en la misma edición. Torneos como los
   UTR PTT o ITF se repiten cada semana con el mismo nombre, así que solo
@@ -244,7 +235,7 @@ gcloud scheduler jobs create http mto-poll \
   de Madrid), en cualquier torneo.
 - **3+ en 30 días**.
 
-La alerta añade si el aviso fue antes del minuto 20 y si el rival también
+El resumen añade si el aviso fue antes del minuto 20 y si el rival también
 se atendió en el mismo partido. Dos avisos del mismo jugador en el mismo
 partido con menos de 15 minutos de diferencia cuentan como uno.
 
