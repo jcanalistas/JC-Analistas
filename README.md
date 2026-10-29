@@ -238,7 +238,10 @@ Solo se analizan los torneos **ATP y Challenger individuales masculinos**
 (incluidos los Grand Slams masculinos). Los avisos de UTR, ITF, WTA /
 femenino, dobles y juniors se guardan igualmente, pero no salen en el
 resumen, las listas, el ranking ni la búsqueda. El filtro es
-`tennisCategory` en `src/mto/parseMto.ts`, que mira el nombre del torneo.
+`tennisCategory` en `src/mto/parseMto.ts`: descarta lo que reconoce por el
+nombre del torneo y acepta el resto, porque el canal no siempre pone "ATP"
+delante. **🏷️ Torneos** (`/mto_torneos`) muestra qué torneos de los
+últimos 7 días entran y cuáles se descartan.
 
 
 - **Mismo torneo**: 2+ asistencias en la misma edición. Torneos como los

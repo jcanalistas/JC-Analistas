@@ -1,3 +1,4 @@
+import { tennisCategory } from "./parseMto";
 import { dedupe, sameEdition, type MtoEvent, type PatternResult } from "./patterns";
 
 export function escapeHtml(text: string): string {
@@ -152,4 +153,31 @@ export function formatRanking(events: MtoEvent[], now = Date.now()): string {
     "",
     "🔁 = más de una en el mismo torneo. Detalle: /mto nombre",
   ].join("\n");
+}
+
+/** Torneos con avisos en los últimos días y si entran o no en el análisis. */
+export function formatTournaments(events: MtoEvent[], days: number): string {
+  const byTournament = new Map<string, { name: string; count: number; category: string }>();
+  for (const e of events) {
+    const name = e.tournamentRaw ?? e.tournament;
+    const category = tennisCategory(e);
+    const label = category === "challenger" ? "✅ Challenger" : category === "atp" ? "✅ ATP" : "❌";
+    const current = byTournament.get(name);
+    if (current) current.count++;
+    else byTournament.set(name, { name, count: 1, category: label });
+  }
+  if (!byTournament.size) return `🏷️ No hay ningún aviso guardado en los últimos ${days} días. Pulsa 🔄 Leer canal.`;
+
+  const sorted = [...byTournament.values()].sort(
+    (a, b) => Number(b.category !== "❌") - Number(a.category !== "❌") || b.count - a.count
+  );
+  const accepted = sorted.filter((t) => t.category !== "❌").reduce((n, t) => n + t.count, 0);
+  const lines = [
+    `🏷️ <b>Torneos con avisos</b> — últimos ${days} días`,
+    `${events.length} avisos: ${accepted} entran en el análisis, ${events.length - accepted} descartados.`,
+    "",
+  ];
+  for (const t of sorted.slice(0, 60)) lines.push(`${t.category} · ${t.count}× · ${escapeHtml(t.name)}`);
+  if (sorted.length > 60) lines.push(`… y ${sorted.length - 60} torneos más`);
+  return lines.join("\n");
 }

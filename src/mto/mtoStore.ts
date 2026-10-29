@@ -79,3 +79,9 @@ export async function getEventsSince(timestamp: number): Promise<MtoEvent[]> {
   const snap = await firestore.collection(EVENTS).where("timestamp", ">=", timestamp).get();
   return analyzed(snap.docs);
 }
+
+/** Todos los avisos desde una fecha, sin filtrar (para ver qué descarta el filtro). */
+export async function getAllEventsSince(timestamp: number): Promise<MtoEvent[]> {
+  const snap = await firestore.collection(EVENTS).where("timestamp", ">=", timestamp).get();
+  return snap.docs.map((d) => d.data() as MtoEvent);
+}

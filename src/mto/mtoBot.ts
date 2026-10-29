@@ -1,9 +1,18 @@
 import { Markup, type Context, type Telegraf } from "telegraf";
 import { Api } from "telegram";
 import { computeCheck } from "telegram/Password";
-import { formatPlayerHistory, formatRanking, formatRepeaters, formatWatchlist, escapeHtml, splitMessage } from "./format";
+import {
+  formatPlayerHistory,
+  formatRanking,
+  formatRepeaters,
+  formatTournaments,
+  formatWatchlist,
+  escapeHtml,
+  splitMessage,
+} from "./format";
 import {
   clearPendingLogin,
+  getAllEventsSince,
   getCursor,
   getEventsSince,
   getPendingLogin,
@@ -31,7 +40,7 @@ function menuKeyboard() {
   return Markup.inlineKeyboard([
     [Markup.button.callback("🔄 Leer canal", "mto:leer"), Markup.button.callback("🔁 Quién repite", "mto:repiten")],
     [Markup.button.callback("👀 Todos los atendidos", "mto:vigilar"), Markup.button.callback("📊 Ranking", "mto:ranking")],
-    [Markup.button.callback("🔎 Buscar jugador", "mto:buscar")],
+    [Markup.button.callback("🔎 Buscar jugador", "mto:buscar"), Markup.button.callback("🏷️ Torneos", "mto:torneos")],
     [Markup.button.callback("⚙️ Estado", "mto:estado"), Markup.button.callback("🧩 Mensajes raros", "mto:raros")],
     [Markup.button.callback("🔐 Conectar cuenta", "mto:login")],
   ]);
@@ -44,7 +53,8 @@ async function showMenu(ctx: Context) {
       "🔁 Quién repite — repiten asistencia en los últimos 14 días\n" +
       "👀 Todos los atendidos — últimos 14 días\n" +
       "📊 Ranking — 2+ asistencias en 7 y 30 días\n" +
-      "🔎 Buscar jugador — historial de un jugador",
+      "🔎 Buscar jugador — historial de un jugador\n" +
+      "🏷️ Torneos — qué torneos entran en el análisis y cuáles se descartan",
     { parse_mode: "HTML", ...menuKeyboard() }
   );
 }
@@ -82,6 +92,7 @@ export function registerMtoHandlers(bot: Telegraf) {
     estado: showStatus,
     raros: showUnparsed,
     login: startLogin,
+    torneos: showTournaments,
   };
   bot.action(/^mto:(\w+)$/, async (ctx) => {
     await ctx.answerCbQuery();
@@ -99,6 +110,7 @@ export function registerMtoHandlers(bot: Telegraf) {
   bot.command("mto_leer", readNow);
   bot.command("mto_login", startLogin);
   bot.command("mto_raros", showUnparsed);
+  bot.command("mto_torneos", showTournaments);
   bot.command("mto_cancelar", async (ctx) => {
     loginStep.delete(ctx.from.id);
     await clearPendingLogin().catch(() => undefined);
@@ -134,6 +146,17 @@ async function showRepeaters(ctx: Context) {
     for (const chunk of splitMessage(text)) await ctx.reply(chunk, { parse_mode: "HTML" });
   } catch (err) {
     console.error("No se pudo sacar la lista de jugadores que repiten MTO:", err);
+    await ctx.reply("⚠️ No se pudo sacar la lista. Revisa los logs.");
+  }
+}
+
+async function showTournaments(ctx: Context) {
+  try {
+    const days = 7;
+    const events = await getAllEventsSince(Date.now() - days * 24 * 60 * 60 * 1000);
+    for (const chunk of splitMessage(formatTournaments(events, days))) await ctx.reply(chunk, { parse_mode: "HTML" });
+  } catch (err) {
+    console.error("No se pudo sacar la lista de torneos de MTO:", err);
     await ctx.reply("⚠️ No se pudo sacar la lista. Revisa los logs.");
   }
 }
