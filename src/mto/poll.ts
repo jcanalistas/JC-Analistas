@@ -3,20 +3,23 @@ import type { DigestItem } from "./format";
 import { createEvent, getCursor, getEventsSince, saveCursor } from "./mtoStore";
 import { parseMto } from "./parseMto";
 import { dedupe, detectPatterns, isoWeek, type MtoEvent } from "./patterns";
-import { connectUserClient, fetchLatestMessages, fetchMessagesAfter, findChannel } from "./userbot";
+import { connectUserClient, fetchLatestMessages, fetchRecentMessages, findChannel } from "./userbot";
 
-// Mensajes leídos como máximo por ejecución. La primera vez se carga el
-// historial entero del canal en tandas: lo que no quepa se lee en la
-// siguiente ejecución, que empieza donde lo dejó esta.
-const MAX_MESSAGES_PER_RUN = 3000;
+// Cada lectura va de lo más reciente hacia atrás hasta lo ya leído, sin
+// pasar de 45 días: los patrones miran 30 días + los 14 de la lista, así
+// que no hace falta el historial entero del canal.
+const MAX_DAYS_BACK = 45;
+const MAX_MESSAGES_PER_RUN = 8000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface PollResult {
   read: number;
   saved: number;
   unparsed: number;
-  /** Quedan mensajes antiguos por leer (se llegó al límite de la tanda). */
-  more: boolean;
+  /** Fecha del aviso más antiguo leído en esta tanda (ms). */
+  oldest?: number;
+  /** Se cortó por el límite de mensajes antes de llegar a lo ya leído o a 45 días. */
+  truncated: boolean;
   channel?: string;
 }
 
@@ -24,7 +27,7 @@ let running = false;
 
 export async function pollMtoChannel(): Promise<PollResult> {
   // Evita dos lecturas a la vez si se pulsa /mto_leer dos veces seguidas.
-  if (running) return { read: 0, saved: 0, unparsed: 0, more: false };
+  if (running) return { read: 0, saved: 0, unparsed: 0, truncated: false };
   running = true;
   try {
     return await runPoll();
@@ -50,17 +53,19 @@ async function runPoll(): Promise<PollResult> {
       cursor.lastMessageId = 0;
     }
 
-    const { messages, more } = await fetchMessagesAfter(
+    const { messages, truncated } = await fetchRecentMessages(
       client,
       channel.entity,
       cursor.lastMessageId,
+      Date.now() - MAX_DAYS_BACK * DAY_MS,
       MAX_MESSAGES_PER_RUN
     );
     const result: PollResult = {
       read: messages.length,
       saved: 0,
       unparsed: 0,
-      more,
+      oldest: messages[0]?.date,
+      truncated,
       channel: channel.title,
     };
 
@@ -72,7 +77,7 @@ async function runPoll(): Promise<PollResult> {
         const event: MtoEvent = { id: String(message.id), ...parsed, timestamp: message.date, week: isoWeek(message.date) };
         if (await createEvent(event)) result.saved++;
       }
-      cursor.lastMessageId = message.id;
+      cursor.lastMessageId = Math.max(cursor.lastMessageId, message.id);
     }
 
     await saveCursor(cursor);

@@ -189,13 +189,15 @@ async function readNow(ctx: Context) {
   await ctx.reply("⏳ Leyendo el canal de lesiones…");
   try {
     const r = await pollMtoChannel();
+    const since = r.oldest
+      ? ` (desde el ${new Date(r.oldest).toLocaleDateString("es-ES", { timeZone: "Europe/Madrid", day: "2-digit", month: "2-digit" })})`
+      : "";
     await ctx.reply(
-      `✅ ${r.channel ?? "Canal"}: ${r.read} mensajes leídos, ${r.saved} asistencias nuevas guardadas` +
+      `✅ ${r.channel ?? "Canal"}: ${r.read} mensajes nuevos leídos${since}, ${r.saved} asistencias guardadas` +
         (r.unparsed ? `, ${r.unparsed} mensajes que no son avisos.` : ".") +
-        (r.more ? "\n\n⏩ Quedan más mensajes por leer: vuelve a lanzar /mto_leer." : "\n\n✔️ Historial al día.")
+        (r.truncated ? "\n\n⚠️ Había demasiados mensajes: solo se han leído los más recientes." : "")
     );
-    // Con el historial al día, el resumen de quién repite sale solo.
-    if (!r.more) await showRepeaters(ctx);
+    await showRepeaters(ctx);
   } catch (err) {
     console.error("Fallo leyendo el canal de MTO:", err);
     await ctx.reply(`⚠️ ${(err as Error).message}`);

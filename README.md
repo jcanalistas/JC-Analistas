@@ -173,9 +173,9 @@ gcloud secrets delete gemini-api-key
 Un bot no puede leer un canal del que no es administrador, así que el
 canal de lesiones se lee con **tu cuenta de Telegram** (solo lectura, con
 la librería GramJS). Basta con seguir el canal, no hace falta ser admin.
-La lectura es manual: `/mto_leer` descarga los mensajes nuevos desde el
-último leído, los guarda en Firestore (`mtoEvents`) y, con el historial
-al día, te manda **el resumen de quién repite asistencia**.
+La lectura es manual: `/mto_leer` descarga los mensajes nuevos, los
+guarda en Firestore (`mtoEvents`) y te manda **el resumen de quién repite
+asistencia**.
 
 ### 7.1 Credenciales de API
 
@@ -205,11 +205,13 @@ La sesión queda guardada en Firestore (`mtoState/session`): equivale a
 tener la sesión abierta, así que nadie más debe tener acceso al proyecto.
 Puedes cerrarla cuando quieras en Telegram → Ajustes → Dispositivos.
 
-### 7.3 Cargar el historial
+### 7.3 Cómo lee el canal
 
-`/mto_leer` lee el canal desde el principio (hasta 3.000 mensajes por
-vez; si quedan más, el bot te pide volver a lanzarlo). Después, lánzalo
-cada vez que quieras ponerte al día.
+`/mto_leer` va del mensaje más reciente hacia atrás hasta llegar al último
+que ya había leído, sin pasar de 45 días (los patrones miran 30 días más
+los 14 de la lista) ni de 8.000 mensajes por lectura. Lánzalo cada vez que
+quieras ponerte al día; si llevas más de 45 días sin hacerlo, lo anterior
+simplemente no se lee.
 
 ### 7.4 Comandos
 

@@ -64,25 +64,27 @@ export interface ChannelMessage {
 }
 
 /**
- * Mensajes posteriores a `afterId`, del más antiguo al más reciente.
- * `more` indica que se llegó al límite y quedan mensajes por leer.
+ * Mensajes del canal del más reciente hacia atrás, hasta llegar a `afterId`
+ * (ya leído), a uno anterior a `since` o al límite `limit`. Se devuelven del
+ * más antiguo al más reciente. `truncated` indica que se cortó por el límite.
  */
-export async function fetchMessagesAfter(
+export async function fetchRecentMessages(
   client: TelegramClient,
   entity: Api.TypeEntityLike,
   afterId: number,
+  since: number,
   limit: number
-): Promise<{ messages: ChannelMessage[]; more: boolean }> {
+): Promise<{ messages: ChannelMessage[]; truncated: boolean }> {
   const messages: ChannelMessage[] = [];
   let seen = 0;
-  for await (const message of client.iterMessages(entity, { reverse: true, minId: afterId, limit })) {
-    // Los mensajes de servicio (fijados, cambios de título…) cuentan para el
-    // límite pero no tienen texto que leer.
+  for await (const message of client.iterMessages(entity, { minId: afterId, limit })) {
     seen++;
+    if (message.date * 1000 < since) return { messages: messages.reverse(), truncated: false };
+    // Los mensajes de servicio (fijados, cambios de título…) no tienen texto que leer.
     if (!(message instanceof Api.Message)) continue;
     messages.push({ id: message.id, date: message.date * 1000, text: message.message ?? "" });
   }
-  return { messages, more: seen >= limit };
+  return { messages: messages.reverse(), truncated: seen >= limit };
 }
 
 /** Los `limit` mensajes más recientes del canal, del más reciente al más antiguo. */
