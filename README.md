@@ -234,6 +234,13 @@ mensajes raros y conectar cuenta). Los comandos siguen funcionando igual:
 
 ### 7.5 Qué cuenta como patrón
 
+Solo se analizan los torneos **ATP y Challenger individuales masculinos**
+(incluidos los Grand Slams masculinos). Los avisos de UTR, ITF, WTA /
+femenino, dobles y juniors se guardan igualmente, pero no salen en el
+resumen, las listas, el ranking ni la búsqueda. El filtro es
+`tennisCategory` en `src/mto/parseMto.ts`, que mira el nombre del torneo.
+
+
 - **Mismo torneo**: 2+ asistencias en la misma edición. Torneos como los
   UTR PTT o ITF se repiten cada semana con el mismo nombre, así que solo
   cuentan avisos separados como mucho 8 días.

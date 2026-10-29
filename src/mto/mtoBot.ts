@@ -193,8 +193,10 @@ async function readNow(ctx: Context) {
       ? ` (desde el ${new Date(r.oldest).toLocaleDateString("es-ES", { timeZone: "Europe/Madrid", day: "2-digit", month: "2-digit" })})`
       : "";
     await ctx.reply(
-      `✅ ${r.channel ?? "Canal"}: ${r.read} mensajes nuevos leídos${since}, ${r.saved} asistencias guardadas` +
-        (r.unparsed ? `, ${r.unparsed} mensajes que no son avisos.` : ".") +
+      `✅ ${r.channel ?? "Canal"}: ${r.read} mensajes nuevos leídos${since}.\n\n` +
+        `🚑 ${r.saved} asistencias nuevas: ${r.atp} ATP, ${r.challenger} Challenger y ` +
+        `${r.saved - r.atp - r.challenger} descartadas (UTR, ITF, femenino, dobles…).` +
+        (r.unparsed ? `\n${r.unparsed} mensajes que no son avisos.` : "") +
         (r.truncated ? "\n\n⚠️ Había demasiados mensajes: solo se han leído los más recientes." : "")
     );
     await showRepeaters(ctx);

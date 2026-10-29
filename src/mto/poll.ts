@@ -1,7 +1,7 @@
 import { env } from "../config/env";
 import type { DigestItem } from "./format";
 import { createEvent, getCursor, getEventsSince, saveCursor } from "./mtoStore";
-import { parseMto } from "./parseMto";
+import { parseMto, tennisCategory } from "./parseMto";
 import { dedupe, detectPatterns, isoWeek, type MtoEvent } from "./patterns";
 import { connectUserClient, fetchLatestMessages, fetchRecentMessages, findChannel } from "./userbot";
 
@@ -16,6 +16,9 @@ export interface PollResult {
   read: number;
   saved: number;
   unparsed: number;
+  /** De las asistencias guardadas, cuántas entran en el análisis (ATP / Challenger masculino). */
+  atp: number;
+  challenger: number;
   /** Fecha del aviso más antiguo leído en esta tanda (ms). */
   oldest?: number;
   /** Se cortó por el límite de mensajes antes de llegar a lo ya leído o a 45 días. */
@@ -27,7 +30,7 @@ let running = false;
 
 export async function pollMtoChannel(): Promise<PollResult> {
   // Evita dos lecturas a la vez si se pulsa /mto_leer dos veces seguidas.
-  if (running) return { read: 0, saved: 0, unparsed: 0, truncated: false };
+  if (running) return { read: 0, saved: 0, unparsed: 0, atp: 0, challenger: 0, truncated: false };
   running = true;
   try {
     return await runPoll();
@@ -64,6 +67,8 @@ async function runPoll(): Promise<PollResult> {
       read: messages.length,
       saved: 0,
       unparsed: 0,
+      atp: 0,
+      challenger: 0,
       oldest: messages[0]?.date,
       truncated,
       channel: channel.title,
@@ -75,7 +80,11 @@ async function runPoll(): Promise<PollResult> {
         if (message.text.trim()) result.unparsed++;
       } else {
         const event: MtoEvent = { id: String(message.id), ...parsed, timestamp: message.date, week: isoWeek(message.date) };
-        if (await createEvent(event)) result.saved++;
+        if (await createEvent(event)) {
+          result.saved++;
+          const category = tennisCategory(event);
+          if (category) result[category]++;
+        }
       }
       cursor.lastMessageId = Math.max(cursor.lastMessageId, message.id);
     }

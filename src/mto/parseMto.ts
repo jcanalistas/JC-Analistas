@@ -116,3 +116,23 @@ function findOpponent(match: string, playerKey: string): string | undefined {
   if (bIsPlayer && !aIsPlayer) return a;
   return undefined;
 }
+
+export type TennisCategory = "atp" | "challenger";
+
+// Todo lo que no sea individual masculino del circuito ATP/Challenger:
+// femenino, ITF, UTR, dobles, juniors…
+const EXCLUDED_RE =
+  /\b(wta|women|woman|womens|female|ladies|girls|mujeres|femenin[oa]|itf|utr|w\d{2,3}|m\d{2}|doubles|dobles|mixed|mixto|junior|juniors|boys|wheelchair)\b/i;
+const GRAND_SLAM_RE = /\b(australian open|roland garros|french open|wimbledon|us open)\b/i;
+
+/**
+ * Categoría del torneo de un aviso, o null si no entra en el análisis (solo
+ * ATP y Challenger individual masculino). Un partido con "/" es de dobles.
+ */
+export function tennisCategory(e: { tournamentRaw?: string; tournament: string; match?: string }): TennisCategory | null {
+  const name = e.tournamentRaw ?? e.tournament;
+  if (EXCLUDED_RE.test(name) || e.match?.includes("/")) return null;
+  if (/challenger/i.test(name)) return "challenger";
+  if (/\batp\b/i.test(name) || GRAND_SLAM_RE.test(name)) return "atp";
+  return null;
+}

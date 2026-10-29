@@ -5,6 +5,8 @@ export interface MtoEvent {
   id: string;
   player: string;
   playerKey: string;
+  /** Línea completa del torneo tal cual llega en el aviso. */
+  tournamentRaw?: string;
   tournament: string;
   tournamentKey: string;
   round?: string;

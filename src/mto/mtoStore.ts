@@ -1,4 +1,5 @@
 import { firestore } from "../stats/firestore";
+import { tennisCategory } from "./parseMto";
 import type { MtoEvent } from "./patterns";
 
 // Un documento por aviso del canal; el ID es el message_id de Telegram,
@@ -63,17 +64,18 @@ export async function createEvent(event: MtoEvent): Promise<boolean> {
   }
 }
 
-export async function getPlayerEvents(playerKey: string): Promise<MtoEvent[]> {
-  const snap = await firestore.collection(EVENTS).where("playerKey", "==", playerKey).get();
-  return snap.docs.map((d) => d.data() as MtoEvent);
+// Se guardan todos los avisos, pero las consultas solo devuelven los que
+// entran en el análisis: ATP y Challenger individual masculino.
+function analyzed(docs: FirebaseFirestore.QueryDocumentSnapshot[]): MtoEvent[] {
+  return docs.map((d) => d.data() as MtoEvent).filter((e) => tennisCategory(e) !== null);
 }
 
-export async function getTournamentEvents(tournamentKey: string): Promise<MtoEvent[]> {
-  const snap = await firestore.collection(EVENTS).where("tournamentKey", "==", tournamentKey).get();
-  return snap.docs.map((d) => d.data() as MtoEvent);
+export async function getPlayerEvents(playerKey: string): Promise<MtoEvent[]> {
+  const snap = await firestore.collection(EVENTS).where("playerKey", "==", playerKey).get();
+  return analyzed(snap.docs);
 }
 
 export async function getEventsSince(timestamp: number): Promise<MtoEvent[]> {
   const snap = await firestore.collection(EVENTS).where("timestamp", ">=", timestamp).get();
-  return snap.docs.map((d) => d.data() as MtoEvent);
+  return analyzed(snap.docs);
 }
