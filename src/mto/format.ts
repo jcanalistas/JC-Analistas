@@ -23,26 +23,84 @@ function eventLine(e: MtoEvent): string {
   return `• ${parts.join(" · ")}`;
 }
 
-export function formatAlert(event: MtoEvent, p: PatternResult): string {
-  const lines = [`⚠️ <b>${escapeHtml(event.player)}</b> — patrón de asistencias médicas`, ""];
+const BET_HINT =
+  "👉 Si siguen vivos (ganan este partido o se apuntan al próximo torneo), apostar en su contra en su siguiente partido.";
 
-  if (p.sameTournament.length >= 2) {
-    lines.push(`🔁 ${p.sameTournament.length}ª asistencia en <b>${escapeHtml(event.tournament)}</b>`);
-  }
-  if (p.weekStreak.length >= 2) {
-    lines.push(`📅 ${p.weekStreak.length} semanas seguidas con asistencia (${p.weekStreak.join(", ")})`);
-  }
-  if (p.recent.length >= 3) {
-    lines.push(`📈 ${p.recent.length} asistencias en los últimos 30 días`);
-  }
-  if (p.early) lines.push(`⏱ Aviso temprano: minuto ${event.playedMinutes}`);
-  if (p.opponentAlsoTreated) lines.push("🚑 El rival también ha recibido asistencia en este partido");
+function patternTags(p: PatternResult): string[] {
+  const tags: string[] = [];
+  if (p.sameTournament.length >= 2) tags.push(`🔁 ${p.sameTournament.length}ª en este torneo`);
+  if (p.weekStreak.length >= 2) tags.push(`📅 ${p.weekStreak.length} semanas seguidas`);
+  if (p.recent.length >= 3) tags.push(`📈 ${p.recent.length} en 30 días`);
+  if (p.early) tags.push("⏱ antes del min 20");
+  if (p.opponentAlsoTreated) tags.push("🚑 el rival también");
+  return tags;
+}
 
-  lines.push("", "<b>Ahora:</b>", eventLine(event), "", "<b>Historial reciente:</b>");
-  const previous = p.recent.filter((e) => e.id !== event.id).slice(-6);
-  lines.push(...(previous.length ? previous.map(eventLine) : ["• (ninguna en 30 días)"]));
-  lines.push("", "👀 Vigilar su próximo partido (posible retirada o bajo rendimiento).");
+export interface DigestItem {
+  event: MtoEvent;
+  patterns: PatternResult;
+}
+
+/** Resumen de una lectura del canal: primero los jugadores con patrón, luego el resto. */
+export function formatDigest(allItems: DigestItem[]): string {
+  // Un jugador con dos asistencias en la misma lectura sale una vez, con la
+  // última (sus patrones ya cuentan la anterior).
+  const items = [...new Map(allItems.map((i) => [i.event.playerKey, i])).values()];
+  const withPattern = items.filter((i) => i.patterns.alert);
+  const rest = items.filter((i) => !i.patterns.alert);
+  const lines = [`🚑 <b>Resumen MTO</b> — ${allItems.length} asistencias nuevas`];
+
+  if (withPattern.length) {
+    lines.push("", "⚠️ <b>Con patrón (prioridad para ir en contra)</b>");
+    for (const { event, patterns } of withPattern) {
+      lines.push("", `<b>${escapeHtml(event.player)}</b> — ${patternTags(patterns).join(" · ")}`, eventLine(event));
+      const previous = patterns.recent.filter((e) => e.id !== event.id).slice(-3);
+      if (previous.length) lines.push(...previous.map((e) => `   ↳ ${eventLine(e).slice(2)}`));
+    }
+  }
+
+  if (rest.length) {
+    lines.push("", "📋 <b>Resto</b>");
+    for (const { event, patterns } of rest) {
+      const tags = patternTags(patterns);
+      lines.push(`• <b>${escapeHtml(event.player)}</b> · ${eventLine(event).slice(2)}${tags.length ? " · " + tags.join(" · ") : ""}`);
+    }
+  }
+
+  lines.push("", BET_HINT, "Lista completa: /mto_vigilar");
   return lines.join("\n");
+}
+
+/** Jugadores con asistencia en los últimos días, los de patrón primero: candidatos a apostar en contra. */
+export function formatWatchlist(items: DigestItem[], days: number): string {
+  if (!items.length) return `🚑 Nadie ha recibido asistencia médica en los últimos ${days} días.`;
+  const sorted = [...items].sort(
+    (a, b) => Number(b.patterns.alert) - Number(a.patterns.alert) || b.event.timestamp - a.event.timestamp
+  );
+  const lines = [`👀 <b>A vigilar</b> — asistencia médica en los últimos ${days} días`, ""];
+  for (const { event, patterns } of sorted.slice(0, 40)) {
+    const tags = patternTags(patterns);
+    lines.push(`${patterns.alert ? "⚠️" : "•"} <b>${escapeHtml(event.player)}</b>${tags.length ? " — " + tags.join(" · ") : ""}`);
+    lines.push(`   ${eventLine(event).slice(2)}`);
+  }
+  if (sorted.length > 40) lines.push(`… y ${sorted.length - 40} más`);
+  lines.push("", BET_HINT);
+  return lines.join("\n");
+}
+
+/** Telegram corta los mensajes a 4096 caracteres: se trocea por líneas. */
+export function splitMessage(text: string, max = 4000): string[] {
+  const chunks: string[] = [];
+  let current = "";
+  for (const line of text.split("\n")) {
+    if (current && current.length + line.length + 1 > max) {
+      chunks.push(current);
+      current = "";
+    }
+    current = current ? `${current}\n${line}` : line;
+  }
+  if (current) chunks.push(current);
+  return chunks;
 }
 
 export function formatPlayerHistory(events: MtoEvent[]): string {

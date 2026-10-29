@@ -13,9 +13,11 @@ Bot de Telegram para el canal tipster **JC Analistas**. Funciones:
    listo para publicar en el canal.
 3. **📝 Pendientes / 📊 Stats**: seguimiento de apuestas registradas.
 4. **🚑 MTO**: lee el canal de avisos de asistencias médicas al que estás
-   suscrito ("GRUPO PREMIUM - BOT LESIONES"), guarda cada aviso y te avisa
-   cuando un jugador acumula varias asistencias en el mismo torneo, en
-   semanas seguidas o 3+ en 30 días (ver sección 7).
+   suscrito ("GRUPO PREMIUM - BOT LESIONES") cada 6 horas, guarda cada
+   aviso y te manda un resumen con los jugadores atendidos, destacando los
+   que repiten (mismo torneo, semanas seguidas o 3+ en 30 días). La idea:
+   apostar en su contra si siguen vivos en la siguiente ronda o torneo
+   (ver sección 7).
 
 ## Cómo funciona por dentro
 
@@ -170,10 +172,11 @@ gcloud secrets delete gemini-api-key
 
 Un bot no puede leer un canal del que no es administrador, así que el
 canal de lesiones se lee con **tu cuenta de Telegram** (solo lectura, con
-la librería GramJS). Cloud Scheduler llama cada 5 minutos a
-`/mto/poll/<WEBHOOK_SECRET_PATH>`, que descarga los mensajes nuevos desde
-el último leído, los guarda en Firestore (`mtoEvents`) y, si el jugador
-encaja en algún patrón, te manda la alerta al chat privado del bot.
+la librería GramJS). Basta con seguir el canal, no hace falta ser admin.
+Cloud Scheduler llama cada 6 horas a `/mto/poll/<WEBHOOK_SECRET_PATH>`,
+que descarga los mensajes nuevos desde el último leído, los guarda en
+Firestore (`mtoEvents`) y te manda **un resumen** al chat privado del bot:
+primero los jugadores con patrón y después el resto.
 
 ### 7.1 Credenciales de API
 
@@ -207,22 +210,25 @@ Puedes cerrarla cuando quieras en Telegram → Ajustes → Dispositivos.
 
 `/mto_leer` lee el canal desde el principio (hasta 3.000 mensajes por
 vez; si quedan más, el bot te pide volver a lanzarlo). Los avisos de más
-de 3 horas se guardan sin mandar alerta, para que el historial no te
-llene el chat.
+de 24 horas se guardan sin entrar en el resumen, para que el historial no
+te llene el chat.
 
-### 7.4 Lectura automática cada 5 minutos
+### 7.4 Lectura automática cada 6 horas
 
 ```bash
 gcloud scheduler jobs create http mto-poll \
   --location=europe-west1 \
-  --schedule="*/5 * * * *" \
+  --schedule="0 */6 * * *" \
   --http-method=POST \
   --uri="https://TU-URL-DE-CLOUD-RUN.a.run.app/mto/poll/TU_WEBHOOK_SECRET_PATH"
 ```
 
 ### 7.5 Comandos
 
-- `🚑 MTO` o `/mto` — ranking de jugadores con 2+ asistencias en 7 y 30 días.
+- `🚑 MTO` o `/mto_vigilar` — jugadores con asistencia en los últimos 14
+  días, los de patrón primero: candidatos a apostar en contra si pasan de
+  ronda o juegan el siguiente torneo.
+- `/mto` — ranking de jugadores con 2+ asistencias en 7 y 30 días.
 - `/mto brain` — historial de un jugador (vale el nombre parcial).
 - `/mto_leer` — leer el canal ahora mismo.
 - `/mto_estado` — sesión, canal y último mensaje leído.

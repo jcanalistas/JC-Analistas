@@ -1,7 +1,7 @@
 import type { Context, Telegraf } from "telegraf";
 import { Api } from "telegram";
 import { computeCheck } from "telegram/Password";
-import { formatPlayerHistory, formatRanking, escapeHtml } from "./format";
+import { formatPlayerHistory, formatRanking, formatWatchlist, escapeHtml, splitMessage } from "./format";
 import {
   clearPendingLogin,
   getCursor,
@@ -13,7 +13,7 @@ import {
   saveUserSession,
 } from "./mtoStore";
 import { normalizeName } from "./parseMto";
-import { pollMtoChannel } from "./poll";
+import { buildWatchlist, pollMtoChannel } from "./poll";
 import { apiCredentials, connectClient, findChannel, mtoConfigured } from "./userbot";
 
 export const MTO_BUTTON_TEXT = "🚑 MTO";
@@ -38,7 +38,8 @@ export function registerMtoHandlers(bot: Telegraf) {
     const query = ctx.message.text.replace(/^\/mto(@\w+)?/, "").trim();
     await (query ? showPlayer(ctx, query) : showRanking(ctx));
   });
-  bot.hears(MTO_BUTTON_TEXT, showRanking);
+  bot.hears(MTO_BUTTON_TEXT, showWatchlist);
+  bot.command("mto_vigilar", showWatchlist);
   bot.command("mto_estado", showStatus);
   bot.command("mto_leer", readNow);
   bot.command("mto_login", startLogin);
@@ -56,6 +57,18 @@ async function showRanking(ctx: Context) {
   } catch (err) {
     console.error("No se pudo sacar el ranking de MTO:", err);
     await ctx.reply("⚠️ No se pudo sacar el ranking. Revisa los logs.");
+  }
+}
+
+const WATCHLIST_DAYS = 14;
+
+async function showWatchlist(ctx: Context) {
+  try {
+    const text = formatWatchlist(await buildWatchlist(WATCHLIST_DAYS), WATCHLIST_DAYS);
+    for (const chunk of splitMessage(text)) await ctx.reply(chunk, { parse_mode: "HTML" });
+  } catch (err) {
+    console.error("No se pudo sacar la lista de vigilancia de MTO:", err);
+    await ctx.reply("⚠️ No se pudo sacar la lista. Revisa los logs.");
   }
 }
 
@@ -112,7 +125,7 @@ async function readNow(ctx: Context) {
     const r = await pollMtoChannel(ctx.telegram);
     await ctx.reply(
       `✅ ${r.channel ?? "Canal"}: ${r.read} mensajes leídos, ${r.saved} asistencias nuevas guardadas, ` +
-        `${r.alerts} alertas` +
+        `${r.inDigest} en el resumen` +
         (r.unparsed ? `, ${r.unparsed} mensajes que no son avisos.` : ".") +
         (r.read >= 3000 ? "\nQuedan mensajes antiguos: vuelve a lanzar /mto_leer." : "")
     );
