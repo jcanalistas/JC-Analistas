@@ -30,7 +30,6 @@ function patternTags(p: PatternResult): string[] {
   const tags: string[] = [];
   if (p.sameTournament.length >= 2) tags.push(`🔁 ${p.sameTournament.length}ª en este torneo`);
   if (p.weekStreak.length >= 2) tags.push(`📅 ${p.weekStreak.length} semanas seguidas`);
-  if (p.recent.length >= 3) tags.push(`📈 ${p.recent.length} en 30 días`);
   if (p.early) tags.push("⏱ antes del min 20");
   if (p.opponentAlsoTreated) tags.push("🚑 el rival también");
   return tags;
@@ -42,17 +41,31 @@ export interface DigestItem {
 }
 
 /** Solo los jugadores que repiten asistencia, con sus asistencias anteriores. */
+/** De más MTO a menos (últimos 30 días); a igualdad, el más reciente primero. */
+function byMtoCount(a: DigestItem, b: DigestItem): number {
+  return b.patterns.recent.length - a.patterns.recent.length || b.event.timestamp - a.event.timestamp;
+}
+
+function mtoCount(p: PatternResult): string {
+  return `<b>${p.recent.length} MTO</b>`;
+}
+
 export function formatRepeaters(items: DigestItem[], days: number): string {
-  const repeaters = items
-    .filter((i) => i.patterns.alert)
-    .sort((a, b) => b.patterns.recent.length - a.patterns.recent.length || b.event.timestamp - a.event.timestamp);
+  const repeaters = items.filter((i) => i.patterns.alert).sort(byMtoCount);
   if (!repeaters.length) {
     return `🔁 Nadie repite asistencia médica entre los atendidos en los últimos ${days} días.`;
   }
 
-  const lines = [`🔁 <b>Repiten asistencia médica</b> — ${repeaters.length} jugadores (últimos ${days} días)`];
+  const lines = [
+    `🔁 <b>Repiten asistencia médica</b> — ${repeaters.length} jugadores con MTO en los últimos ${days} días`,
+    "Ordenados de más MTO a menos (contadas en 30 días). Solo ATP y Challenger masculino.",
+  ];
   for (const { event, patterns } of repeaters) {
-    lines.push("", `⚠️ <b>${escapeHtml(event.player)}</b> — ${patternTags(patterns).join(" · ")}`, eventLine(event));
+    lines.push(
+      "",
+      `⚠️ <b>${escapeHtml(event.player)}</b> — ${mtoCount(patterns)} · ${patternTags(patterns).join(" · ")}`,
+      eventLine(event)
+    );
     const previous = patterns.recent.filter((e) => e.id !== event.id).slice(-3).reverse();
     lines.push(...previous.map((e) => `   ↳ ${eventLine(e).slice(2)}`));
   }
@@ -63,13 +76,18 @@ export function formatRepeaters(items: DigestItem[], days: number): string {
 /** Jugadores con asistencia en los últimos días, los de patrón primero: candidatos a apostar en contra. */
 export function formatWatchlist(items: DigestItem[], days: number): string {
   if (!items.length) return `🚑 Nadie ha recibido asistencia médica en los últimos ${days} días.`;
-  const sorted = [...items].sort(
-    (a, b) => Number(b.patterns.alert) - Number(a.patterns.alert) || b.event.timestamp - a.event.timestamp
-  );
-  const lines = [`👀 <b>A vigilar</b> — asistencia médica en los últimos ${days} días`, ""];
+  const sorted = [...items].sort(byMtoCount);
+  const lines = [
+    `👀 <b>A vigilar</b> — asistencia médica en los últimos ${days} días`,
+    "Ordenados de más MTO a menos (contadas en 30 días). Solo ATP y Challenger masculino.",
+    "",
+  ];
   for (const { event, patterns } of sorted.slice(0, 40)) {
     const tags = patternTags(patterns);
-    lines.push(`${patterns.alert ? "⚠️" : "•"} <b>${escapeHtml(event.player)}</b>${tags.length ? " — " + tags.join(" · ") : ""}`);
+    lines.push(
+      `${patterns.alert ? "⚠️" : "•"} <b>${escapeHtml(event.player)}</b> — ${mtoCount(patterns)}` +
+        (tags.length ? " · " + tags.join(" · ") : "")
+    );
     lines.push(`   ${eventLine(event).slice(2)}`);
   }
   if (sorted.length > 40) lines.push(`… y ${sorted.length - 40} más`);
