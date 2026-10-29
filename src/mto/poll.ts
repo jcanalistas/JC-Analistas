@@ -4,7 +4,7 @@ import { formatDigest, splitMessage, type DigestItem } from "./format";
 import { createEvent, getCursor, getEventsSince, getPlayerEvents, getTournamentEvents, saveCursor } from "./mtoStore";
 import { parseMto } from "./parseMto";
 import { detectPatterns, isDuplicate, isoWeek, type MtoEvent } from "./patterns";
-import { connectUserClient, fetchMessagesAfter, findChannel } from "./userbot";
+import { connectUserClient, fetchLatestMessages, fetchMessagesAfter, findChannel } from "./userbot";
 
 // Mensajes leídos como máximo por ejecución. La primera vez se carga el
 // historial entero del canal en tandas: lo que no quepa se lee en la
@@ -22,6 +22,8 @@ export interface PollResult {
   /** Asistencias nuevas incluidas en el resumen enviado. */
   inDigest: number;
   unparsed: number;
+  /** Quedan mensajes antiguos por leer (se llegó al límite de la tanda). */
+  more: boolean;
   channel?: string;
 }
 
@@ -29,7 +31,7 @@ let running = false;
 
 export async function pollMtoChannel(telegram: Telegram): Promise<PollResult> {
   // Cloud Scheduler podría solaparse con una ejecución lenta en la misma instancia.
-  if (running) return { read: 0, saved: 0, inDigest: 0, unparsed: 0 };
+  if (running) return { read: 0, saved: 0, inDigest: 0, unparsed: 0, more: false };
   running = true;
   try {
     return await runPoll(telegram);
@@ -55,8 +57,20 @@ async function runPoll(telegram: Telegram): Promise<PollResult> {
       cursor.lastMessageId = 0;
     }
 
-    const messages = await fetchMessagesAfter(client, channel.entity, cursor.lastMessageId, MAX_MESSAGES_PER_RUN);
-    const result: PollResult = { read: messages.length, saved: 0, inDigest: 0, unparsed: 0, channel: channel.title };
+    const { messages, more } = await fetchMessagesAfter(
+      client,
+      channel.entity,
+      cursor.lastMessageId,
+      MAX_MESSAGES_PER_RUN
+    );
+    const result: PollResult = {
+      read: messages.length,
+      saved: 0,
+      inDigest: 0,
+      unparsed: 0,
+      more,
+      channel: channel.title,
+    };
     const digest: DigestItem[] = [];
 
     for (const message of messages) {
@@ -113,4 +127,37 @@ export async function buildWatchlist(days: number): Promise<DigestItem[]> {
     items.push({ event: last, patterns: detectPatterns(last, history, events) });
   }
   return items;
+}
+
+export interface UnparsedGroup {
+  count: number;
+  example: string;
+}
+
+/**
+ * Mensajes recientes del canal que no son avisos de asistencia, agrupados
+ * por su primera línea (sin números), para ver si hay otro tipo de aviso
+ * que el lector se está perdiendo.
+ */
+export async function findUnparsedMessages(limit: number): Promise<UnparsedGroup[]> {
+  const client = await connectUserClient();
+  if (!client) throw new Error("No hay sesión de Telegram: haz /mto_login en el bot.");
+  try {
+    const cursor = await getCursor();
+    const channel = await findChannel(client, cursor.channelId);
+    if (!channel) throw new Error(`No encuentro ningún canal con "${env.mtoChannelTitle}" en el título.`);
+
+    const groups = new Map<string, UnparsedGroup>();
+    for (const message of await fetchLatestMessages(client, channel.entity, limit)) {
+      const text = message.text.trim();
+      if (!text || parseMto(text)) continue;
+      const key = text.split("\n")[0].replace(/\d+/g, "#").slice(0, 60);
+      const group = groups.get(key);
+      if (group) group.count++;
+      else groups.set(key, { count: 1, example: text });
+    }
+    return [...groups.values()].sort((a, b) => b.count - a.count);
+  } finally {
+    await client.disconnect();
+  }
 }

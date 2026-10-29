@@ -13,7 +13,7 @@ import {
   saveUserSession,
 } from "./mtoStore";
 import { normalizeName } from "./parseMto";
-import { buildWatchlist, pollMtoChannel } from "./poll";
+import { buildWatchlist, findUnparsedMessages, pollMtoChannel } from "./poll";
 import { apiCredentials, connectClient, findChannel, mtoConfigured } from "./userbot";
 
 export const MTO_BUTTON_TEXT = "🚑 MTO";
@@ -43,6 +43,7 @@ export function registerMtoHandlers(bot: Telegraf) {
   bot.command("mto_estado", showStatus);
   bot.command("mto_leer", readNow);
   bot.command("mto_login", startLogin);
+  bot.command("mto_raros", showUnparsed);
   bot.command("mto_cancelar", async (ctx) => {
     loginStep.delete(ctx.from.id);
     await clearPendingLogin().catch(() => undefined);
@@ -127,10 +128,32 @@ async function readNow(ctx: Context) {
       `✅ ${r.channel ?? "Canal"}: ${r.read} mensajes leídos, ${r.saved} asistencias nuevas guardadas, ` +
         `${r.inDigest} en el resumen` +
         (r.unparsed ? `, ${r.unparsed} mensajes que no son avisos.` : ".") +
-        (r.read >= 3000 ? "\nQuedan mensajes antiguos: vuelve a lanzar /mto_leer." : "")
+        (r.more ? "\n\n⏩ Quedan más mensajes por leer: vuelve a lanzar /mto_leer." : "\n\n✔️ Historial al día.")
     );
   } catch (err) {
     console.error("Fallo leyendo el canal de MTO:", err);
+    await ctx.reply(`⚠️ ${(err as Error).message}`);
+  }
+}
+
+async function showUnparsed(ctx: Context) {
+  if (!mtoConfigured()) {
+    await ctx.reply(NOT_CONFIGURED);
+    return;
+  }
+  try {
+    const groups = await findUnparsedMessages(1000);
+    if (!groups.length) {
+      await ctx.reply("✅ En los últimos 1000 mensajes del canal todos son avisos de asistencia médica.");
+      return;
+    }
+    const lines = ["🔎 <b>Mensajes del canal que no son avisos</b> (últimos 1000 mensajes)", ""];
+    for (const g of groups.slice(0, 10)) {
+      lines.push(`<b>${g.count}×</b>`, `<pre>${escapeHtml(g.example.slice(0, 300))}</pre>`, "");
+    }
+    for (const chunk of splitMessage(lines.join("\n"))) await ctx.reply(chunk, { parse_mode: "HTML" });
+  } catch (err) {
+    console.error("Fallo buscando mensajes no reconocidos:", err);
     await ctx.reply(`⚠️ ${(err as Error).message}`);
   }
 }

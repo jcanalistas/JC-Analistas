@@ -232,6 +232,8 @@ gcloud scheduler jobs create http mto-poll \
 - `/mto brain` — historial de un jugador (vale el nombre parcial).
 - `/mto_leer` — leer el canal ahora mismo.
 - `/mto_estado` — sesión, canal y último mensaje leído.
+- `/mto_raros` — mensajes recientes del canal que no son avisos de
+  asistencia, agrupados, por si hay otro formato que conviene leer.
 
 ### 7.6 Qué cuenta como patrón
 
