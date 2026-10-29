@@ -26,7 +26,10 @@ app.use(bot.webhookCallback(webhookPath));
 async function main() {
   if (env.publicUrl) {
     const webhookUrl = `${env.publicUrl.replace(/\/$/, "")}${webhookPath}`;
-    await bot.telegram.setWebhook(webhookUrl);
+    // drop_pending_updates: si una petición se quedó colgada (p.ej. una
+    // lectura del canal que se pasó de tiempo), Telegram la reintenta sin
+    // fin y no entrega nada más; al desplegar se descarta lo pendiente.
+    await bot.telegram.setWebhook(webhookUrl, { drop_pending_updates: true });
     console.log(`Webhook registrado en: ${webhookUrl}`);
   } else {
     console.warn(

@@ -212,17 +212,19 @@ async function readNow(ctx: Context) {
   await ctx.reply("⏳ Leyendo el canal de lesiones…");
   try {
     const r = await pollMtoChannel();
-    const since = r.oldest
-      ? ` (desde el ${new Date(r.oldest).toLocaleDateString("es-ES", { timeZone: "Europe/Madrid", day: "2-digit", month: "2-digit" })})`
-      : "";
+    const day = (ms: number) =>
+      new Date(ms).toLocaleDateString("es-ES", { timeZone: "Europe/Madrid", day: "2-digit", month: "2-digit" });
+    const range = r.from && r.to ? ` (del ${day(r.from)} al ${day(r.to)})` : "";
     await ctx.reply(
-      `✅ ${r.channel ?? "Canal"}: ${r.read} mensajes nuevos leídos${since}.\n\n` +
+      `✅ ${r.channel ?? "Canal"}: ${r.read} mensajes nuevos leídos${range}.\n\n` +
         `🚑 ${r.saved} asistencias nuevas: ${r.atp} ATP, ${r.challenger} Challenger y ` +
-        `${r.saved - r.atp - r.challenger} descartadas (UTR, ITF, femenino, dobles…).` +
+        `${r.saved - r.atp - r.challenger} descartadas (UTR, ITF, femenino).` +
         (r.unparsed ? `\n${r.unparsed} mensajes que no son avisos.` : "") +
-        (r.truncated ? "\n\n⚠️ Había demasiados mensajes: solo se han leído los más recientes." : "")
+        (r.more ? "\n\n⏩ Quedan más mensajes por leer: pulsa otra vez." : "\n\n✔️ Canal al día."),
+      r.more ? Markup.inlineKeyboard([Markup.button.callback("🔄 Seguir leyendo", "mto:leer")]) : undefined
     );
-    await showRepeaters(ctx);
+    // El resumen de quién repite solo tiene sentido con el canal al día.
+    if (!r.more) await showRepeaters(ctx);
   } catch (err) {
     console.error("Fallo leyendo el canal de MTO:", err);
     await ctx.reply(`⚠️ ${(err as Error).message}`);

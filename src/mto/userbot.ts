@@ -63,28 +63,36 @@ export interface ChannelMessage {
   text: string;
 }
 
+/** ID del último mensaje anterior a `since` (ms), o 0 si no hay ninguno: desde ahí se empieza a leer. */
+export async function lastMessageIdBefore(
+  client: TelegramClient,
+  entity: Api.TypeEntityLike,
+  since: number
+): Promise<number> {
+  const [message] = await client.getMessages(entity, { limit: 1, offsetDate: Math.floor(since / 1000) });
+  return message?.id ?? 0;
+}
+
 /**
- * Mensajes del canal del más reciente hacia atrás, hasta llegar a `afterId`
- * (ya leído), a uno anterior a `since` o al límite `limit`. Se devuelven del
- * más antiguo al más reciente. `truncated` indica que se cortó por el límite.
+ * Mensajes posteriores a `afterId`, del más antiguo al más reciente.
+ * `more` indica que se llegó al límite y quedan mensajes por leer.
  */
-export async function fetchRecentMessages(
+export async function fetchMessagesAfter(
   client: TelegramClient,
   entity: Api.TypeEntityLike,
   afterId: number,
-  since: number,
   limit: number
-): Promise<{ messages: ChannelMessage[]; truncated: boolean }> {
+): Promise<{ messages: ChannelMessage[]; more: boolean }> {
   const messages: ChannelMessage[] = [];
   let seen = 0;
-  for await (const message of client.iterMessages(entity, { minId: afterId, limit })) {
+  for await (const message of client.iterMessages(entity, { reverse: true, minId: afterId, limit })) {
+    // Los mensajes de servicio (fijados, cambios de título…) cuentan para el
+    // límite pero no tienen texto que leer.
     seen++;
-    if (message.date * 1000 < since) return { messages: messages.reverse(), truncated: false };
-    // Los mensajes de servicio (fijados, cambios de título…) no tienen texto que leer.
     if (!(message instanceof Api.Message)) continue;
     messages.push({ id: message.id, date: message.date * 1000, text: message.message ?? "" });
   }
-  return { messages: messages.reverse(), truncated: seen >= limit };
+  return { messages, more: seen >= limit };
 }
 
 /** Los `limit` mensajes más recientes del canal, del más reciente al más antiguo. */

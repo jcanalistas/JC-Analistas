@@ -52,16 +52,26 @@ export async function clearPendingLogin(): Promise<void> {
   await firestore.collection(STATE).doc("login").delete();
 }
 
-/** Guarda el aviso. Devuelve false si ya existía (otra ejecución lo procesó antes). */
-export async function createEvent(event: MtoEvent): Promise<boolean> {
-  try {
-    await firestore.collection(EVENTS).doc(event.id).create(event);
-    return true;
-  } catch (err) {
-    // 6 = ALREADY_EXISTS
-    if ((err as { code?: number }).code === 6) return false;
-    throw err;
+/**
+ * Guarda los avisos que no existían todavía y devuelve esos. Se hace en
+ * bloques (una lectura y una escritura por cada 300) porque guardarlos de
+ * uno en uno con miles de avisos se pasaba del tiempo de la petición.
+ */
+export async function createEvents(events: MtoEvent[]): Promise<MtoEvent[]> {
+  const created: MtoEvent[] = [];
+  for (let i = 0; i < events.length; i += 300) {
+    const chunk = events.slice(i, i + 300);
+    const refs = chunk.map((e) => firestore.collection(EVENTS).doc(e.id));
+    const snaps = await firestore.getAll(...refs);
+    const batch = firestore.batch();
+    chunk.forEach((event, j) => {
+      if (snaps[j].exists) return;
+      batch.set(refs[j], event);
+      created.push(event);
+    });
+    await batch.commit();
   }
+  return created;
 }
 
 // Se guardan todos los avisos, pero las consultas solo devuelven los que

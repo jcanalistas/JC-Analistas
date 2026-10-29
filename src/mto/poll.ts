@@ -1,15 +1,16 @@
 import { env } from "../config/env";
 import type { DigestItem } from "./format";
-import { createEvent, getCursor, getEventsSince, saveCursor } from "./mtoStore";
+import { createEvents, getCursor, getEventsSince, saveCursor } from "./mtoStore";
 import { parseMto, tennisCategory } from "./parseMto";
 import { dedupe, detectPatterns, isoWeek, type MtoEvent } from "./patterns";
-import { connectUserClient, fetchLatestMessages, fetchRecentMessages, findChannel } from "./userbot";
+import { connectUserClient, fetchLatestMessages, fetchMessagesAfter, findChannel, lastMessageIdBefore } from "./userbot";
 
-// Cada lectura va de lo más reciente hacia atrás hasta lo ya leído, sin
-// pasar de 45 días: los patrones miran 30 días + los 14 de la lista, así
-// que no hace falta el historial entero del canal.
+// Solo interesan los últimos 45 días (los patrones miran 30 días + los 14
+// de la lista). Cada lectura sigue donde lo dejó la anterior, en tandas de
+// 3.000 mensajes para que la petición acabe a tiempo: si quedan más, se
+// vuelve a pulsar "Leer canal".
 const MAX_DAYS_BACK = 45;
-const MAX_MESSAGES_PER_RUN = 8000;
+const MAX_MESSAGES_PER_RUN = 3000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface PollResult {
@@ -19,10 +20,11 @@ export interface PollResult {
   /** De las asistencias guardadas, cuántas entran en el análisis (ATP / Challenger masculino). */
   atp: number;
   challenger: number;
-  /** Fecha del aviso más antiguo leído en esta tanda (ms). */
-  oldest?: number;
-  /** Se cortó por el límite de mensajes antes de llegar a lo ya leído o a 45 días. */
-  truncated: boolean;
+  /** Fechas del primer y último mensaje leídos en esta tanda (ms). */
+  from?: number;
+  to?: number;
+  /** Quedan mensajes por leer (se llegó al límite de la tanda). */
+  more: boolean;
   channel?: string;
 }
 
@@ -30,7 +32,7 @@ let running = false;
 
 export async function pollMtoChannel(): Promise<PollResult> {
   // Evita dos lecturas a la vez si se pulsa /mto_leer dos veces seguidas.
-  if (running) return { read: 0, saved: 0, unparsed: 0, atp: 0, challenger: 0, truncated: false };
+  if (running) return { read: 0, saved: 0, unparsed: 0, atp: 0, challenger: 0, more: false };
   running = true;
   try {
     return await runPoll();
@@ -56,11 +58,12 @@ async function runPoll(): Promise<PollResult> {
       cursor.lastMessageId = 0;
     }
 
-    const { messages, truncated } = await fetchRecentMessages(
+    // Lo anterior a 45 días no hace falta: se salta directamente.
+    const startId = await lastMessageIdBefore(client, channel.entity, Date.now() - MAX_DAYS_BACK * DAY_MS);
+    const { messages, more } = await fetchMessagesAfter(
       client,
       channel.entity,
-      cursor.lastMessageId,
-      Date.now() - MAX_DAYS_BACK * DAY_MS,
+      Math.max(cursor.lastMessageId, startId),
       MAX_MESSAGES_PER_RUN
     );
     const result: PollResult = {
@@ -69,25 +72,29 @@ async function runPoll(): Promise<PollResult> {
       unparsed: 0,
       atp: 0,
       challenger: 0,
-      oldest: messages[0]?.date,
-      truncated,
+      from: messages[0]?.date,
+      to: messages[messages.length - 1]?.date,
+      more,
       channel: channel.title,
     };
 
+    const events: MtoEvent[] = [];
     for (const message of messages) {
       const parsed = parseMto(message.text);
-      if (!parsed) {
-        if (message.text.trim()) result.unparsed++;
-      } else {
-        const event: MtoEvent = { id: String(message.id), ...parsed, timestamp: message.date, week: isoWeek(message.date) };
-        if (await createEvent(event)) {
-          result.saved++;
-          const category = tennisCategory(event);
-          if (category) result[category]++;
-        }
+      if (parsed) {
+        events.push({ id: String(message.id), ...parsed, timestamp: message.date, week: isoWeek(message.date) });
+      } else if (message.text.trim()) {
+        result.unparsed++;
       }
-      cursor.lastMessageId = Math.max(cursor.lastMessageId, message.id);
     }
+
+    const created = await createEvents(events);
+    result.saved = created.length;
+    for (const event of created) {
+      const category = tennisCategory(event);
+      if (category) result[category]++;
+    }
+    if (messages.length) cursor.lastMessageId = messages[messages.length - 1].id;
 
     await saveCursor(cursor);
     return result;

@@ -207,9 +207,9 @@ Puedes cerrarla cuando quieras en Telegram → Ajustes → Dispositivos.
 
 ### 7.3 Cómo lee el canal
 
-`/mto_leer` va del mensaje más reciente hacia atrás hasta llegar al último
-que ya había leído, sin pasar de 45 días (los patrones miran 30 días más
-los 14 de la lista) ni de 8.000 mensajes por lectura. Lánzalo cada vez que
+`/mto_leer` sigue donde lo dejó la lectura anterior, en tandas de 3.000
+mensajes (si quedan más, sale el botón "🔄 Seguir leyendo"), sin leer nada
+de hace más de 45 días. Lánzalo cada vez que
 quieras ponerte al día; si llevas más de 45 días sin hacerlo, lo anterior
 simplemente no se lee.
 
